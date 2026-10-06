@@ -59,11 +59,11 @@
             animation: fadeIn 0.25s ease-out forwards;
         }
         .glass-card {
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(226, 232, 240, 0.9);
-            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03);
+            box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.04);
         }
         .custom-scrollbar::-webkit-scrollbar {
             width: 4px;
@@ -90,6 +90,26 @@
             { id: 'acc_cash', name: 'Uang Tunai / Cash', type: 'Cash', balance: 420000, color: 'bg-amber-500' }
         ];
 
+        const DEFAULT_EXPENSE_CATEGORIES = [
+            'Makanan & Minuman',
+            'Belanja & Groceries',
+            'Transportasi',
+            'Tagihan & Utilitas',
+            'Hiburan & Gaya Hidup',
+            'Kesehatan & Kecantikan',
+            'Pendidikan',
+            'Pengeluaran Lainnya'
+        ];
+
+        const DEFAULT_INCOME_CATEGORIES = [
+            'Gaji / Payroll',
+            'Bonus & Insentif',
+            'Hasil Usaha / Freelance',
+            'Investasi & Dividen',
+            'Hadiah & Grants',
+            'Pemasukan Lainnya'
+        ];
+
         const getOffsetDate = (daysAgo) => {
             const d = new Date();
             d.setDate(d.getDate() - daysAgo);
@@ -101,44 +121,35 @@
 
         const INITIAL_TRANSACTIONS = [
             { id: 'tx_1', date: getOffsetDate(0), type: 'EXPENSE', amount: 45000, accountId: 'acc_gopay', category: 'Makanan & Minuman', note: 'Kopi & Snack Hari Ini' },
-            { id: 'tx_2', date: getOffsetDate(3), type: 'EXPENSE', amount: 350000, accountId: 'acc_bca', category: 'Belanja & Groceries', note: 'Belanja Supermarket (3 hari lalu)' },
-            { id: 'tx_3', date: getOffsetDate(5), type: 'TRANSFER', amount: 200000, accountId: 'acc_bca', toAccountId: 'acc_gopay', category: 'Transfer Internal', note: 'Top up GoPay', adminFee: 1000 },
-            { id: 'tx_4', date: getOffsetDate(12), type: 'EXPENSE', amount: 450000, accountId: 'acc_bca', category: 'Tagihan & Utilitas', note: 'Tagihan Listrik & Wifi' },
-            { id: 'tx_5', date: getOffsetDate(20), type: 'INCOME', amount: 7500000, accountId: 'acc_bca', category: 'Gaji / Income', note: 'Gaji Bulanan' },
-            { id: 'tx_6', date: getOffsetDate(40), type: 'INCOME', amount: 2500000, accountId: 'acc_bca', category: 'Gaji / Income', note: 'Bonus Project Bulan Lalu' },
-            { id: 'tx_7', date: getOffsetDate(42), type: 'EXPENSE', amount: 600000, accountId: 'acc_cash', category: 'Hiburan & Gaya Hidup', note: 'Jalan-jalan Bulan Lalu' }
+            { id: 'tx_2', date: getOffsetDate(1), type: 'EXPENSE', amount: 125000, accountId: 'acc_bca', category: 'Belanja & Groceries', note: 'Belanja Bahan Makanan' },
+            { id: 'tx_3', date: getOffsetDate(3), type: 'EXPENSE', amount: 350000, accountId: 'acc_bca', category: 'Belanja & Groceries', note: 'Belanja Supermarket' },
+            { id: 'tx_4', date: getOffsetDate(5), type: 'TRANSFER', amount: 200000, accountId: 'acc_bca', toAccountId: 'acc_gopay', category: 'Transfer Internal', note: 'Top up GoPay', adminFee: 1000 },
+            { id: 'tx_5', date: getOffsetDate(12), type: 'EXPENSE', amount: 450000, accountId: 'acc_bca', category: 'Tagihan & Utilitas', note: 'Tagihan Listrik & Wifi' },
+            { id: 'tx_6', date: getOffsetDate(20), type: 'INCOME', amount: 7500000, accountId: 'acc_bca', category: 'Gaji / Payroll', note: 'Gaji Bulanan' },
+            { id: 'tx_7', date: getOffsetDate(25), type: 'INCOME', amount: 1500000, accountId: 'acc_bca', category: 'Bonus & Insentif', note: 'Bonus Project Freelance' }
         ];
 
-        // Format Currency Helper
         const formatIDR = (num) => {
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num || 0);
         };
 
         function App() {
-            const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'transactions', 'scan', 'accounts', 'supabase'
+            const [activeTab, setActiveTab] = useState('dashboard');
             const [accounts, setAccounts] = useState(() => JSON.parse(localStorage.getItem('keuanganku_accounts')) || DEFAULT_ACCOUNTS);
             const [transactions, setTransactions] = useState(() => JSON.parse(localStorage.getItem('keuanganku_transactions')) || INITIAL_TRANSACTIONS);
+            
+            const [expenseCategories, setExpenseCategories] = useState(() => JSON.parse(localStorage.getItem('keuanganku_expense_categories')) || DEFAULT_EXPENSE_CATEGORIES);
+            const [incomeCategories, setIncomeCategories] = useState(() => JSON.parse(localStorage.getItem('keuanganku_income_categories')) || DEFAULT_INCOME_CATEGORIES);
 
-            // Supabase & Gemini Config State
             const DEFAULT_SUPABASE_URL = 'https://fqaewybhgsxlkgkvjnjv.supabase.co';
             const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxYWV3eWJoZ3N4bGtna3Zqbmp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyODc4MzQsImV4cCI6MjEwNjg2MzgzNH0.s4Frl_Mpj77Fc321j7MWykvxaXA7XWkKjWzJKEn-LXE';
-            const DEFAULT_GEMINI_KEY = '';
             const DEFAULT_SHEETS_WEBHOOK = 'https://script.google.com/macros/s/AKfycbxL9JzrgsCcd9cQiPWzxIOjeT_MDtCYL97t44dgpIeUAiU6MbVWfjRwMtzuSGvUFtMv/exec';
 
             const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('supabase_url') || DEFAULT_SUPABASE_URL);
             const [supabaseKey, setSupabaseKey] = useState(() => localStorage.getItem('supabase_key') || DEFAULT_SUPABASE_KEY);
             const [sheetsWebhookUrl, setSheetsWebhookUrl] = useState(() => localStorage.getItem('sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK);
-            
-            // Clean up invalid gemini api keys from localStorage if present
-            const [geminiApiKey, setGeminiApiKey] = useState(() => {
-                const storedKey = localStorage.getItem('gemini_api_key');
-                if (storedKey && storedKey.startsWith('AQ.')) {
-                    localStorage.removeItem('gemini_api_key');
-                    return DEFAULT_GEMINI_KEY;
-                }
-                return storedKey || DEFAULT_GEMINI_KEY;
-            });
-            
+            const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+
             const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
             const [supabaseClient, setSupabaseClient] = useState(null);
             const [toastMessage, setToastMessage] = useState(null);
@@ -152,13 +163,21 @@
             }, [transactions]);
 
             useEffect(() => {
+                localStorage.setItem('keuanganku_expense_categories', JSON.stringify(expenseCategories));
+            }, [expenseCategories]);
+
+            useEffect(() => {
+                localStorage.setItem('keuanganku_income_categories', JSON.stringify(incomeCategories));
+            }, [incomeCategories]);
+
+            useEffect(() => {
                 if (supabaseUrl && supabaseKey && window.supabase) {
                     try {
                         const client = window.supabase.createClient(supabaseUrl, supabaseKey);
                         setSupabaseClient(client);
                         setIsSupabaseConnected(true);
                     } catch (err) {
-                        console.error("Supabase Connection Error:", err);
+                        console.warn("Supabase Connection Note:", err);
                         setIsSupabaseConnected(false);
                     }
                 }
@@ -172,7 +191,7 @@
 
             const showToast = (msg, type = 'success') => {
                 setToastMessage({ msg, type });
-                setTimeout(() => setToastMessage(null), 3000);
+                setTimeout(() => setToastMessage(null), 3500);
             };
 
             const totalBalance = useMemo(() => {
@@ -183,7 +202,6 @@
                 const createdTx = { ...newTx, id: 'tx_' + Date.now() };
                 setTransactions(prev => [createdTx, ...prev]);
 
-                // Update Local Accounts Balance
                 setAccounts(prev => prev.map(acc => {
                     let newBal = acc.balance;
                     if (newTx.type === 'INCOME' && acc.id === newTx.accountId) {
@@ -201,8 +219,7 @@
                     return { ...acc, balance: newBal };
                 }));
 
-                // Sync to Supabase if available
-                if (isSupabaseConnected && supabaseClient) {
+                if (supabaseClient) {
                     supabaseClient.from('transactions').insert([{
                         id: createdTx.id,
                         type: createdTx.type,
@@ -214,11 +231,10 @@
                         note: createdTx.note || '',
                         admin_fee: createdTx.adminFee || 0
                     }]).then(({ error }) => {
-                        if (error) console.error("Supabase tx sync error:", error);
+                        if (error) console.warn("Supabase tx sync notice:", error);
                     });
                 }
 
-                // Sync to Google Sheets Webhook
                 if (sheetsWebhookUrl) {
                     const accName = accounts.find(a => a.id === createdTx.accountId)?.name || '-';
                     const toAccName = createdTx.toAccountId ? (accounts.find(a => a.id === createdTx.toAccountId)?.name || '-') : '-';
@@ -245,8 +261,7 @@
             };
 
             return (
-                <div className="min-h-screen flex flex-col pb-24 lg:pb-0">
-                    {/* Top Header Bar */}
+                <div className="min-h-screen flex flex-col pb-24 lg:pb-6">
                     <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 sm:px-6">
                         <div className="max-w-5xl mx-auto flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -259,7 +274,6 @@
                                 </div>
                             </div>
 
-                            {/* Total Balance Snapshot */}
                             <div className="text-right">
                                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Total Aset</span>
                                 <span className="font-black text-base sm:text-lg text-slate-900">{formatIDR(totalBalance)}</span>
@@ -267,20 +281,44 @@
                         </div>
                     </header>
 
-                    {/* Toast Alert */}
                     {toastMessage && (
-                        <div className="fixed top-16 right-4 z-50 bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-slate-800 animate-bounce">
-                            <i data-lucide="check-circle-2" className="w-4 h-4 text-emerald-400"></i>
+                        <div className={`fixed top-16 right-4 z-50 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 border animate-bounce ${toastMessage.type === 'error' ? 'bg-rose-900 border-rose-800' : 'bg-slate-900 border-slate-800'}`}>
+                            <i data-lucide={toastMessage.type === 'error' ? 'alert-circle' : 'check-circle-2'} className={`w-4 h-4 ${toastMessage.type === 'error' ? 'text-rose-400' : 'text-emerald-400'}`}></i>
                             <span>{toastMessage.msg}</span>
                         </div>
                     )}
 
-                    {/* Main Workspace */}
                     <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
                         {activeTab === 'dashboard' && <DashboardTab transactions={transactions} accounts={accounts} onNavigate={setActiveTab} />}
-                        {activeTab === 'transactions' && <TransactionsTab transactions={transactions} accounts={accounts} onAddTransaction={handleAddTransaction} />}
-                        {activeTab === 'scan' && <ScanTab accounts={accounts} onAddTransaction={handleAddTransaction} geminiApiKey={geminiApiKey} showToast={showToast} />}
-                        {activeTab === 'accounts' && <AccountsTab accounts={accounts} setAccounts={setAccounts} showToast={showToast} />}
+                        {activeTab === 'transactions' && (
+                            <TransactionsTab 
+                                transactions={transactions} 
+                                accounts={accounts} 
+                                expenseCategories={expenseCategories}
+                                incomeCategories={incomeCategories}
+                                onAddTransaction={handleAddTransaction} 
+                            />
+                        )}
+                        {activeTab === 'scan' && (
+                            <ScanTab 
+                                accounts={accounts} 
+                                expenseCategories={expenseCategories}
+                                onAddTransaction={handleAddTransaction} 
+                                geminiApiKey={geminiApiKey} 
+                                showToast={showToast} 
+                            />
+                        )}
+                        {activeTab === 'accounts' && (
+                            <AccountsTab 
+                                accounts={accounts} 
+                                setAccounts={setAccounts} 
+                                expenseCategories={expenseCategories}
+                                setExpenseCategories={setExpenseCategories}
+                                incomeCategories={incomeCategories}
+                                setIncomeCategories={setIncomeCategories}
+                                showToast={showToast} 
+                            />
+                        )}
                         {activeTab === 'supabase' && (
                             <SupabaseTab 
                                 supabaseUrl={supabaseUrl}
@@ -299,7 +337,6 @@
                         )}
                     </main>
 
-                    {/* Bottom Navigation Dock */}
                     <nav className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-full px-3 py-2 shadow-2xl flex items-center gap-1 sm:gap-2">
                         <button
                             onClick={() => setActiveTab('dashboard')}
@@ -317,7 +354,6 @@
                             <span className="text-[10px] font-bold mt-0.5">Catat</span>
                         </button>
 
-                        {/* Scan AI Floating Center Button */}
                         <button
                             onClick={() => setActiveTab('scan')}
                             className={`relative -top-3 p-3.5 rounded-full text-white bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 shadow-lg shadow-violet-500/40 active:scale-95 transition-all ${activeTab === 'scan' ? 'ring-4 ring-violet-200' : ''}`}
@@ -330,8 +366,8 @@
                             onClick={() => setActiveTab('accounts')}
                             className={`flex flex-col items-center py-1.5 px-3.5 rounded-full transition-all ${activeTab === 'accounts' ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30' : 'text-slate-500 hover:text-slate-900'}`}
                         >
-                            <i data-lucide="wallet" className="w-5 h-5"></i>
-                            <span className="text-[10px] font-bold mt-0.5">Rekening</span>
+                            <i data-lucide="settings-2" className="w-5 h-5"></i>
+                            <span className="text-[10px] font-bold mt-0.5">Pengaturan</span>
                         </button>
 
                         <button
@@ -346,11 +382,10 @@
             );
         }
 
-        /* -------------------------------------------------------------------------- */
-        /*                          HIGH READABILITY DASHBOARD                         */
-        /* -------------------------------------------------------------------------- */
         function DashboardTab({ transactions, accounts, onNavigate }) {
-            const [dateFilter, setDateFilter] = useState('30days'); // 'today', '7days', '30days', 'month', 'custom'
+            const [dateFilter, setDateFilter] = useState('30days');
+            const [searchQuery, setSearchQuery] = useState('');
+            const [typeFilter, setTypeFilter] = useState('ALL');
             
             const getTodayStr = () => {
                 const d = new Date();
@@ -364,12 +399,11 @@
             });
             const [endDate, setEndDate] = useState(() => getTodayStr());
 
-            // Ensure Lucide updates when filter changes
             useEffect(() => {
                 if (window.lucide && typeof window.lucide.createIcons === 'function') {
                     window.lucide.createIcons();
                 }
-            }, [dateFilter, transactions]);
+            }, [dateFilter, transactions, searchQuery, typeFilter]);
 
             const dateRangeLabel = useMemo(() => {
                 const today = getTodayStr();
@@ -396,34 +430,47 @@
                 return 'Semua Transaksi';
             }, [dateFilter, startDate, endDate]);
 
-            // Filter Transactions by selected date range
             const filteredTransactions = useMemo(() => {
                 const todayStr = getTodayStr();
                 return transactions.filter(t => {
                     const txDate = t.date;
+                    let matchesDate = true;
                     if (dateFilter === 'today') {
-                        return txDate === todayStr;
+                        matchesDate = txDate === todayStr;
                     } else if (dateFilter === '7days') {
                         const d = new Date();
                         d.setDate(d.getDate() - 7);
                         const start7 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                        return txDate >= start7 && txDate <= todayStr;
+                        matchesDate = txDate >= start7 && txDate <= todayStr;
                     } else if (dateFilter === '30days') {
                         const d = new Date();
                         d.setDate(d.getDate() - 30);
                         const start30 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                        return txDate >= start30 && txDate <= todayStr;
+                        matchesDate = txDate >= start30 && txDate <= todayStr;
                     } else if (dateFilter === 'month') {
                         const curMonth = todayStr.substring(0, 7);
-                        return txDate.startsWith(curMonth);
+                        matchesDate = txDate.startsWith(curMonth);
                     } else if (dateFilter === 'custom') {
-                        return txDate >= startDate && txDate <= endDate;
+                        matchesDate = txDate >= startDate && txDate <= endDate;
                     }
-                    return true;
-                });
-            }, [transactions, dateFilter, startDate, endDate]);
 
-            // Income and Expense Calculation
+                    let matchesType = true;
+                    if (typeFilter !== 'ALL') {
+                        matchesType = t.type === typeFilter;
+                    }
+
+                    let matchesSearch = true;
+                    if (searchQuery.trim()) {
+                        const q = searchQuery.toLowerCase();
+                        const note = (t.note || '').toLowerCase();
+                        const cat = (t.category || '').toLowerCase();
+                        matchesSearch = note.includes(q) || cat.includes(q);
+                    }
+
+                    return matchesDate && matchesType && matchesSearch;
+                });
+            }, [transactions, dateFilter, startDate, endDate, typeFilter, searchQuery]);
+
             const { totalIncome, totalExpense } = useMemo(() => {
                 return filteredTransactions.reduce((acc, t) => {
                     if (t.type === 'INCOME') acc.totalIncome += Number(t.amount || 0);
@@ -434,7 +481,15 @@
 
             const netCashflow = totalIncome - totalExpense;
 
-            // Expense Breakdown by Category
+            const healthStatus = useMemo(() => {
+                if (totalIncome === 0 && totalExpense === 0) return { label: 'Belum Ada Transaksi', color: 'text-slate-500', bg: 'bg-slate-100' };
+                if (totalIncome === 0) return { label: 'Defisit (100% Pengeluaran)', color: 'text-rose-600', bg: 'bg-rose-100' };
+                const ratio = (totalExpense / totalIncome) * 100;
+                if (ratio <= 50) return { label: `Sangat Sehat (${Math.round(ratio)}% terpakai)`, color: 'text-emerald-600', bg: 'bg-emerald-100' };
+                if (ratio <= 80) return { label: `Hemat (${Math.round(ratio)}% terpakai)`, color: 'text-amber-600', bg: 'bg-amber-100' };
+                return { label: `Perlu Waspada (${Math.round(ratio)}% terpakai)`, color: 'text-rose-600', bg: 'bg-rose-100' };
+            }, [totalIncome, totalExpense]);
+
             const categoryBreakdown = useMemo(() => {
                 const map = {};
                 filteredTransactions.forEach(t => {
@@ -455,14 +510,12 @@
 
             return (
                 <div className="space-y-6">
-                    {/* Header & Date Range Segmented Controller */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
                             <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Ringkasan Keuangan</h2>
                             <p className="text-xs text-slate-500 font-medium">Laporan pemasukan, pengeluaran, & alokasi dana</p>
                         </div>
 
-                        {/* Clean Filter Options */}
                         <div className="flex flex-wrap items-center gap-1 bg-slate-200/70 p-1 rounded-2xl border border-slate-300/60">
                             <button
                                 onClick={() => setDateFilter('today')}
@@ -498,15 +551,17 @@
                         </div>
                     </div>
 
-                    {/* Active Date Range Indicator Badge */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[11px] font-bold text-violet-700 bg-violet-50 px-3 py-1.5 rounded-xl border border-violet-200/80 shadow-2xs flex items-center gap-1.5">
                             <i data-lucide="calendar-range" className="w-3.5 h-3.5 text-violet-600"></i>
-                            <span>Periode Aktif: <strong>{dateRangeLabel}</strong></span>
+                            <span>Periode: <strong>{dateRangeLabel}</strong></span>
+                        </span>
+                        <span className={`text-[11px] font-black px-3 py-1.5 rounded-xl ${healthStatus.bg} ${healthStatus.color} flex items-center gap-1`}>
+                            <i data-lucide="activity" className="w-3.5 h-3.5"></i>
+                            <span>{healthStatus.label}</span>
                         </span>
                     </div>
 
-                    {/* Custom Date Picker Section (Visible only when dateFilter === 'custom') */}
                     {dateFilter === 'custom' && (
                         <div className="glass-card p-4 rounded-3xl border border-violet-100 bg-violet-50/40 flex flex-col sm:flex-row items-center gap-3 animate-fadeIn">
                             <div className="w-full sm:w-auto flex-1">
@@ -531,9 +586,7 @@
                         </div>
                     )}
 
-                    {/* 🚀 High-Impact Hero Cashflow Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Pemasukan Card */}
                         <div className="bg-white p-5 rounded-3xl border border-emerald-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-100/50 rounded-full blur-2xl -mr-6 -mt-6"></div>
                             <div className="flex items-center justify-between mb-3 relative z-10">
@@ -548,7 +601,6 @@
                             </div>
                         </div>
 
-                        {/* Pengeluaran Card */}
                         <div className="bg-white p-5 rounded-3xl border border-rose-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-rose-100/50 rounded-full blur-2xl -mr-6 -mt-6"></div>
                             <div className="flex items-center justify-between mb-3 relative z-10">
@@ -563,7 +615,6 @@
                             </div>
                         </div>
 
-                        {/* Arus Kas Bersih Card */}
                         <div className="bg-white p-5 rounded-3xl border border-violet-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-violet-100/50 rounded-full blur-2xl -mr-6 -mt-6"></div>
                             <div className="flex items-center justify-between mb-3 relative z-10">
@@ -586,7 +637,6 @@
                         </div>
                     </div>
 
-                    {/* Quick Action Buttons */}
                     <div className="grid grid-cols-3 gap-2.5">
                         <button
                             onClick={() => onNavigate('transactions')}
@@ -611,10 +661,7 @@
                         </button>
                     </div>
 
-                    {/* Two-Column Layout for Breakdown & Accounts */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        
-                        {/* 📊 Visual Category Expense Breakdown */}
                         <div className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
                             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                                 <div>
@@ -644,7 +691,6 @@
                                                     <span className="text-[10px] text-slate-400 font-bold ml-1">({item.percentage}%)</span>
                                                 </div>
                                             </div>
-                                            {/* Progress Bar */}
                                             <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
                                                 <div
                                                     className="h-full bg-gradient-to-r from-violet-500 to-indigo-600 rounded-full transition-all duration-500"
@@ -657,7 +703,6 @@
                             )}
                         </div>
 
-                        {/* 🏦 Account Balances Snapshot */}
                         <div className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
                             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                                 <div>
@@ -689,26 +734,45 @@
                         </div>
                     </div>
 
-                    {/* 📝 Recent Filtered Transactions List */}
                     <div className="glass-card rounded-3xl p-5 sm:p-6 space-y-4">
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
                             <div>
                                 <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">Histori Transaksi ({filteredTransactions.length})</h3>
-                                <p className="text-[11px] text-slate-400 font-medium">Transaksi pada rentang tanggal terpilih</p>
+                                <p className="text-[11px] text-slate-400 font-medium">Daftar pencatatan pada periode terpilih</p>
                             </div>
-                            <button onClick={() => onNavigate('transactions')} className="text-xs font-bold text-violet-600 hover:text-violet-700 flex items-center gap-1">
-                                <span>Lihat Semua</span>
-                                <i data-lucide="chevron-right" className="w-3.5 h-3.5"></i>
-                            </button>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Cari transaksi..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs font-bold text-slate-800 w-36 sm:w-48 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                                    />
+                                    <i data-lucide="search" className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
+                                </div>
+
+                                <select
+                                    value={typeFilter}
+                                    onChange={(e) => setTypeFilter(e.target.value)}
+                                    className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none"
+                                >
+                                    <option value="ALL">Semua Jenis</option>
+                                    <option value="EXPENSE">Pengeluaran</option>
+                                    <option value="INCOME">Pemasukan</option>
+                                    <option value="TRANSFER">Transfer</option>
+                                </select>
+                            </div>
                         </div>
 
                         {filteredTransactions.length === 0 ? (
                             <div className="text-center py-8 text-slate-400 text-xs font-medium">
-                                Tidak ada transaksi pada periode tanggal yang dipilih.
+                                Tidak ada transaksi yang sesuai dengan filter.
                             </div>
                         ) : (
                             <div className="space-y-2.5">
-                                {filteredTransactions.slice(0, 6).map(t => {
+                                {filteredTransactions.map(t => {
                                     const acc = accounts.find(a => a.id === t.accountId)?.name || 'Rekening';
                                     const toAcc = t.toAccountId ? accounts.find(a => a.id === t.toAccountId)?.name : null;
                                     return (
@@ -735,18 +799,26 @@
             );
         }
 
-        /* -------------------------------------------------------------------------- */
-        /*                             TRANSACTIONS TAB                               */
-        /* -------------------------------------------------------------------------- */
-        function TransactionsTab({ transactions, accounts, onAddTransaction }) {
-            const [type, setType] = useState('EXPENSE'); // 'INCOME', 'EXPENSE', 'TRANSFER'
+        function TransactionsTab({ transactions, accounts, expenseCategories, incomeCategories, onAddTransaction }) {
+            const [type, setType] = useState('EXPENSE');
             const [amount, setAmount] = useState('');
             const [accountId, setAccountId] = useState(accounts[0]?.id || '');
             const [toAccountId, setToAccountId] = useState(accounts[1]?.id || '');
-            const [category, setCategory] = useState('Makanan & Minuman');
+            const [category, setCategory] = useState(expenseCategories[0] || 'Makanan & Minuman');
             const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
             const [note, setNote] = useState('');
             const [adminFee, setAdminFee] = useState('');
+
+            const handleTypeChange = (newType) => {
+                setType(newType);
+                if (newType === 'EXPENSE') {
+                    setCategory(expenseCategories[0] || 'Pengeluaran Lainnya');
+                } else if (newType === 'INCOME') {
+                    setCategory(incomeCategories[0] || 'Pemasukan Lainnya');
+                } else {
+                    setCategory('Transfer Internal');
+                }
+            };
 
             const handleSubmit = (e) => {
                 e.preventDefault();
@@ -776,32 +848,30 @@
                     </div>
 
                     <form onSubmit={handleSubmit} className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
-                        {/* Transaction Type Switcher */}
                         <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200/80">
                             <button
                                 type="button"
-                                onClick={() => setType('EXPENSE')}
+                                onClick={() => handleTypeChange('EXPENSE')}
                                 className={`py-2 rounded-xl text-xs font-bold transition-all ${type === 'EXPENSE' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20' : 'text-slate-600'}`}
                             >
                                 Pengeluaran
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setType('INCOME')}
+                                onClick={() => handleTypeChange('INCOME')}
                                 className={`py-2 rounded-xl text-xs font-bold transition-all ${type === 'INCOME' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'text-slate-600'}`}
                             >
                                 Pemasukan
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setType('TRANSFER')}
+                                onClick={() => handleTypeChange('TRANSFER')}
                                 className={`py-2 rounded-xl text-xs font-bold transition-all ${type === 'TRANSFER' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20' : 'text-slate-600'}`}
                             >
                                 Transfer
                             </button>
                         </div>
 
-                        {/* Nominal Input */}
                         <div>
                             <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Nominal (IDR)</label>
                             <input
@@ -814,7 +884,6 @@
                             />
                         </div>
 
-                        {/* Account Selectors */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
@@ -847,23 +916,23 @@
                             )}
                         </div>
 
-                        {/* Category & Date */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {type !== 'TRANSFER' && (
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Kategori</label>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
+                                        Kategori {type === 'EXPENSE' ? 'Pengeluaran' : 'Pemasukan'}
+                                    </label>
                                     <select
                                         value={category}
                                         onChange={(e) => setCategory(e.target.value)}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
                                     >
-                                        <option value="Makanan & Minuman">Makanan & Minuman</option>
-                                        <option value="Belanja & Groceries">Belanja & Groceries</option>
-                                        <option value="Transportasi">Transportasi</option>
-                                        <option value="Tagihan & Utilitas">Tagihan & Utilitas</option>
-                                        <option value="Hiburan & Gaya Hidup">Hiburan & Gaya Hidup</option>
-                                        <option value="Gaji / Income">Gaji / Income</option>
-                                        <option value="Lainnya">Lainnya</option>
+                                        {type === 'EXPENSE' && expenseCategories.map((cat, idx) => (
+                                            <option key={idx} value={cat}>{cat}</option>
+                                        ))}
+                                        {type === 'INCOME' && incomeCategories.map((cat, idx) => (
+                                            <option key={idx} value={cat}>{cat}</option>
+                                        ))}
                                     </select>
                                 </div>
                             )}
@@ -892,7 +961,6 @@
                             </div>
                         </div>
 
-                        {/* Catatan / Keterangan */}
                         <div>
                             <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Catatan / Keterangan</label>
                             <input
@@ -904,7 +972,6 @@
                             />
                         </div>
 
-                        {/* Submit Button */}
                         <button
                             type="submit"
                             className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-violet-600/30 active:scale-95 transition-all"
@@ -916,12 +983,10 @@
             );
         }
 
-        /* -------------------------------------------------------------------------- */
-        /*                               SCAN TAB                                     */
-        /* -------------------------------------------------------------------------- */
-        function ScanTab({ accounts, onAddTransaction, geminiApiKey, showToast }) {
+        function ScanTab({ accounts, expenseCategories, onAddTransaction, geminiApiKey, showToast }) {
             const [selectedImage, setSelectedImage] = useState(null);
             const [isAnalyzing, setIsAnalyzing] = useState(false);
+            const [statusText, setStatusText] = useState('');
             const [scannedData, setScannedData] = useState(null);
             const [selectedAccount, setSelectedAccount] = useState(accounts[0]?.id || '');
 
@@ -941,72 +1006,139 @@
                 if (!selectedImage) return;
 
                 setIsAnalyzing(true);
+                setStatusText('Menganalisis Struk dengan Gemini 3 Flash AI...');
+
                 try {
                     const base64Data = selectedImage.split(',')[1];
-                    const mimeType = selectedImage.substring(selectedImage.indexOf(":") + 1, selectedImage.indexOf(";")) || "image/jpeg";
-                    
-                    const apiKey = (geminiApiKey && !geminiApiKey.startsWith('AQ.')) ? geminiApiKey : '';
-                    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+                    const mimeMatch = selectedImage.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+                    const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
 
-                    const promptText = `
-                        Analisis nota / struk belanja ini secara sangat teliti.
-                        Ekstrak data berikut dan hasilkan JSON murni:
-                        1. Nama Toko/Merchant (storeName)
-                        2. Tanggal transaksi dalam format YYYY-MM-DD (date). Jika tidak ada tahun, gunakan tahun ini.
-                        3. Rincian setiap item barang yang dibeli: nama barang (name), kuantitas/jumlah (qty), dan harga satuan (price).
-                        4. Total pembayaran akhir (totalAmount). Abaikan baris tunai/kembalian.
-                        5. Kategori yang sesuai (category): Makanan & Minuman, Belanja & Groceries, Transportasi, Tagihan & Utilitas, Hiburan & Gaya Hidup, atau Lainnya.
-                    `;
+                    const userApiKey = (geminiApiKey || '').trim();
+                    const apiKey = userApiKey.startsWith('AIzaSy') ? userApiKey : '';
+
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                    const systemPrompt = `Anda adalah sistem OCR dan analisis nota/struk belanja AI tingkat tinggi yang sangat teliti, presisi, dan akurat.
+Kategori pengeluaran yang tersedia di aplikasi: ${expenseCategories.join(', ')}.
+
+PETUNJUK ANALISIS PEMBACAAN NOTA:
+1. Baca gambar nota dengan cermat dari atas ke bawah.
+2. Identifikasi Nama Toko/Merchant/Restoran (storeName).
+3. Tanggal transaksi (date) dalam format YYYY-MM-DD. Jika tahun tidak tertera di nota, gunakan tahun saat ini (2026).
+4. Pilih kategori yang PALING COCOK dari daftar kategori di atas.
+5. Ekstrak setiap item barang/layanan yang tertera di nota:
+   - name: Nama item barang / menu / jasa
+   - qty: Jumlah kuantitas (integer, default 1 jika tidak tertulis)
+   - price: HARGA SATUAN per item (number, nominal rupiah tanpa titik/koma). Jika harga yang tertera di nota adalah total harga baris untuk qty > 1, bagilah dengan qty agar 'price' menjadi harga satuan.
+6. totalAmount: Total nominal pembayaran akhir di nota (termasuk pajak/service/diskon jika ada).`;
+
+                    const userPrompt = `Analisis gambar struk/nota belanja ini secara detail dan akurat. Ekstrak data dalam format JSON sesuai schema.`;
 
                     const payload = {
-                        contents: [{
-                            parts: [
-                                { text: promptText },
-                                { inlineData: { mimeType: mimeType, data: base64Data } }
-                            ]
-                        }]
+                        contents: [
+                            {
+                                role: "user",
+                                parts: [
+                                    { text: userPrompt },
+                                    {
+                                        inlineData: {
+                                            mimeType: mimeType,
+                                            data: base64Data
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "OBJECT",
+                                properties: {
+                                    storeName: { type: "STRING" },
+                                    date: { type: "STRING" },
+                                    category: { type: "STRING" },
+                                    items: {
+                                        type: "ARRAY",
+                                        items: {
+                                            type: "OBJECT",
+                                            properties: {
+                                                name: { type: "STRING" },
+                                                qty: { type: "INTEGER" },
+                                                price: { type: "NUMBER" }
+                                            },
+                                            required: ["name", "qty", "price"]
+                                        }
+                                    },
+                                    totalAmount: { type: "NUMBER" }
+                                },
+                                required: ["storeName", "date", "category", "items", "totalAmount"]
+                            }
+                        }
                     };
 
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
+                    let response;
+                    let retries = 3;
+                    let delay = 1000;
 
-                    const responseText = await response.text();
-                    let resData;
-                    
-                    try {
-                        resData = JSON.parse(responseText);
-                    } catch (pErr) {
-                        throw new Error("Respon server bukan JSON yang valid.");
+                    for (let i = 0; i < retries; i++) {
+                        try {
+                            response = await fetch(apiUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                            if (response.ok) break;
+                        } catch (netErr) {
+                            if (i === retries - 1) throw netErr;
+                        }
+                        await new Promise(res => setTimeout(res, delay));
+                        delay *= 2;
                     }
 
-                    if (!response.ok) {
-                        const errDetails = resData?.error?.message || responseText;
-                        throw new Error(`API Error (${response.status}): ${errDetails}`);
+                    if (!response || !response.ok) {
+                        throw new Error(`Koneksi AI terganggu (${response ? response.status : 'Network Error'})`);
                     }
 
-                    const rawText = resData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                    
-                    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-                    if (!jsonMatch) {
-                        throw new Error("Gagal mengekstrak format JSON dari hasil AI.");
+                    const result = await response.json();
+                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if (!jsonText) {
+                        throw new Error("AI tidak mengembalikan teks hasil bacaan struk.");
                     }
 
-                    const parsed = JSON.parse(jsonMatch[0]);
+                    const parsedData = JSON.parse(jsonText);
 
-                    parsed.items = (parsed.items || []).map(item => ({
-                        name: item.name || 'Barang',
-                        qty: Number(item.qty) || 1,
-                        price: Number(item.price) || 0
-                    }));
+                    const formattedResult = {
+                        storeName: parsedData.storeName || "Toko / Merchant",
+                        date: parsedData.date || new Date().toISOString().split('T')[0],
+                        category: expenseCategories.includes(parsedData.category) ? parsedData.category : (expenseCategories[0] || "Belanja & Groceries"),
+                        items: Array.isArray(parsedData.items) && parsedData.items.length > 0
+                            ? parsedData.items.map(item => ({
+                                name: String(item.name || 'Barang'),
+                                qty: Number(item.qty) || 1,
+                                price: Number(item.price) || 0
+                            }))
+                            : [{ name: "Belanja Nota", qty: 1, price: Number(parsedData.totalAmount) || 0 }],
+                        totalAmount: Number(parsedData.totalAmount) || 0
+                    };
 
-                    setScannedData(parsed);
-                    showToast('✨ Struk berhasil dianalisis!');
+                    if (formattedResult.totalAmount === 0 && formattedResult.items.length > 0) {
+                        formattedResult.totalAmount = formattedResult.items.reduce((sum, item) => sum + (item.qty * item.price), 0);
+                    }
+
+                    setScannedData(formattedResult);
+                    showToast('✨ Struk berhasil dibaca presisi oleh Gemini 3 Flash AI!');
                 } catch (err) {
-                    console.error("Gemini Vision Scan Error:", err);
-                    showToast(`Gagal memproses nota: ${err.message}`, 'error');
+                    console.warn("Gemini Vision Scan Exception:", err);
+                    showToast(`Error scan AI: ${err.message}. Membuka mode periksa manual.`, 'error');
+                    setScannedData({
+                        storeName: "Toko / Merchant",
+                        date: new Date().toISOString().split('T')[0],
+                        category: expenseCategories[0] || "Belanja & Groceries",
+                        items: [{ name: "Item Struk 1", qty: 1, price: 0 }],
+                        totalAmount: 0
+                    });
                 } finally {
                     setIsAnalyzing(false);
                 }
@@ -1052,7 +1184,7 @@
                     type: 'EXPENSE',
                     amount: Number(scannedData.totalAmount) || 0,
                     accountId: selectedAccount,
-                    category: scannedData.category || 'Belanja & Groceries',
+                    category: scannedData.category || expenseCategories[0] || 'Belanja & Groceries',
                     date: scannedData.date || new Date().toISOString().split('T')[0],
                     note: `Scan Struk: ${scannedData.storeName || 'Toko'} (${(scannedData.items || []).length} item)`
                 });
@@ -1065,7 +1197,7 @@
                 <div className="space-y-6 max-w-2xl mx-auto">
                     <div>
                         <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Scan Nota AI High-Precision</h2>
-                        <p className="text-xs text-slate-500 font-medium">AI Gemini membaca struk belanja dan mengonversi menjadi rincian barang interaktif</p>
+                        <p className="text-xs text-slate-500 font-medium">Membaca struk belanja dan mengonversi menjadi rincian barang interaktif</p>
                     </div>
 
                     <div className="glass-card p-6 rounded-3xl border-2 border-dashed border-violet-200 text-center space-y-4">
@@ -1085,12 +1217,12 @@
                                         {isAnalyzing ? (
                                             <>
                                                 <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                <span>Menganalisis Struk...</span>
+                                                <span>{statusText || 'Menganalisis Gambar Struk...'}</span>
                                             </>
                                         ) : (
                                             <>
                                                 <i data-lucide="sparkles" className="w-4 h-4"></i>
-                                                <span>Proses Dengan AI Gemini</span>
+                                                <span>Proses Scan Struk</span>
                                             </>
                                         )}
                                     </button>
@@ -1115,10 +1247,10 @@
                                     <div className="p-2 rounded-xl bg-violet-100 text-violet-700">
                                         <i data-lucide="receipt" className="w-4 h-4"></i>
                                     </div>
-                                    <h3 className="font-extrabold text-slate-900 text-sm">Hasil Deteksi AI</h3>
+                                    <h3 className="font-extrabold text-slate-900 text-sm">Hasil Pindai Nota</h3>
                                 </div>
                                 <span className="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2.5 py-1 rounded-full">
-                                    Verified Output
+                                    Terverifikasi
                                 </span>
                             </div>
 
@@ -1142,18 +1274,15 @@
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Kategori</label>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Kategori Pengeluaran</label>
                                     <select
-                                        value={scannedData.category || 'Belanja & Groceries'}
+                                        value={scannedData.category || expenseCategories[0]}
                                         onChange={(e) => setScannedData({ ...scannedData, category: e.target.value })}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800"
                                     >
-                                        <option value="Makanan & Minuman">Makanan & Minuman</option>
-                                        <option value="Belanja & Groceries">Belanja & Groceries</option>
-                                        <option value="Transportasi">Transportasi</option>
-                                        <option value="Tagihan & Utilitas">Tagihan & Utilitas</option>
-                                        <option value="Hiburan & Gaya Hidup">Hiburan & Gaya Hidup</option>
-                                        <option value="Lainnya">Lainnya</option>
+                                        {expenseCategories.map((cat, idx) => (
+                                            <option key={idx} value={cat}>{cat}</option>
+                                        ))}
                                     </select>
                                 </div>
                             </div>
@@ -1249,13 +1378,13 @@
             );
         }
 
-        /* -------------------------------------------------------------------------- */
-        /*                            ACCOUNTS TAB                                    */
-        /* -------------------------------------------------------------------------- */
-        function AccountsTab({ accounts, setAccounts, showToast }) {
+        function AccountsTab({ accounts, setAccounts, expenseCategories, setExpenseCategories, incomeCategories, setIncomeCategories, showToast }) {
             const [name, setName] = useState('');
             const [type, setType] = useState('Bank');
             const [balance, setBalance] = useState('');
+
+            const [newCategoryType, setNewCategoryType] = useState('EXPENSE');
+            const [newCategoryName, setNewCategoryName] = useState('');
 
             const handleAddAccount = (e) => {
                 e.preventDefault();
@@ -1275,11 +1404,51 @@
                 showToast('Rekening baru berhasil ditambahkan!');
             };
 
+            const handleAddCategory = (e) => {
+                e.preventDefault();
+                if (!newCategoryName.trim()) return;
+
+                const trimmed = newCategoryName.trim();
+                if (newCategoryType === 'EXPENSE') {
+                    if (expenseCategories.includes(trimmed)) {
+                        showToast('Kategori pengeluaran sudah ada', 'error');
+                        return;
+                    }
+                    setExpenseCategories(prev => [...prev, trimmed]);
+                } else {
+                    if (incomeCategories.includes(trimmed)) {
+                        showToast('Kategori pemasukan sudah ada', 'error');
+                        return;
+                    }
+                    setIncomeCategories(prev => [...prev, trimmed]);
+                }
+
+                setNewCategoryName('');
+                showToast(`Kategori ${newCategoryType === 'EXPENSE' ? 'Pengeluaran' : 'Pemasukan'} ditambahkan!`);
+            };
+
+            const handleDeleteCategory = (catType, catName) => {
+                if (catType === 'EXPENSE') {
+                    if (expenseCategories.length <= 1) {
+                        showToast('Minimal harus ada 1 kategori', 'error');
+                        return;
+                    }
+                    setExpenseCategories(prev => prev.filter(c => c !== catName));
+                } else {
+                    if (incomeCategories.length <= 1) {
+                        showToast('Minimal harus ada 1 kategori', 'error');
+                        return;
+                    }
+                    setIncomeCategories(prev => prev.filter(c => c !== catName));
+                }
+                showToast(`Kategori ${catName} berhasil dihapus`);
+            };
+
             return (
                 <div className="space-y-6 max-w-2xl mx-auto">
                     <div>
-                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Kelola Rekening & Dompet</h2>
-                        <p className="text-xs text-slate-500 font-medium">Tambah atau atur saldo akun bank, e-wallet, dan cash</p>
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Pengaturan Rekening & Kategori</h2>
+                        <p className="text-xs text-slate-500 font-medium">Atur akun bank, e-wallet, dan daftar kategori transaksi</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -1348,13 +1517,85 @@
                             Simpan Rekening Baru
                         </button>
                     </form>
+
+                    <div className="glass-card p-5 sm:p-6 rounded-3xl space-y-5 border-violet-100">
+                        <div className="border-b border-slate-100 pb-3">
+                            <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">Pengaturan Kategori Transaksi</h3>
+                            <p className="text-[11px] text-slate-400 font-medium">Tambah atau atur kategori terpisah untuk Pengeluaran & Pemasukan</p>
+                        </div>
+
+                        <form onSubmit={handleAddCategory} className="flex flex-col sm:flex-row items-center gap-2">
+                            <select
+                                value={newCategoryType}
+                                onChange={(e) => setNewCategoryType(e.target.value)}
+                                className="w-full sm:w-auto bg-slate-100 border border-slate-200 rounded-2xl p-2.5 text-xs font-bold text-slate-800"
+                            >
+                                <option value="EXPENSE">🔴 Pengeluaran</option>
+                                <option value="INCOME">🟢 Pemasukan</option>
+                            </select>
+
+                            <input
+                                type="text"
+                                placeholder="Nama Kategori Baru..."
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                className="w-full flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-2.5 text-xs font-bold text-slate-800"
+                            />
+
+                            <button
+                                type="submit"
+                                className="w-full sm:w-auto px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-extrabold rounded-2xl shadow-md transition-all shrink-0"
+                            >
+                                + Tambah
+                            </button>
+                        </form>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                            <div className="bg-rose-50/50 p-4 rounded-2xl border border-rose-100 space-y-2">
+                                <span className="text-xs font-black uppercase tracking-wider text-rose-700 block mb-1">
+                                    Kategori Pengeluaran ({expenseCategories.length})
+                                </span>
+                                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                                    {expenseCategories.map((cat, idx) => (
+                                        <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-rose-200 rounded-xl text-xs font-bold text-slate-800 shadow-2xs">
+                                            {cat}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteCategory('EXPENSE', cat)}
+                                                className="text-slate-400 hover:text-rose-600"
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 space-y-2">
+                                <span className="text-xs font-black uppercase tracking-wider text-emerald-700 block mb-1">
+                                    Kategori Pemasukan ({incomeCategories.length})
+                                </span>
+                                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                                    {incomeCategories.map((cat, idx) => (
+                                        <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-emerald-200 rounded-xl text-xs font-bold text-slate-800 shadow-2xs">
+                                            {cat}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteCategory('INCOME', cat)}
+                                                className="text-slate-400 hover:text-rose-600"
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             );
         }
 
-        /* -------------------------------------------------------------------------- */
-        /*                            SUPABASE & CONFIG TAB                           */
-        /* -------------------------------------------------------------------------- */
         function SupabaseTab({ supabaseUrl, setSupabaseUrl, supabaseKey, setSupabaseKey, sheetsWebhookUrl, setSheetsWebhookUrl, transactions, accounts, isConnected, showToast, geminiApiKey, setGeminiApiKey }) {
             const exportToCsv = () => {
                 if (!transactions || transactions.length === 0) {
@@ -1402,8 +1643,8 @@
             return (
                 <div className="space-y-6 max-w-2xl mx-auto">
                     <div>
-                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Cloud DB & Spreadsheet Sync</h2>
-                        <p className="text-xs text-slate-500 font-medium">Hubungkan Supabase Cloud, Google Sheets & Gemini API</p>
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Cloud DB & Integration Settings</h2>
+                        <p className="text-xs text-slate-500 font-medium">Hubungkan Supabase Cloud, Google Sheets & Gemini AI</p>
                     </div>
 
                     <div className="glass-card p-5 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-3 border-emerald-200 bg-emerald-50/30">
@@ -1473,13 +1714,28 @@
                         </div>
 
                         <div>
-                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Gemini API Key (Scan Struk Vision)</label>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="block text-[10px] font-black uppercase text-slate-400">Gemini API Key (Google AI Studio)</label>
+                                <a 
+                                    href="https://aistudio.google.com/app/apikey" 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="text-[10px] font-bold text-violet-600 hover:underline flex items-center gap-1"
+                                >
+                                    <span>Dapatkan API Key Gratis</span>
+                                    <i data-lucide="external-link" className="w-3 h-3"></i>
+                                </a>
+                            </div>
                             <input
                                 type="password"
                                 value={geminiApiKey}
+                                placeholder="Opsional (otomatis disediakan jika kosong)"
                                 onChange={(e) => setGeminiApiKey(e.target.value)}
                                 className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-900 font-mono"
                             />
+                            <p className="text-[10px] text-slate-400 font-medium mt-1">
+                                Jika dikosongkan, sistem otomatis menggunakan kredensial runtime Canvas untuk memproses foto nota dengan Gemini 3 Flash.
+                            </p>
                         </div>
 
                         <button
