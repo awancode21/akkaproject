@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KeuanganKu AI - Pencatatan Keuangan & Scan Nota</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- React & ReactDOM CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Supabase Client JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            -webkit-tap-highlight-color: transparent;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 99px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        const DEFAULT_ACCOUNTS = [
+            { id: 'acc_bca', name: 'Bank BCA', type: 'Bank', balance: 7500000, color: 'bg-blue-600' },
+            { id: 'acc_gopay', name: 'GoPay', type: 'E-Wallet', balance: 650000, color: 'bg-emerald-600' },
+            { id: 'acc_cash', name: 'Uang Tunai / Cash', type: 'Cash', balance: 420000, color: 'bg-amber-500' }
+        ];
+
+        const getOffsetDate = (daysAgo) => {
+            const d = new Date();
+            d.setDate(d.getDate() - daysAgo);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        const INITIAL_TRANSACTIONS = [
+            { id: 'tx_1', date: getOffsetDate(0), type: 'EXPENSE', amount: 45000, accountId: 'acc_gopay', category: 'Makanan & Minuman', note: 'Kopi & Snack Hari Ini' },
+            { id: 'tx_2', date: getOffsetDate(3), type: 'EXPENSE', amount: 350000, accountId: 'acc_bca', category: 'Belanja & Groceries', note: 'Belanja Supermarket (3 hari lalu)' },
+            { id: 'tx_3', date: getOffsetDate(5), type: 'TRANSFER', amount: 200000, accountId: 'acc_bca', toAccountId: 'acc_gopay', category: 'Transfer Internal', note: 'Top up GoPay', adminFee: 1000 },
+            { id: 'tx_4', date: getOffsetDate(12), type: 'EXPENSE', amount: 450000, accountId: 'acc_bca', category: 'Tagihan & Utilitas', note: 'Tagihan Listrik & Wifi' },
+            { id: 'tx_5', date: getOffsetDate(20), type: 'INCOME', amount: 7500000, accountId: 'acc_bca', category: 'Gaji / Income', note: 'Gaji Bulanan' },
+            { id: 'tx_6', date: getOffsetDate(40), type: 'INCOME', amount: 2500000, accountId: 'acc_bca', category: 'Gaji / Income', note: 'Bonus Project Bulan Lalu' },
+            { id: 'tx_7', date: getOffsetDate(42), type: 'EXPENSE', amount: 600000, accountId: 'acc_cash', category: 'Hiburan & Gaya Hidup', note: 'Jalan-jalan Bulan Lalu' }
+        ];
+
+        // Format Currency Helper
+        const formatIDR = (num) => {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num || 0);
+        };
+
+        function App() {
+            const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'transactions', 'scan', 'accounts', 'supabase'
+            const [accounts, setAccounts] = useState(() => JSON.parse(localStorage.getItem('keuanganku_accounts')) || DEFAULT_ACCOUNTS);
+            const [transactions, setTransactions] = useState(() => JSON.parse(localStorage.getItem('keuanganku_transactions')) || INITIAL_TRANSACTIONS);
+
+            // Supabase & Gemini Config State
+            const DEFAULT_SUPABASE_URL = 'https://fqaewybhgsxlkgkvjnjv.supabase.co';
+            const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxYWV3eWJoZ3N4bGtna3Zqbmp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyODc4MzQsImV4cCI6MjEwNjg2MzgzNH0.s4Frl_Mpj77Fc321j7MWykvxaXA7XWkKjWzJKEn-LXE';
+            const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6K6GAGHd1iE89vTMRFLsf3yPazWM_LNw4iLWVG2-mzyew';
+
+            const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('supabase_url') || DEFAULT_SUPABASE_URL);
+            const [supabaseKey, setSupabaseKey] = useState(() => localStorage.getItem('supabase_key') || DEFAULT_SUPABASE_KEY);
+            const [sheetsWebhookUrl, setSheetsWebhookUrl] = useState(() => localStorage.getItem('sheets_webhook_url') || '');
+            const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('gemini_api_key') || DEFAULT_GEMINI_KEY);
+            
+            const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
+            const [supabaseClient, setSupabaseClient] = useState(null);
+            const [toastMessage, setToastMessage] = useState(null);
+
+            useEffect(() => {
+                localStorage.setItem('keuanganku_accounts', JSON.stringify(accounts));
+            }, [accounts]);
+
+            useEffect(() => {
+                localStorage.setItem('keuanganku_transactions', JSON.stringify(transactions));
+            }, [transactions]);
+
+            useEffect(() => {
+                if (supabaseUrl && supabaseKey && window.supabase) {
+                    try {
+                        const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+                        setSupabaseClient(client);
+                        setIsSupabaseConnected(true);
+                    } catch (err) {
+                        console.error("Supabase Connection Error:", err);
+                        setIsSupabaseConnected(false);
+                    }
+                }
+            }, [supabaseUrl, supabaseKey]);
+
+            useEffect(() => {
+                if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                    window.lucide.createIcons();
+                }
+            }, [activeTab, transactions, accounts]);
+
+            const showToast = (msg, type = 'success') => {
+                setToastMessage({ msg, type });
+                setTimeout(() => setToastMessage(null), 3000);
+            };
+
+            const totalBalance = useMemo(() => {
+                return accounts.reduce((acc, a) => acc + Number(a.balance || 0), 0);
+            }, [accounts]);
+
+            const handleAddTransaction = (newTx) => {
+                const createdTx = { ...newTx, id: 'tx_' + Date.now() };
+                setTransactions(prev => [createdTx, ...prev]);
+
+                // Update Local Accounts Balance
+                setAccounts(prev => prev.map(acc => {
+                    let newBal = acc.balance;
+                    if (newTx.type === 'INCOME' && acc.id === newTx.accountId) {
+                        newBal += Number(newTx.amount);
+                    } else if (newTx.type === 'EXPENSE' && acc.id === newTx.accountId) {
+                        newBal -= Number(newTx.amount);
+                    } else if (newTx.type === 'TRANSFER') {
+                        if (acc.id === newTx.accountId) {
+                            newBal -= (Number(newTx.amount) + Number(newTx.adminFee || 0));
+                        }
+                        if (acc.id === newTx.toAccountId) {
+                            newBal += Number(newTx.amount);
+                        }
+                    }
+                    return { ...acc, balance: newBal };
+                }));
+
+                // Sync to Supabase if available
+                if (isSupabaseConnected && supabaseClient) {
+                    supabaseClient.from('transactions').insert([{
+                        id: createdTx.id,
+                        type: createdTx.type,
+                        amount: createdTx.amount,
+                        account_id: createdTx.accountId,
+                        to_account_id: createdTx.toAccountId || null,
+                        category: createdTx.category,
+                        date: createdTx.date,
+                        note: createdTx.note || '',
+                        admin_fee: createdTx.adminFee || 0
+                    }]).then(({ error }) => {
+                        if (error) console.error("Supabase tx sync error:", error);
+                    });
+                }
+
+                // Sync to Google Sheets Webhook
+                if (sheetsWebhookUrl) {
+                    const accName = accounts.find(a => a.id === createdTx.accountId)?.name || '-';
+                    const toAccName = createdTx.toAccountId ? (accounts.find(a => a.id === createdTx.toAccountId)?.name || '-') : '-';
+                    
+                    fetch(sheetsWebhookUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: createdTx.id,
+                            date: createdTx.date,
+                            type: createdTx.type,
+                            amount: createdTx.amount,
+                            account: accName,
+                            to_account: toAccName,
+                            category: createdTx.category,
+                            note: createdTx.note || '-',
+                            admin_fee: createdTx.adminFee || 0
+                        })
+                    }).catch(err => console.warn('Google Sheets Webhook Sync Notice:', err));
+                }
+
+                showToast('✨ Transaksi berhasil disimpan!');
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col pb-24 lg:pb-0">
+                    {/* Top Header Bar */}
+                    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 sm:px-6">
+                        <div className="max-w-5xl mx-auto flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-violet-500/20">
+                                    <i data-lucide="sparkles" className="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h1 className="font-extrabold text-slate-900 text-base tracking-tight leading-none">KeuanganKu <span className="text-violet-600">AI</span></h1>
+                                    <p className="text-[11px] text-slate-500 font-semibold">Pencatatan Finansial Pintar</p>
+                                </div>
+                            </div>
+
+                            {/* Total Balance Snapshot */}
+                            <div className="text-right">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Total Aset</span>
+                                <span className="font-black text-base sm:text-lg text-slate-900">{formatIDR(totalBalance)}</span>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Toast Alert */}
+                    {toastMessage && (
+                        <div className="fixed top-16 right-4 z-50 bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-slate-800 animate-bounce">
+                            <i data-lucide="check-circle-2" className="w-4 h-4 text-emerald-400"></i>
+                            <span>{toastMessage.msg}</span>
+                        </div>
+                    )}
+
+                    {/* Main Workspace */}
+                    <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
+                        {activeTab === 'dashboard' && <DashboardTab transactions={transactions} accounts={accounts} onNavigate={setActiveTab} />}
+                        {activeTab === 'transactions' && <TransactionsTab transactions={transactions} accounts={accounts} onAddTransaction={handleAddTransaction} />}
+                        {activeTab === 'scan' && <ScanTab accounts={accounts} onAddTransaction={handleAddTransaction} geminiApiKey={geminiApiKey} showToast={showToast} />}
+                        {activeTab === 'accounts' && <AccountsTab accounts={accounts} setAccounts={setAccounts} showToast={showToast} />}
+                        {activeTab === 'supabase' && (
+                            <SupabaseTab 
+                                supabaseUrl={supabaseUrl}
+                                setSupabaseUrl={setSupabaseUrl}
+                                supabaseKey={supabaseKey}
+                                setSupabaseKey={setSupabaseKey}
+                                sheetsWebhookUrl={sheetsWebhookUrl}
+                                setSheetsWebhookUrl={setSheetsWebhookUrl}
+                                transactions={transactions}
+                                accounts={accounts}
+                                isConnected={isSupabaseConnected}
+                                showToast={showToast}
+                                geminiApiKey={geminiApiKey}
+                                setGeminiApiKey={setGeminiApiKey}
+                            />
+                        )}
+                    </main>
+
+                    {/* Bottom Navigation Dock */}
+                    <nav className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-full px-3 py-2 shadow-2xl flex items-center gap-1 sm:gap-2">
+                        <button
+                            onClick={() => setActiveTab('dashboard')}
+                            className={`flex flex-col items-center py-1.5 px-3.5 rounded-full transition-all ${activeTab === 'dashboard' ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30' : 'text-slate-500 hover:text-slate-900'}`}
+                        >
+                            <i data-lucide="layout-dashboard" className="w-5 h-5"></i>
+                            <span className="text-[10px] font-bold mt-0.5">Ringkasan</span>
+                        </button>
+
+                        <button
+                            onClick={() => setActiveTab('transactions')}
+                            className={`flex flex-col items-center py-1.5 px-3.5 rounded-full transition-all ${activeTab === 'transactions' ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30' : 'text-slate-500 hover:text-slate-900'}`}
+                        >
+                            <i data-lucide="receipt-text" className="w-5 h-5"></i>
+                            <span className="text-[10px] font-bold mt-0.5">Catat</span>
+                        </button>
+
+                        {/* Scan AI Floating Center Button */}
+                        <button
+                            onClick={() => setActiveTab('scan')}
+                            className={`relative -top-3 p-3.5 rounded-full text-white bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 shadow-lg shadow-violet-500/40 active:scale-95 transition-all ${activeTab === 'scan' ? 'ring-4 ring-violet-200' : ''}`}
+                            title="Scan Struk AI"
+                        >
+                            <i data-lucide="scan-line" className="w-6 h-6"></i>
+                        </button>
+
+                        <button
+                            onClick={() => setActiveTab('accounts')}
+                            className={`flex flex-col items-center py-1.5 px-3.5 rounded-full transition-all ${activeTab === 'accounts' ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30' : 'text-slate-500 hover:text-slate-900'}`}
+                        >
+                            <i data-lucide="wallet" className="w-5 h-5"></i>
+                            <span className="text-[10px] font-bold mt-0.5">Rekening</span>
+                        </button>
+
+                        <button
+                            onClick={() => setActiveTab('supabase')}
+                            className={`flex flex-col items-center py-1.5 px-3.5 rounded-full transition-all ${activeTab === 'supabase' ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30' : 'text-slate-500 hover:text-slate-900'}`}
+                        >
+                            <i data-lucide="database" className="w-5 h-5"></i>
+                            <span className="text-[10px] font-bold mt-0.5">Cloud DB</span>
+                        </button>
+                    </nav>
+                </div>
+            );
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                          HIGH READABILITY DASHBOARD                         */
+        /* -------------------------------------------------------------------------- */
+        function DashboardTab({ transactions, accounts, onNavigate }) {
+            const [dateFilter, setDateFilter] = useState('30days'); // 'today', '7days', '30days', 'month', 'custom'
+            
+            const getTodayStr = () => {
+                const d = new Date();
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            };
+
+            const [startDate, setStartDate] = useState(() => {
+                const d = new Date();
+                d.setDate(d.getDate() - 30);
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            });
+            const [endDate, setEndDate] = useState(() => getTodayStr());
+
+            // Ensure Lucide updates when filter changes
+            useEffect(() => {
+                if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                    window.lucide.createIcons();
+                }
+            }, [dateFilter, transactions]);
+
+            const dateRangeLabel = useMemo(() => {
+                const today = getTodayStr();
+                if (dateFilter === 'today') return `Hari Ini (${today})`;
+                if (dateFilter === '7days') {
+                    const d = new Date();
+                    d.setDate(d.getDate() - 7);
+                    const start7 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    return `7 Hari Terakhir (${start7} s/d ${today})`;
+                }
+                if (dateFilter === '30days') {
+                    const d = new Date();
+                    d.setDate(d.getDate() - 30);
+                    const start30 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    return `30 Hari Terakhir (${start30} s/d ${today})`;
+                }
+                if (dateFilter === 'month') {
+                    const curMonth = today.substring(0, 7);
+                    return `Bulan Ini (${curMonth})`;
+                }
+                if (dateFilter === 'custom') {
+                    return `Kustom (${startDate} s/d ${endDate})`;
+                }
+                return 'Semua Transaksi';
+            }, [dateFilter, startDate, endDate]);
+
+            // Filter Transactions by selected date range
+            const filteredTransactions = useMemo(() => {
+                const todayStr = getTodayStr();
+                return transactions.filter(t => {
+                    const txDate = t.date;
+                    if (dateFilter === 'today') {
+                        return txDate === todayStr;
+                    } else if (dateFilter === '7days') {
+                        const d = new Date();
+                        d.setDate(d.getDate() - 7);
+                        const start7 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                        return txDate >= start7 && txDate <= todayStr;
+                    } else if (dateFilter === '30days') {
+                        const d = new Date();
+                        d.setDate(d.getDate() - 30);
+                        const start30 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                        return txDate >= start30 && txDate <= todayStr;
+                    } else if (dateFilter === 'month') {
+                        const curMonth = todayStr.substring(0, 7);
+                        return txDate.startsWith(curMonth);
+                    } else if (dateFilter === 'custom') {
+                        return txDate >= startDate && txDate <= endDate;
+                    }
+                    return true;
+                });
+            }, [transactions, dateFilter, startDate, endDate]);
+
+            // Income and Expense Calculation
+            const { totalIncome, totalExpense } = useMemo(() => {
+                return filteredTransactions.reduce((acc, t) => {
+                    if (t.type === 'INCOME') acc.totalIncome += Number(t.amount || 0);
+                    if (t.type === 'EXPENSE') acc.totalExpense += Number(t.amount || 0);
+                    return acc;
+                }, { totalIncome: 0, totalExpense: 0 });
+            }, [filteredTransactions]);
+
+            const netCashflow = totalIncome - totalExpense;
+
+            // Expense Breakdown by Category
+            const categoryBreakdown = useMemo(() => {
+                const map = {};
+                filteredTransactions.forEach(t => {
+                    if (t.type === 'EXPENSE') {
+                        const cat = t.category || 'Lainnya';
+                        map[cat] = (map[cat] || 0) + Number(t.amount || 0);
+                    }
+                });
+
+                return Object.entries(map)
+                    .map(([category, amount]) => ({
+                        category,
+                        amount,
+                        percentage: totalExpense > 0 ? Math.round((amount / totalExpense) * 100) : 0
+                    }))
+                    .sort((a, b) => b.amount - a.amount);
+            }, [filteredTransactions, totalExpense]);
+
+            return (
+                <div className="space-y-6">
+                    {/* Header & Date Range Segmented Controller */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Ringkasan Keuangan</h2>
+                            <p className="text-xs text-slate-500 font-medium">Laporan pemasukan, pengeluaran, & alokasi dana</p>
+                        </div>
+
+                        {/* Clean Filter Options */}
+                        <div className="flex flex-wrap items-center gap-1 bg-slate-200/70 p-1 rounded-2xl border border-slate-300/60">
+                            <button
+                                onClick={() => setDateFilter('today')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${dateFilter === 'today' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                Hari Ini
+                            </button>
+                            <button
+                                onClick={() => setDateFilter('7days')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${dateFilter === '7days' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                7 Hari
+                            </button>
+                            <button
+                                onClick={() => setDateFilter('30days')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${dateFilter === '30days' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                30 Hari
+                            </button>
+                            <button
+                                onClick={() => setDateFilter('month')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${dateFilter === 'month' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                Bulan Ini
+                            </button>
+                            <button
+                                onClick={() => setDateFilter('custom')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${dateFilter === 'custom' ? 'bg-violet-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                <i data-lucide="calendar" className="w-3.5 h-3.5"></i>
+                                <span>Kustom</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Active Date Range Indicator Badge */}
+                    <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold text-violet-700 bg-violet-50 px-3 py-1.5 rounded-xl border border-violet-200/80 shadow-2xs flex items-center gap-1.5">
+                            <i data-lucide="calendar-range" className="w-3.5 h-3.5 text-violet-600"></i>
+                            <span>Periode Aktif: <strong>{dateRangeLabel}</strong></span>
+                        </span>
+                    </div>
+
+                    {/* Custom Date Picker Section (Visible only when dateFilter === 'custom') */}
+                    {dateFilter === 'custom' && (
+                        <div className="glass-card p-4 rounded-3xl border border-violet-100 bg-violet-50/40 flex flex-col sm:flex-row items-center gap-3 animate-fadeIn">
+                            <div className="w-full sm:w-auto flex-1">
+                                <label className="block text-[10px] font-black uppercase text-violet-700 mb-1">Dari Tanggal</label>
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                                />
+                            </div>
+                            <span className="hidden sm:inline text-slate-400 font-bold mt-4">s/d</span>
+                            <div className="w-full sm:w-auto flex-1">
+                                <label className="block text-[10px] font-black uppercase text-violet-700 mb-1">Sampai Tanggal</label>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 🚀 High-Impact Hero Cashflow Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Pemasukan Card */}
+                        <div className="bg-white p-5 rounded-3xl border border-emerald-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-100/50 rounded-full blur-2xl -mr-6 -mt-6"></div>
+                            <div className="flex items-center justify-between mb-3 relative z-10">
+                                <span className="text-xs font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl">Pemasukan</span>
+                                <div className="w-9 h-9 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+                                    <i data-lucide="arrow-down-left" className="w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <div className="relative z-10">
+                                <span className="font-black text-2xl sm:text-3xl text-emerald-600 block">{formatIDR(totalIncome)}</span>
+                                <span className="text-[11px] text-slate-400 font-bold mt-1 block">Total dana masuk periode ini</span>
+                            </div>
+                        </div>
+
+                        {/* Pengeluaran Card */}
+                        <div className="bg-white p-5 rounded-3xl border border-rose-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-rose-100/50 rounded-full blur-2xl -mr-6 -mt-6"></div>
+                            <div className="flex items-center justify-between mb-3 relative z-10">
+                                <span className="text-xs font-black uppercase tracking-wider text-rose-700 bg-rose-50 px-2.5 py-1 rounded-xl">Pengeluaran</span>
+                                <div className="w-9 h-9 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-md shadow-rose-500/20">
+                                    <i data-lucide="arrow-up-right" className="w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <div className="relative z-10">
+                                <span className="font-black text-2xl sm:text-3xl text-rose-600 block">{formatIDR(totalExpense)}</span>
+                                <span className="text-[11px] text-slate-400 font-bold mt-1 block">Total dana keluar periode ini</span>
+                            </div>
+                        </div>
+
+                        {/* Arus Kas Bersih Card */}
+                        <div className="bg-white p-5 rounded-3xl border border-violet-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-violet-100/50 rounded-full blur-2xl -mr-6 -mt-6"></div>
+                            <div className="flex items-center justify-between mb-3 relative z-10">
+                                <span className="text-xs font-black uppercase tracking-wider text-violet-700 bg-violet-50 px-2.5 py-1 rounded-xl">Arus Kas Bersih</span>
+                                <div className="w-9 h-9 rounded-2xl bg-violet-600 text-white flex items-center justify-center shadow-md shadow-violet-600/20">
+                                    <i data-lucide="scale" className="w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <div className="relative z-10">
+                                <span className={`font-black text-2xl sm:text-3xl block ${netCashflow >= 0 ? 'text-violet-700' : 'text-rose-600'}`}>
+                                    {formatIDR(netCashflow)}
+                                </span>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                    <span className={`w-2 h-2 rounded-full ${netCashflow >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                                    <span className="text-[11px] text-slate-500 font-bold">
+                                        {netCashflow >= 0 ? 'Surplus (Hemat)' : 'Defisit (Pengeluaran > Pemasukan)'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Quick Action Buttons */}
+                    <div className="grid grid-cols-3 gap-2.5">
+                        <button
+                            onClick={() => onNavigate('transactions')}
+                            className="p-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs font-bold"
+                        >
+                            <i data-lucide="plus-circle" className="w-4 h-4"></i>
+                            <span>+ Pemasukan</span>
+                        </button>
+                        <button
+                            onClick={() => onNavigate('transactions')}
+                            className="p-3.5 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs font-bold"
+                        >
+                            <i data-lucide="minus-circle" className="w-4 h-4"></i>
+                            <span>- Pengeluaran</span>
+                        </button>
+                        <button
+                            onClick={() => onNavigate('scan')}
+                            className="p-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs font-bold"
+                        >
+                            <i data-lucide="camera" className="w-4 h-4"></i>
+                            <span>Scan Struk AI</span>
+                        </button>
+                    </div>
+
+                    {/* Two-Column Layout for Breakdown & Accounts */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        {/* 📊 Visual Category Expense Breakdown */}
+                        <div className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <div>
+                                    <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">Alokasi Pengeluaran</h3>
+                                    <p className="text-[11px] text-slate-400 font-medium">Berdasarkan kategori belanja</p>
+                                </div>
+                                <span className="text-xs font-black text-rose-600 bg-rose-50 px-2.5 py-1 rounded-xl">
+                                    {formatIDR(totalExpense)}
+                                </span>
+                            </div>
+
+                            {categoryBreakdown.length === 0 ? (
+                                <div className="text-center py-8 text-slate-400 text-xs font-medium">
+                                    Belum ada pengeluaran dicatat pada periode ini.
+                                </div>
+                            ) : (
+                                <div className="space-y-3.5">
+                                    {categoryBreakdown.map((item, idx) => (
+                                        <div key={idx} className="space-y-1">
+                                            <div className="flex justify-between items-center text-xs font-bold">
+                                                <span className="text-slate-800 flex items-center gap-1.5">
+                                                    <span className="w-2 h-2 rounded-full bg-violet-600"></span>
+                                                    {item.category}
+                                                </span>
+                                                <div className="text-right">
+                                                    <span className="text-slate-900 font-extrabold">{formatIDR(item.amount)}</span>
+                                                    <span className="text-[10px] text-slate-400 font-bold ml-1">({item.percentage}%)</span>
+                                                </div>
+                                            </div>
+                                            {/* Progress Bar */}
+                                            <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-violet-500 to-indigo-600 rounded-full transition-all duration-500"
+                                                    style={{ width: `${item.percentage}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 🏦 Account Balances Snapshot */}
+                        <div className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <div>
+                                    <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">Saldo Rekening & Dompet</h3>
+                                    <p className="text-[11px] text-slate-400 font-medium">Posisi saldo aktif saat ini</p>
+                                </div>
+                                <button onClick={() => onNavigate('accounts')} className="text-xs font-bold text-violet-600 hover:text-violet-700 flex items-center gap-1">
+                                    <span>Kelola</span>
+                                    <i data-lucide="chevron-right" className="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+
+                            <div className="space-y-2.5">
+                                {accounts.map(acc => (
+                                    <div key={acc.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 hover:bg-slate-100/80 transition-all">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-xl text-white font-black flex items-center justify-center text-xs shadow-sm ${acc.color || 'bg-violet-600'}`}>
+                                                {acc.name.substring(0, 2).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-extrabold text-xs text-slate-900">{acc.name}</h4>
+                                                <span className="text-[10px] font-bold text-slate-400">{acc.type}</span>
+                                            </div>
+                                        </div>
+                                        <span className="font-extrabold text-xs text-slate-900">{formatIDR(acc.balance)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 📝 Recent Filtered Transactions List */}
+                    <div className="glass-card rounded-3xl p-5 sm:p-6 space-y-4">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <div>
+                                <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">Histori Transaksi ({filteredTransactions.length})</h3>
+                                <p className="text-[11px] text-slate-400 font-medium">Transaksi pada rentang tanggal terpilih</p>
+                            </div>
+                            <button onClick={() => onNavigate('transactions')} className="text-xs font-bold text-violet-600 hover:text-violet-700 flex items-center gap-1">
+                                <span>Lihat Semua</span>
+                                <i data-lucide="chevron-right" className="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+
+                        {filteredTransactions.length === 0 ? (
+                            <div className="text-center py-8 text-slate-400 text-xs font-medium">
+                                Tidak ada transaksi pada periode tanggal yang dipilih.
+                            </div>
+                        ) : (
+                            <div className="space-y-2.5">
+                                {filteredTransactions.slice(0, 6).map(t => {
+                                    const acc = accounts.find(a => a.id === t.accountId)?.name || 'Rekening';
+                                    const toAcc = t.toAccountId ? accounts.find(a => a.id === t.toAccountId)?.name : null;
+                                    return (
+                                        <div key={t.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-2.5 rounded-2xl text-white ${t.type === 'INCOME' ? 'bg-emerald-500' : t.type === 'EXPENSE' ? 'bg-rose-500' : 'bg-cyan-600'}`}>
+                                                    <i data-lucide={t.type === 'INCOME' ? 'arrow-down-left' : t.type === 'EXPENSE' ? 'arrow-up-right' : 'repeat'} className="w-4 h-4"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-extrabold text-xs text-slate-900">{t.note || t.category || 'Transaksi'}</h4>
+                                                    <p className="text-[10px] font-medium text-slate-400">{t.date} • {acc} {toAcc ? `➔ ${toAcc}` : ''}</p>
+                                                </div>
+                                            </div>
+                                            <span className={`font-black text-xs sm:text-sm ${t.type === 'INCOME' ? 'text-emerald-600' : t.type === 'EXPENSE' ? 'text-rose-600' : 'text-cyan-600'}`}>
+                                                {t.type === 'INCOME' ? '+' : t.type === 'EXPENSE' ? '-' : ''}{formatIDR(t.amount)}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                             TRANSACTIONS TAB                               */
+        /* -------------------------------------------------------------------------- */
+        function TransactionsTab({ transactions, accounts, onAddTransaction }) {
+            const [type, setType] = useState('EXPENSE'); // 'INCOME', 'EXPENSE', 'TRANSFER'
+            const [amount, setAmount] = useState('');
+            const [accountId, setAccountId] = useState(accounts[0]?.id || '');
+            const [toAccountId, setToAccountId] = useState(accounts[1]?.id || '');
+            const [category, setCategory] = useState('Makanan & Minuman');
+            const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+            const [note, setNote] = useState('');
+            const [adminFee, setAdminFee] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!amount || Number(amount) <= 0) return;
+
+                onAddTransaction({
+                    type,
+                    amount: Number(amount),
+                    accountId,
+                    toAccountId: type === 'TRANSFER' ? toAccountId : null,
+                    category: type === 'TRANSFER' ? 'Transfer Internal' : category,
+                    date,
+                    note,
+                    adminFee: type === 'TRANSFER' ? Number(adminFee || 0) : 0
+                });
+
+                setAmount('');
+                setNote('');
+                setAdminFee('');
+            };
+
+            return (
+                <div className="space-y-6 max-w-2xl mx-auto">
+                    <div>
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Catat Transaksi</h2>
+                        <p className="text-xs text-slate-500 font-medium">Tambah Pemasukan, Pengeluaran, atau Transfer Antar Rekening</p>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
+                        {/* Transaction Type Switcher */}
+                        <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200/80">
+                            <button
+                                type="button"
+                                onClick={() => setType('EXPENSE')}
+                                className={`py-2 rounded-xl text-xs font-bold transition-all ${type === 'EXPENSE' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20' : 'text-slate-600'}`}
+                            >
+                                Pengeluaran
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setType('INCOME')}
+                                className={`py-2 rounded-xl text-xs font-bold transition-all ${type === 'INCOME' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'text-slate-600'}`}
+                            >
+                                Pemasukan
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setType('TRANSFER')}
+                                className={`py-2 rounded-xl text-xs font-bold transition-all ${type === 'TRANSFER' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20' : 'text-slate-600'}`}
+                            >
+                                Transfer
+                            </button>
+                        </div>
+
+                        {/* Nominal Input */}
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Nominal (IDR)</label>
+                            <input
+                                type="number"
+                                required
+                                placeholder="0"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-lg font-black text-slate-900 focus:outline-none focus:border-violet-600 transition-all"
+                            />
+                        </div>
+
+                        {/* Account Selectors */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
+                                    {type === 'TRANSFER' ? 'Rekening Asal' : 'Rekening'}
+                                </label>
+                                <select
+                                    value={accountId}
+                                    onChange={(e) => setAccountId(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                >
+                                    {accounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>{acc.name} ({formatIDR(acc.balance)})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {type === 'TRANSFER' && (
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Rekening Tujuan</label>
+                                    <select
+                                        value={toAccountId}
+                                        onChange={(e) => setToAccountId(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                    >
+                                        {accounts.filter(a => a.id !== accountId).map(acc => (
+                                            <option key={acc.id} value={acc.id}>{acc.name} ({formatIDR(acc.balance)})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Category & Date */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {type !== 'TRANSFER' && (
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Kategori</label>
+                                    <select
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                    >
+                                        <option value="Makanan & Minuman">Makanan & Minuman</option>
+                                        <option value="Belanja & Groceries">Belanja & Groceries</option>
+                                        <option value="Transportasi">Transportasi</option>
+                                        <option value="Tagihan & Utilitas">Tagihan & Utilitas</option>
+                                        <option value="Hiburan & Gaya Hidup">Hiburan & Gaya Hidup</option>
+                                        <option value="Gaji / Income">Gaji / Income</option>
+                                        <option value="Lainnya">Lainnya</option>
+                                    </select>
+                                </div>
+                            )}
+
+                            {type === 'TRANSFER' && (
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Biaya Admin (Opsional)</label>
+                                    <input
+                                        type="number"
+                                        placeholder="0"
+                                        value={adminFee}
+                                        onChange={(e) => setAdminFee(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                    />
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Tanggal Transaksi</label>
+                                <input
+                                    type="date"
+                                    value={date}
+                                    onChange={(e) => setDate(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Catatan / Keterangan */}
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Catatan / Keterangan</label>
+                            <input
+                                type="text"
+                                placeholder="Contoh: Beli Kopi Latte"
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                            />
+                        </div>
+
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-violet-600/30 active:scale-95 transition-all"
+                        >
+                            Simpan Transaksi
+                        </button>
+                    </form>
+                </div>
+            );
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                               SCAN TAB                                     */
+        /* -------------------------------------------------------------------------- */
+        function ScanTab({ accounts, onAddTransaction, geminiApiKey, showToast }) {
+            const [selectedImage, setSelectedImage] = useState(null);
+            const [isAnalyzing, setIsAnalyzing] = useState(false);
+            const [scannedData, setScannedData] = useState(null);
+            const [selectedAccount, setSelectedAccount] = useState(accounts[0]?.id || '');
+
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setSelectedImage(reader.result);
+                        setScannedData(null);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const analyzeReceiptWithGemini = async () => {
+                if (!selectedImage) return;
+                if (!geminiApiKey) {
+                    showToast('Harap isi Gemini API Key di tab Cloud DB!', 'error');
+                    return;
+                }
+
+                setIsAnalyzing(true);
+                try {
+                    const base64Data = selectedImage.split(',')[1];
+                    const mimeType = selectedImage.substring(selectedImage.indexOf(":") + 1, selectedImage.indexOf(";")) || "image/jpeg";
+                    
+                    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+
+                    const promptText = `
+                        Analisis nota / struk belanja ini secara sangat teliti.
+                        Ekstrak data berikut dan hasilkan JSON murni:
+                        1. Nama Toko/Merchant (storeName)
+                        2. Tanggal transaksi dalam format YYYY-MM-DD (date). Jika tidak ada tahun, gunakan tahun ini.
+                        3. Rincian setiap item barang yang dibeli: nama barang (name), kuantitas/jumlah (qty), dan harga satuan (price).
+                        4. Total pembayaran akhir (totalAmount). Abaikan baris tunai/kembalian.
+                        5. Kategori yang sesuai (category): Makanan & Minuman, Belanja & Groceries, Transportasi, Tagihan & Utilitas, Hiburan & Gaya Hidup, atau Lainnya.
+                    `;
+
+                    const payload = {
+                        contents: [{
+                            parts: [
+                                { text: promptText },
+                                { inlineData: { mimeType: mimeType, data: base64Data } }
+                            ]
+                        }]
+                    };
+
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const responseText = await response.text();
+                    let resData;
+                    
+                    try {
+                        resData = JSON.parse(responseText);
+                    } catch (pErr) {
+                        throw new Error("Respon server bukan JSON yang valid. Pastikan Gemini API Key aktif.");
+                    }
+
+                    if (!response.ok) {
+                        const errDetails = resData?.error?.message || responseText;
+                        throw new Error(`API Error (${response.status}): ${errDetails}`);
+                    }
+
+                    const rawText = resData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    
+                    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+                    if (!jsonMatch) {
+                        throw new Error("Gagal mengekstrak format JSON dari hasil AI.");
+                    }
+
+                    const parsed = JSON.parse(jsonMatch[0]);
+
+                    parsed.items = (parsed.items || []).map(item => ({
+                        name: item.name || 'Barang',
+                        qty: Number(item.qty) || 1,
+                        price: Number(item.price) || 0
+                    }));
+
+                    setScannedData(parsed);
+                    showToast('✨ Struk berhasil dianalisis!');
+                } catch (err) {
+                    console.error("Gemini Vision Scan Error:", err);
+                    showToast(`Gagal memproses nota: ${err.message}`, 'error');
+                } finally {
+                    setIsAnalyzing(false);
+                }
+            };
+
+            const handleUpdateItem = (index, field, value) => {
+                if (!scannedData) return;
+                const updatedItems = [...(scannedData.items || [])];
+                updatedItems[index] = { ...updatedItems[index], [field]: value };
+                
+                const newTotal = updatedItems.reduce((sum, item) => sum + ((Number(item.qty) || 1) * (Number(item.price) || 0)), 0);
+
+                setScannedData({
+                    ...scannedData,
+                    items: updatedItems,
+                    totalAmount: newTotal > 0 ? newTotal : scannedData.totalAmount
+                });
+            };
+
+            const handleAddItem = () => {
+                if (!scannedData) return;
+                setScannedData({
+                    ...scannedData,
+                    items: [...(scannedData.items || []), { name: 'Barang Baru', qty: 1, price: 0 }]
+                });
+            };
+
+            const handleDeleteItem = (index) => {
+                if (!scannedData) return;
+                const updatedItems = (scannedData.items || []).filter((_, i) => i !== index);
+                const newTotal = updatedItems.reduce((sum, item) => sum + ((Number(item.qty) || 1) * (Number(item.price) || 0)), 0);
+                setScannedData({
+                    ...scannedData,
+                    items: updatedItems,
+                    totalAmount: newTotal
+                });
+            };
+
+            const handleSaveScannedReceipt = () => {
+                if (!scannedData) return;
+
+                onAddTransaction({
+                    type: 'EXPENSE',
+                    amount: Number(scannedData.totalAmount) || 0,
+                    accountId: selectedAccount,
+                    category: scannedData.category || 'Belanja & Groceries',
+                    date: scannedData.date || new Date().toISOString().split('T')[0],
+                    note: `Scan Struk: ${scannedData.storeName || 'Toko'} (${(scannedData.items || []).length} item)`
+                });
+
+                setSelectedImage(null);
+                setScannedData(null);
+            };
+
+            return (
+                <div className="space-y-6 max-w-2xl mx-auto">
+                    <div>
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Scan Nota AI High-Precision</h2>
+                        <p className="text-xs text-slate-500 font-medium">AI Gemini membaca struk belanja dan mengonversi menjadi rincian barang interaktif</p>
+                    </div>
+
+                    <div className="glass-card p-6 rounded-3xl border-2 border-dashed border-violet-200 text-center space-y-4">
+                        {selectedImage ? (
+                            <div className="space-y-4">
+                                <img src={selectedImage} alt="Struk" className="max-h-64 mx-auto rounded-2xl shadow-md border border-slate-200 object-contain" />
+                                <div className="flex justify-center gap-2">
+                                    <label className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer transition-all">
+                                        Ganti Foto
+                                        <input type="file" accept="image/*" capture="environment" onChange={handleImageUpload} className="hidden" />
+                                    </label>
+                                    <button
+                                        onClick={analyzeReceiptWithGemini}
+                                        disabled={isAnalyzing}
+                                        className="px-5 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50 transition-all"
+                                    >
+                                        {isAnalyzing ? (
+                                            <>
+                                                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                <span>Menganalisis Struk...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <i data-lucide="sparkles" className="w-4 h-4"></i>
+                                                <span>Proses Dengan AI Gemini</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <label className="cursor-pointer block py-8">
+                                <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center shadow-inner">
+                                    <i data-lucide="camera" className="w-7 h-7"></i>
+                                </div>
+                                <h3 className="font-extrabold text-slate-900 text-sm">Ambil Foto atau Pilih Gambar Struk</h3>
+                                <p className="text-xs text-slate-400 font-medium mt-1">Mendukung nota fisik, struk digital, minimarket, resto, dll.</p>
+                                <input type="file" accept="image/*" capture="environment" onChange={handleImageUpload} className="hidden" />
+                            </label>
+                        )}
+                    </div>
+
+                    {scannedData && (
+                        <div className="glass-card p-5 sm:p-6 rounded-3xl space-y-4 border-violet-200 bg-white shadow-xl animate-fadeIn">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 rounded-xl bg-violet-100 text-violet-700">
+                                        <i data-lucide="receipt" className="w-4 h-4"></i>
+                                    </div>
+                                    <h3 className="font-extrabold text-slate-900 text-sm">Hasil Deteksi AI</h3>
+                                </div>
+                                <span className="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2.5 py-1 rounded-full">
+                                    Verified Output
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Nama Toko</label>
+                                    <input
+                                        type="text"
+                                        value={scannedData.storeName || ''}
+                                        onChange={(e) => setScannedData({ ...scannedData, storeName: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Tanggal Struk</label>
+                                    <input
+                                        type="date"
+                                        value={scannedData.date || new Date().toISOString().split('T')[0]}
+                                        onChange={(e) => setScannedData({ ...scannedData, date: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Kategori</label>
+                                    <select
+                                        value={scannedData.category || 'Belanja & Groceries'}
+                                        onChange={(e) => setScannedData({ ...scannedData, category: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800"
+                                    >
+                                        <option value="Makanan & Minuman">Makanan & Minuman</option>
+                                        <option value="Belanja & Groceries">Belanja & Groceries</option>
+                                        <option value="Transportasi">Transportasi</option>
+                                        <option value="Tagihan & Utilitas">Tagihan & Utilitas</option>
+                                        <option value="Hiburan & Gaya Hidup">Hiburan & Gaya Hidup</option>
+                                        <option value="Lainnya">Lainnya</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-[10px] font-black uppercase text-slate-400">Rincian Barang</h4>
+                                    <button
+                                        onClick={handleAddItem}
+                                        className="text-[11px] font-bold text-violet-600 hover:text-violet-700 flex items-center gap-1"
+                                    >
+                                        <i data-lucide="plus" className="w-3.5 h-3.5"></i>
+                                        <span>Tambah Item</span>
+                                    </button>
+                                </div>
+
+                                <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                                    {(scannedData.items || []).map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200">
+                                            <input
+                                                type="text"
+                                                value={item.name}
+                                                onChange={(e) => handleUpdateItem(idx, 'name', e.target.value)}
+                                                placeholder="Nama Barang"
+                                                className="flex-1 bg-white border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-800"
+                                            />
+                                            <div className="w-16">
+                                                <input
+                                                    type="number"
+                                                    value={item.qty}
+                                                    min="1"
+                                                    onChange={(e) => handleUpdateItem(idx, 'qty', Number(e.target.value))}
+                                                    placeholder="Qty"
+                                                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-800 text-center"
+                                                />
+                                            </div>
+                                            <div className="w-28">
+                                                <input
+                                                    type="number"
+                                                    value={item.price}
+                                                    onChange={(e) => handleUpdateItem(idx, 'price', Number(e.target.value))}
+                                                    placeholder="Harga"
+                                                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-800 text-right"
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => handleDeleteItem(idx)}
+                                                className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-all"
+                                                title="Hapus Item"
+                                            >
+                                                <i data-lucide="trash-2" className="w-4 h-4"></i>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Total Pengeluaran (IDR)</label>
+                                    <input
+                                        type="number"
+                                        value={scannedData.totalAmount || 0}
+                                        onChange={(e) => setScannedData({ ...scannedData, totalAmount: Number(e.target.value) })}
+                                        className="w-full bg-emerald-50/60 border border-emerald-300 rounded-2xl p-3 text-base font-black text-emerald-700 focus:outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Pilih Rekening Pembayaran</label>
+                                    <select
+                                        value={selectedAccount}
+                                        onChange={(e) => setSelectedAccount(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                    >
+                                        {accounts.map(acc => (
+                                            <option key={acc.id} value={acc.id}>{acc.name} ({formatIDR(acc.balance)})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleSaveScannedReceipt}
+                                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                            >
+                                <i data-lucide="check-circle" className="w-4 h-4"></i>
+                                <span>Simpan Ke Pengeluaran ({formatIDR(scannedData.totalAmount)})</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                            ACCOUNTS TAB                                    */
+        /* -------------------------------------------------------------------------- */
+        function AccountsTab({ accounts, setAccounts, showToast }) {
+            const [name, setName] = useState('');
+            const [type, setType] = useState('Bank');
+            const [balance, setBalance] = useState('');
+
+            const handleAddAccount = (e) => {
+                e.preventDefault();
+                if (!name || !balance) return;
+
+                const newAcc = {
+                    id: 'acc_' + Date.now(),
+                    name,
+                    type,
+                    balance: Number(balance),
+                    color: type === 'Bank' ? 'bg-blue-600' : type === 'E-Wallet' ? 'bg-emerald-600' : 'bg-amber-500'
+                };
+
+                setAccounts(prev => [...prev, newAcc]);
+                setName('');
+                setBalance('');
+                showToast('Rekening baru berhasil ditambahkan!');
+            };
+
+            return (
+                <div className="space-y-6 max-w-2xl mx-auto">
+                    <div>
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Kelola Rekening & Dompet</h2>
+                        <p className="text-xs text-slate-500 font-medium">Tambah atau atur saldo akun bank, e-wallet, dan cash</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        {accounts.map(acc => (
+                            <div key={acc.id} className="glass-card p-5 rounded-3xl flex items-center justify-between border-slate-200/80">
+                                <div className="flex items-center gap-3.5">
+                                    <div className={`w-11 h-11 rounded-2xl text-white ${acc.color || 'bg-violet-600'} flex items-center justify-center font-black shadow-md`}>
+                                        {acc.name.substring(0, 2).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <h4 className="font-extrabold text-sm text-slate-900">{acc.name}</h4>
+                                        <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded-lg">{acc.type}</span>
+                                    </div>
+                                </div>
+                                <span className="font-extrabold text-sm text-slate-900">{formatIDR(acc.balance)}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <form onSubmit={handleAddAccount} className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
+                        <h3 className="font-extrabold text-slate-900 text-sm">Tambah Rekening Baru</h3>
+                        
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Nama Rekening / Dompet</label>
+                            <input
+                                type="text"
+                                required
+                                placeholder="Contoh: Bank Mandiri / OVO"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Tipe Rekening</label>
+                                <select
+                                    value={type}
+                                    onChange={(e) => setType(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                >
+                                    <option value="Bank">Bank</option>
+                                    <option value="E-Wallet">E-Wallet</option>
+                                    <option value="Cash">Uang Tunai / Cash</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Saldo Awal (IDR)</label>
+                                <input
+                                    type="number"
+                                    required
+                                    placeholder="0"
+                                    value={balance}
+                                    onChange={(e) => setBalance(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                />
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="w-full py-3 bg-slate-900 text-white font-extrabold text-xs rounded-2xl shadow-md active:scale-95 transition-all"
+                        >
+                            Simpan Rekening Baru
+                        </button>
+                    </form>
+                </div>
+            );
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                            SUPABASE & CONFIG TAB                           */
+        /* -------------------------------------------------------------------------- */
+        function SupabaseTab({ supabaseUrl, setSupabaseUrl, supabaseKey, setSupabaseKey, sheetsWebhookUrl, setSheetsWebhookUrl, transactions, accounts, isConnected, showToast, geminiApiKey, setGeminiApiKey }) {
+            const exportToCsv = () => {
+                if (!transactions || transactions.length === 0) {
+                    showToast('Belum ada transaksi untuk diexport', 'error');
+                    return;
+                }
+
+                const headers = ['ID', 'Tanggal', 'Jenis', 'Nominal', 'Rekening Asal', 'Rekening Tujuan', 'Kategori', 'Catatan', 'Biaya Admin'];
+                const rows = transactions.map(t => {
+                    const acc = accounts.find(a => a.id === t.accountId)?.name || '-';
+                    const toAcc = t.toAccountId ? (accounts.find(a => a.id === t.toAccountId)?.name || '-') : '-';
+                    return [
+                        t.id,
+                        t.date,
+                        t.type,
+                        t.amount,
+                        `"${acc}"`,
+                        `"${toAcc}"`,
+                        `"${t.category || '-'}"`,
+                        `"${(t.note || '-').replace(/"/g, '""')}"`,
+                        t.adminFee || 0
+                    ].join(',');
+                });
+
+                const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows].join('\n');
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement('a');
+                link.setAttribute('href', encodedUri);
+                link.setAttribute('download', `KeuanganKu_Export_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast('✨ File CSV berhasil diunduh!');
+            };
+
+            const handleSaveConfig = (e) => {
+                e.preventDefault();
+                localStorage.setItem('supabase_url', supabaseUrl);
+                localStorage.setItem('supabase_key', supabaseKey);
+                localStorage.setItem('gemini_api_key', geminiApiKey);
+                localStorage.setItem('sheets_webhook_url', sheetsWebhookUrl);
+                showToast('Pengaturan berhasil disimpan!');
+            };
+
+            return (
+                <div className="space-y-6 max-w-2xl mx-auto">
+                    <div>
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Cloud DB & Spreadsheet Sync</h2>
+                        <p className="text-xs text-slate-500 font-medium">Hubungkan Supabase Cloud, Google Sheets & Gemini API</p>
+                    </div>
+
+                    <div className="glass-card p-5 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-3 border-emerald-200 bg-emerald-50/30">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-md">
+                                <i data-lucide="file-spreadsheet" className="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h4 className="font-extrabold text-slate-900 text-xs sm:text-sm">Export Data Ke CSV</h4>
+                                <p className="text-[10px] text-slate-500 font-medium">Unduh data transaksi sebagai format Spreadsheet/Excel</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={exportToCsv}
+                            className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
+                        >
+                            <i data-lucide="download" className="w-4 h-4"></i>
+                            <span>Unduh CSV</span>
+                        </button>
+                    </div>
+
+                    <div className={`p-4 rounded-3xl border flex items-center justify-between ${isConnected ? 'bg-emerald-50 border-emerald-200' : 'glass-card border-slate-200'}`}>
+                        <div className="flex items-center gap-3">
+                            <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></div>
+                            <div>
+                                <h4 className="font-extrabold text-slate-900 text-xs sm:text-sm">Status Koneksi Cloud</h4>
+                                <p className="text-[10px] text-slate-500 font-medium">{isConnected ? 'Terhubung Supabase Cloud DB' : 'Mode Offline Browser (LocalStorage)'}</p>
+                            </div>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black ${isConnected ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'}`}>
+                            {isConnected ? 'ONLINE' : 'OFFLINE'}
+                        </span>
+                    </div>
+
+                    <form onSubmit={handleSaveConfig} className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
+                        <h3 className="font-extrabold text-slate-900 text-sm border-b border-slate-200 pb-2">Kredensial API & Webhook</h3>
+                        
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Supabase URL</label>
+                            <input
+                                type="text"
+                                value={supabaseUrl}
+                                onChange={(e) => setSupabaseUrl(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-900 font-mono"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Supabase Anon Key</label>
+                            <input
+                                type="password"
+                                value={supabaseKey}
+                                onChange={(e) => setSupabaseKey(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-900 font-mono"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Google Sheets Webhook URL</label>
+                            <input
+                                type="text"
+                                placeholder="https://script.google.com/macros/s/.../exec"
+                                value={sheetsWebhookUrl}
+                                onChange={(e) => setSheetsWebhookUrl(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-900 font-mono"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Gemini API Key (Scan Struk Vision)</label>
+                            <input
+                                type="password"
+                                value={geminiApiKey}
+                                onChange={(e) => setGeminiApiKey(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-900 font-mono"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="w-full py-3.5 bg-violet-600 hover:bg-violet-700 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-md active:scale-95 transition-all"
+                        >
+                            Simpan Konfigurasi
+                        </button>
+                    </form>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
