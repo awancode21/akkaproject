@@ -122,13 +122,22 @@
             // Supabase & Gemini Config State
             const DEFAULT_SUPABASE_URL = 'https://fqaewybhgsxlkgkvjnjv.supabase.co';
             const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxYWV3eWJoZ3N4bGtna3Zqbmp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyODc4MzQsImV4cCI6MjEwNjg2MzgzNH0.s4Frl_Mpj77Fc321j7MWykvxaXA7XWkKjWzJKEn-LXE';
-            const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6K6GAGHd1iE89vTMRFLsf3yPazWM_LNw4iLWVG2-mzyew';
+            const DEFAULT_GEMINI_KEY = '';
             const DEFAULT_SHEETS_WEBHOOK = 'https://script.google.com/macros/s/AKfycbxL9JzrgsCcd9cQiPWzxIOjeT_MDtCYL97t44dgpIeUAiU6MbVWfjRwMtzuSGvUFtMv/exec';
 
             const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('supabase_url') || DEFAULT_SUPABASE_URL);
             const [supabaseKey, setSupabaseKey] = useState(() => localStorage.getItem('supabase_key') || DEFAULT_SUPABASE_KEY);
             const [sheetsWebhookUrl, setSheetsWebhookUrl] = useState(() => localStorage.getItem('sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK);
-            const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('gemini_api_key') || DEFAULT_GEMINI_KEY);
+            
+            // Clean up invalid gemini api keys from localStorage if present
+            const [geminiApiKey, setGeminiApiKey] = useState(() => {
+                const storedKey = localStorage.getItem('gemini_api_key');
+                if (storedKey && storedKey.startsWith('AQ.')) {
+                    localStorage.removeItem('gemini_api_key');
+                    return DEFAULT_GEMINI_KEY;
+                }
+                return storedKey || DEFAULT_GEMINI_KEY;
+            });
             
             const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
             const [supabaseClient, setSupabaseClient] = useState(null);
@@ -930,17 +939,14 @@
 
             const analyzeReceiptWithGemini = async () => {
                 if (!selectedImage) return;
-                if (!geminiApiKey) {
-                    showToast('Harap isi Gemini API Key di tab Cloud DB!', 'error');
-                    return;
-                }
 
                 setIsAnalyzing(true);
                 try {
                     const base64Data = selectedImage.split(',')[1];
                     const mimeType = selectedImage.substring(selectedImage.indexOf(":") + 1, selectedImage.indexOf(";")) || "image/jpeg";
                     
-                    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+                    const apiKey = (geminiApiKey && !geminiApiKey.startsWith('AQ.')) ? geminiApiKey : '';
+                    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
 
                     const promptText = `
                         Analisis nota / struk belanja ini secara sangat teliti.
@@ -973,7 +979,7 @@
                     try {
                         resData = JSON.parse(responseText);
                     } catch (pErr) {
-                        throw new Error("Respon server bukan JSON yang valid. Pastikan Gemini API Key aktif.");
+                        throw new Error("Respon server bukan JSON yang valid.");
                     }
 
                     if (!response.ok) {
