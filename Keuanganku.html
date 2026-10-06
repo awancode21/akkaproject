@@ -123,10 +123,11 @@
             const DEFAULT_SUPABASE_URL = 'https://fqaewybhgsxlkgkvjnjv.supabase.co';
             const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxYWV3eWJoZ3N4bGtna3Zqbmp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyODc4MzQsImV4cCI6MjEwNjg2MzgzNH0.s4Frl_Mpj77Fc321j7MWykvxaXA7XWkKjWzJKEn-LXE';
             const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6K6GAGHd1iE89vTMRFLsf3yPazWM_LNw4iLWVG2-mzyew';
+            const DEFAULT_SHEETS_WEBHOOK = 'https://script.google.com/macros/s/AKfycbxL9JzrgsCcd9cQiPWzxIOjeT_MDtCYL97t44dgpIeUAiU6MbVWfjRwMtzuSGvUFtMv/exec';
 
             const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('supabase_url') || DEFAULT_SUPABASE_URL);
             const [supabaseKey, setSupabaseKey] = useState(() => localStorage.getItem('supabase_key') || DEFAULT_SUPABASE_KEY);
-            const [sheetsWebhookUrl, setSheetsWebhookUrl] = useState(() => localStorage.getItem('sheets_webhook_url') || '');
+            const [sheetsWebhookUrl, setSheetsWebhookUrl] = useState(() => localStorage.getItem('sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK);
             const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('gemini_api_key') || DEFAULT_GEMINI_KEY);
             
             const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
