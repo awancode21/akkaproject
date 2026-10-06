@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KeuanganKu AI - Pencatatan Keuangan & Scan Nota</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- React & ReactDOM CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Supabase Client JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            -webkit-tap-highlight-color: transparent;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);
+        }
+        .glass-card-hover {
+            transition: all 0.2s ease-in-out;
+        }
+        .glass-card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px -4px rgba(124, 58, 237, 0.12);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 99px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        const DEFAULT_ACCOUNTS = [
+            { id: 'acc_bca', name: 'Bank BCA', type: 'Bank', balance: 5250000, icon: 'landmark', color: 'bg-blue-500' },
+            { id: 'acc_gopay', name: 'GoPay', type: 'E-Wallet', balance: 450000, icon: 'wallet', color: 'bg-emerald-500' },
+            { id: 'acc_cash', name: 'Uang Tunai / Cash', type: 'Cash', balance: 320000, icon: 'banknote', color: 'bg-amber-500' }
+        ];
+
+        const INITIAL_TRANSACTIONS = [
+            { id: 'tx_1', date: new Date().toISOString().split('T')[0], type: 'INCOME', amount: 3500000, accountId: 'acc_bca', category: 'Gaji / Income', note: 'Gaji Bulanan' },
+            { id: 'tx_2', date: new Date().toISOString().split('T')[0], type: 'EXPENSE', amount: 45000, accountId: 'acc_gopay', category: 'Makanan & Minuman', note: 'Kopi & Snack' },
+            { id: 'tx_3', date: new Date().toISOString().split('T')[0], type: 'TRANSFER', amount: 200000, accountId: 'acc_bca', toAccountId: 'acc_gopay', category: 'Transfer Int', note: 'Top up GoPay', adminFee: 1000 }
+        ];
+
+        // Format Currency Helper
+        const formatIDR = (num) => {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num || 0);
+        };
+
+        function App() {
+            const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'transactions', 'scan', 'accounts', 'supabase'
+            const [accounts, setAccounts] = useState(() => JSON.parse(localStorage.getItem('keuanganku_accounts')) || DEFAULT_ACCOUNTS);
+            const [transactions, setTransactions] = useState(() => JSON.parse(localStorage.getItem('keuanganku_transactions')) || INITIAL_TRANSACTIONS);
+
+            // Supabase Config State
+            const DEFAULT_SUPABASE_URL = 'https://fqaewybhgsxlkgkvjnjv.supabase.co';
+            const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxYWV3eWJoZ3N4bGtna3Zqbmp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyODc4MzQsImV4cCI6MjEwNjg2MzgzNH0.s4Frl_Mpj77Fc321j7MWykvxaXA7XWkKjWzJKEn-LXE';
+            const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6K6GAGHd1iE89vTMRFLsf3yPazWM_LNw4iLWVG2-mzyew';
+
+            const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('supabase_url') || DEFAULT_SUPABASE_URL);
+            const [supabaseKey, setSupabaseKey] = useState(() => localStorage.getItem('supabase_key') || DEFAULT_SUPABASE_KEY);
+            const [sheetsWebhookUrl, setSheetsWebhookUrl] = useState(() => localStorage.getItem('sheets_webhook_url') || '');
+            const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('gemini_api_key') || DEFAULT_GEMINI_KEY);
+            
+            const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
+            const [supabaseClient, setSupabaseClient] = useState(null);
+            const [toastMessage, setToastMessage] = useState(null);
+
+            useEffect(() => {
+                localStorage.setItem('keuanganku_accounts', JSON.stringify(accounts));
+            }, [accounts]);
+
+            useEffect(() => {
+                localStorage.setItem('keuanganku_transactions', JSON.stringify(transactions));
+            }, [transactions]);
+
+            useEffect(() => {
+                if (supabaseUrl && supabaseKey && window.supabase) {
+                    try {
+                        const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+                        setSupabaseClient(client);
+                        setIsSupabaseConnected(true);
+                    } catch (err) {
+                        console.error("Supabase Connection Error:", err);
+                        setIsSupabaseConnected(false);
+                    }
+                }
+            }, [supabaseUrl, supabaseKey]);
+
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [activeTab, transactions, accounts]);
+
+            const showToast = (msg, type = 'success') => {
+                setToastMessage({ msg, type });
+                setTimeout(() => setToastMessage(null), 3000);
+            };
+
+            const totalBalance = useMemo(() => {
+                return accounts.reduce((acc, a) => acc + Number(a.balance || 0), 0);
+            }, [accounts]);
+
+            const handleAddTransaction = (newTx) => {
+                const createdTx = { ...newTx, id: 'tx_' + Date.now() };
+                setTransactions(prev => [createdTx, ...prev]);
+
+                // Update Local Accounts Balance
+                setAccounts(prev => prev.map(acc => {
+                    let newBal = acc.balance;
+                    if (newTx.type === 'INCOME' && acc.id === newTx.accountId) {
+                        newBal += Number(newTx.amount);
+                    } else if (newTx.type === 'EXPENSE' && acc.id === newTx.accountId) {
+                        newBal -= Number(newTx.amount);
+                    } else if (newTx.type === 'TRANSFER') {
+                        if (acc.id === newTx.accountId) {
+                            newBal -= (Number(newTx.amount) + Number(newTx.adminFee || 0));
+                        }
+                        if (acc.id === newTx.toAccountId) {
+                            newBal += Number(newTx.amount);
+                        }
+                    }
+                    return { ...acc, balance: newBal };
+                }));
+
+                // Sync to Supabase if available
+                if (isSupabaseConnected && supabaseClient) {
+                    supabaseClient.from('transactions').insert([{
+                        id: createdTx.id,
+                        type: createdTx.type,
+                        amount: createdTx.amount,
+                        account_id: createdTx.accountId,
+                        to_account_id: createdTx.toAccountId || null,
+                        category: createdTx.category,
+                        date: createdTx.date,
+                        note: createdTx.note || '',
+                        admin_fee: createdTx.adminFee || 0
+                    }]).then(({ error }) => {
+                        if (error) console.error("Supabase tx sync error:", error);
+                    });
+                }
+
+                // Sync to Google Sheets Webhook
+                if (sheetsWebhookUrl) {
+                    const accName = accounts.find(a => a.id === createdTx.accountId)?.name || '-';
+                    const toAccName = createdTx.toAccountId ? (accounts.find(a => a.id === createdTx.toAccountId)?.name || '-') : '-';
+                    
+                    fetch(sheetsWebhookUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: createdTx.id,
+                            date: createdTx.date,
+                            type: createdTx.type,
+                            amount: createdTx.amount,
+                            account: accName,
+                            to_account: toAccName,
+                            category: createdTx.category,
+                            note: createdTx.note || '-',
+                            admin_fee: createdTx.adminFee || 0
+                        })
+                    }).catch(err => console.warn('Google Sheets Webhook Sync Notice:', err));
+                }
+
+                showToast('✨ Transaksi berhasil disimpan!');
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col pb-24 lg:pb-0">
+                    {/* Header Bar */}
+                    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 sm:px-6">
+                        <div className="max-w-5xl mx-auto flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-violet-500/20">
+                                    <i data-lucide="sparkles" className="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h1 className="font-extrabold text-slate-900 text-base tracking-tight leading-none">KeuanganKu <span className="text-violet-600">AI</span></h1>
+                                    <p className="text-[11px] text-slate-500 font-medium">Smart Finance & Receipt Scanner</p>
+                                </div>
+                            </div>
+
+                            {/* Total Balance Badge */}
+                            <div className="text-right">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Kekayaan</span>
+                                <span className="font-black text-sm sm:text-base text-slate-900">{formatIDR(totalBalance)}</span>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Toast Notification */}
+                    {toastMessage && (
+                        <div className="fixed top-16 right-4 z-50 bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-slate-800 animate-bounce">
+                            <i data-lucide="check-circle-2" className="w-4 h-4 text-emerald-400"></i>
+                            <span>{toastMessage.msg}</span>
+                        </div>
+                    )}
+
+                    {/* Main Content Area */}
+                    <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
+                        {activeTab === 'dashboard' && <DashboardTab transactions={transactions} accounts={accounts} onNavigate={setActiveTab} />}
+                        {activeTab === 'transactions' && <TransactionsTab transactions={transactions} accounts={accounts} onAddTransaction={handleAddTransaction} />}
+                        {activeTab === 'scan' && <ScanTab accounts={accounts} onAddTransaction={handleAddTransaction} geminiApiKey={geminiApiKey} showToast={showToast} />}
+                        {activeTab === 'accounts' && <AccountsTab accounts={accounts} setAccounts={setAccounts} showToast={showToast} />}
+                        {activeTab === 'supabase' && (
+                            <SupabaseTab 
+                                supabaseUrl={supabaseUrl}
+                                setSupabaseUrl={setSupabaseUrl}
+                                supabaseKey={supabaseKey}
+                                setSupabaseKey={setSupabaseKey}
+                                sheetsWebhookUrl={sheetsWebhookUrl}
+                                setSheetsWebhookUrl={setSheetsWebhookUrl}
+                                transactions={transactions}
+                                accounts={accounts}
+                                isConnected={isSupabaseConnected}
+                                showToast={showToast}
+                                geminiApiKey={geminiApiKey}
+                                setGeminiApiKey={setGeminiApiKey}
+                            />
+                        )}
+                    </main>
+
+                    {}
+                    {/* Bottom Navigation Dock for Smartphones */}
+                    <nav className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-full px-3 py-2 shadow-2xl flex items-center gap-1 sm:gap-2">
+                        <button
+                            onClick={() => setActiveTab('dashboard')}
+                            className={`flex flex-col items-center py-1.5 px-3.5 rounded-full transition-all ${activeTab === 'dashboard' ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30' : 'text-slate-500 hover:text-slate-900'}`}
+                        >
+                            <i data-lucide="layout-dashboard" className="w-5 h-5"></i>
+                            <span className="text-[10px] font-bold mt-0.5">Laporan</span>
+                        </button>
+
+                        <button
+                            onClick={() => setActiveTab('transactions')}
+                            className={`flex flex-col items-center py-1.5 px-3.5 rounded-full transition-all ${activeTab === 'transactions' ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30' : 'text-slate-500 hover:text-slate-900'}`}
+                        >
+                            <i data-lucide="receipt-text" className="w-5 h-5"></i>
+                            <span className="text-[10px] font-bold mt-0.5">Transaksi</span>
+                        </button>
+
+                        {/* Floating Center Scan Action Button */}
+                        <button
+                            onClick={() => setActiveTab('scan')}
+                            className={`relative -top-3 p-3.5 rounded-full text-white bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 shadow-lg shadow-violet-500/40 active:scale-95 transition-all ${activeTab === 'scan' ? 'ring-4 ring-violet-200' : ''}`}
+                        >
+                            <i data-lucide="scan-line" className="w-6 h-6"></i>
+                        </button>
+
+                        <button
+                            onClick={() => setActiveTab('accounts')}
+                            className={`flex flex-col items-center py-1.5 px-3.5 rounded-full transition-all ${activeTab === 'accounts' ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30' : 'text-slate-500 hover:text-slate-900'}`}
+                        >
+                            <i data-lucide="wallet" className="w-5 h-5"></i>
+                            <span className="text-[10px] font-bold mt-0.5">Rekening</span>
+                        </button>
+
+                        <button
+                            onClick={() => setActiveTab('supabase')}
+                            className={`flex flex-col items-center py-1.5 px-3.5 rounded-full transition-all ${activeTab === 'supabase' ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30' : 'text-slate-500 hover:text-slate-900'}`}
+                        >
+                            <i data-lucide="database" className="w-5 h-5"></i>
+                            <span className="text-[10px] font-bold mt-0.5">Cloud DB</span>
+                        </button>
+                    </nav>
+                </div>
+            );
+        }
+
+        function DashboardTab({ transactions, accounts, onNavigate }) {
+            const [dateFilter, setDateFilter] = useState('30days'); // 'today', '7days', '30days', 'month', 'custom'
+            const [startDate, setStartDate] = useState(() => {
+                const d = new Date();
+                d.setDate(d.getDate() - 30);
+                return d.toISOString().split('T')[0];
+            });
+            const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+
+            // Filter Transactions by selected date range
+            const filteredTransactions = useMemo(() => {
+                const todayStr = new Date().toISOString().split('T')[0];
+                return transactions.filter(t => {
+                    const txDate = t.date;
+                    if (dateFilter === 'today') {
+                        return txDate === todayStr;
+                    } else if (dateFilter === '7days') {
+                        const d = new Date();
+                        d.setDate(d.getDate() - 7);
+                        return txDate >= d.toISOString().split('T')[0] && txDate <= todayStr;
+                    } else if (dateFilter === '30days') {
+                        const d = new Date();
+                        d.setDate(d.getDate() - 30);
+                        return txDate >= d.toISOString().split('T')[0] && txDate <= todayStr;
+                    } else if (dateFilter === 'month') {
+                        const curMonth = todayStr.substring(0, 7);
+                        return txDate.startsWith(curMonth);
+                    } else if (dateFilter === 'custom') {
+                        return txDate >= startDate && txDate <= endDate;
+                    }
+                    return true;
+                });
+            }, [transactions, dateFilter, startDate, endDate]);
+
+            // Income and Expense Calculation
+            const { totalIncome, totalExpense } = useMemo(() => {
+                return filteredTransactions.reduce((acc, t) => {
+                    if (t.type === 'INCOME') acc.totalIncome += Number(t.amount || 0);
+                    if (t.type === 'EXPENSE') acc.totalExpense += Number(t.amount || 0);
+                    return acc;
+                }, { totalIncome: 0, totalExpense: 0 });
+            }, [filteredTransactions]);
+
+            const netCashflow = totalIncome - totalExpense;
+
+            return (
+                <div className="space-y-6">
+                    {/* Header & Date Range Filter Bar */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Laporan Keuangan</h2>
+                            <p className="text-xs text-slate-500 font-medium">Analisis arus kas dan statistik pengeluaran</p>
+                        </div>
+
+                        {/* Date Filter Buttons */}
+                        <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80">
+                            <button
+                                onClick={() => setDateFilter('today')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${dateFilter === 'today' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                Hari Ini
+                            </button>
+                            <button
+                                onClick={() => setDateFilter('7days')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${dateFilter === '7days' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                7 Hari
+                            </button>
+                            <button
+                                onClick={() => setDateFilter('30days')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${dateFilter === '30days' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                30 Hari
+                            </button>
+                            <button
+                                onClick={() => setDateFilter('month')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${dateFilter === 'month' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                Bulan Ini
+                            </button>
+                            <button
+                                onClick={() => setDateFilter('custom')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${dateFilter === 'custom' ? 'bg-violet-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                <i data-lucide="calendar" className="w-3.5 h-3.5"></i>
+                                <span>Kustom</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {}
+                    {/* Custom Date Picker Section (Visible only when dateFilter === 'custom') */}
+                    {dateFilter === 'custom' && (
+                        <div className="glass-card p-4 rounded-3xl border border-violet-100 bg-violet-50/30 flex flex-col sm:flex-row items-center gap-3 animate-fadeIn">
+                            <div className="w-full sm:w-auto flex-1">
+                                <label className="block text-[10px] font-black uppercase text-violet-700 mb-1">Dari Tanggal</label>
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+                                />
+                            </div>
+                            <span className="hidden sm:inline text-slate-400 font-bold mt-4">s/d</span>
+                            <div className="w-full sm:w-auto flex-1">
+                                <label className="block text-[10px] font-black uppercase text-violet-700 mb-1">Sampai Tanggal</label>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Summary Cards Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                        {/* Income */}
+                        <div className="glass-card p-4 sm:p-5 rounded-3xl border-emerald-100 bg-emerald-50/30 flex items-center gap-3.5">
+                            <div className="p-3 rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-500/20">
+                                <i data-lucide="arrow-down-left" className="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <span className="text-[11px] font-bold text-slate-500 block">Pemasukan</span>
+                                <span className="font-extrabold text-lg text-emerald-600">{formatIDR(totalIncome)}</span>
+                            </div>
+                        </div>
+
+                        {/* Expense */}
+                        <div className="glass-card p-4 sm:p-5 rounded-3xl border-rose-100 bg-rose-50/30 flex items-center gap-3.5">
+                            <div className="p-3 rounded-2xl bg-rose-500 text-white shadow-md shadow-rose-500/20">
+                                <i data-lucide="arrow-up-right" className="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <span className="text-[11px] font-bold text-slate-500 block">Pengeluaran</span>
+                                <span className="font-extrabold text-lg text-rose-600">{formatIDR(totalExpense)}</span>
+                            </div>
+                        </div>
+
+                        {/* Net Cashflow */}
+                        <div className="glass-card p-4 sm:p-5 rounded-3xl border-violet-100 bg-violet-50/30 flex items-center gap-3.5">
+                            <div className="p-3 rounded-2xl bg-violet-600 text-white shadow-md shadow-violet-600/20">
+                                <i data-lucide="scale" className="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <span className="text-[11px] font-bold text-slate-500 block">Arus Kas Bersih</span>
+                                <span className={`font-extrabold text-lg ${netCashflow >= 0 ? 'text-violet-700' : 'text-rose-600'}`}>{formatIDR(netCashflow)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {}
+                    {/* Recent Filtered Transactions List */}
+                    <div className="glass-card rounded-3xl p-5 space-y-4">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <h3 className="font-extrabold text-slate-900 text-sm">Histori Transaksi Periode Ini ({filteredTransactions.length})</h3>
+                            <button onClick={() => onNavigate('transactions')} className="text-xs font-bold text-violet-600 hover:text-violet-700 flex items-center gap-1">
+                                <span>Lihat Semua</span>
+                                <i data-lucide="chevron-right" className="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+
+                        {filteredTransactions.length === 0 ? (
+                            <div className="text-center py-8 text-slate-400 text-xs font-medium">
+                                Tidak ada transaksi pada periode tanggal yang dipilih.
+                            </div>
+                        ) : (
+                            <div className="space-y-2.5">
+                                {filteredTransactions.slice(0, 5).map(t => {
+                                    const acc = accounts.find(a => a.id === t.accountId)?.name || 'Rekening';
+                                    const toAcc = t.toAccountId ? accounts.find(a => a.id === t.toAccountId)?.name : null;
+                                    return (
+                                        <div key={t.id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50/80 border border-slate-100 hover:bg-slate-100/60 transition-all">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-2.5 rounded-xl text-white ${t.type === 'INCOME' ? 'bg-emerald-500' : t.type === 'EXPENSE' ? 'bg-rose-500' : 'bg-cyan-500'}`}>
+                                                    <i data-lucide={t.type === 'INCOME' ? 'arrow-down-left' : t.type === 'EXPENSE' ? 'arrow-up-right' : 'repeat'} className="w-4 h-4"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-extrabold text-xs text-slate-900">{t.note || t.category || 'Transaksi'}</h4>
+                                                    <p className="text-[10px] font-medium text-slate-400">{t.date} • {acc} {toAcc ? `➔ ${toAcc}` : ''}</p>
+                                                </div>
+                                            </div>
+                                            <span className={`font-black text-xs ${t.type === 'INCOME' ? 'text-emerald-600' : t.type === 'EXPENSE' ? 'text-rose-600' : 'text-cyan-600'}`}>
+                                                {t.type === 'INCOME' ? '+' : t.type === 'EXPENSE' ? '-' : ''}{formatIDR(t.amount)}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function TransactionsTab({ transactions, accounts, onAddTransaction }) {
+            const [type, setType] = useState('EXPENSE'); // 'INCOME', 'EXPENSE', 'TRANSFER'
+            const [amount, setAmount] = useState('');
+            const [accountId, setAccountId] = useState(accounts[0]?.id || '');
+            const [toAccountId, setToAccountId] = useState(accounts[1]?.id || '');
+            const [category, setCategory] = useState('Makanan & Minuman');
+            const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+            const [note, setNote] = useState('');
+            const [adminFee, setAdminFee] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!amount || Number(amount) <= 0) return;
+
+                onAddTransaction({
+                    type,
+                    amount: Number(amount),
+                    accountId,
+                    toAccountId: type === 'TRANSFER' ? toAccountId : null,
+                    category: type === 'TRANSFER' ? 'Transfer Internal' : category,
+                    date,
+                    note,
+                    adminFee: type === 'TRANSFER' ? Number(adminFee || 0) : 0
+                });
+
+                setAmount('');
+                setNote('');
+                setAdminFee('');
+            };
+
+            return (
+                <div className="space-y-6 max-w-2xl mx-auto">
+                    <div>
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Catat Transaksi</h2>
+                        <p className="text-xs text-slate-500 font-medium">Tambah Pemasukan, Pengeluaran, atau Transfer Antar Rekening</p>
+                    </div>
+
+                    {}
+                    <form onSubmit={handleSubmit} className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
+                        {/* Transaction Type Segment Switcher */}
+                        <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200/80">
+                            <button
+                                type="button"
+                                onClick={() => setType('EXPENSE')}
+                                className={`py-2 rounded-xl text-xs font-bold transition-all ${type === 'EXPENSE' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20' : 'text-slate-600'}`}
+                            >
+                                Pengeluaran
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setType('INCOME')}
+                                className={`py-2 rounded-xl text-xs font-bold transition-all ${type === 'INCOME' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'text-slate-600'}`}
+                            >
+                                Pemasukan
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setType('TRANSFER')}
+                                className={`py-2 rounded-xl text-xs font-bold transition-all ${type === 'TRANSFER' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20' : 'text-slate-600'}`}
+                            >
+                                Transfer
+                            </button>
+                        </div>
+
+                        {/* Nominal Input */}
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Nominal (IDR)</label>
+                            <input
+                                type="number"
+                                required
+                                placeholder="0"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-lg font-black text-slate-900 focus:outline-none focus:border-violet-600 transition-all"
+                            />
+                        </div>
+
+                        {/* Account Selectors */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
+                                    {type === 'TRANSFER' ? 'Rekening Asal' : 'Rekening'}
+                                </label>
+                                <select
+                                    value={accountId}
+                                    onChange={(e) => setAccountId(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                >
+                                    {accounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>{acc.name} ({formatIDR(acc.balance)})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {type === 'TRANSFER' && (
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Rekening Tujuan</label>
+                                    <select
+                                        value={toAccountId}
+                                        onChange={(e) => setToAccountId(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                    >
+                                        {accounts.filter(a => a.id !== accountId).map(acc => (
+                                            <option key={acc.id} value={acc.id}>{acc.name} ({formatIDR(acc.balance)})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Category & Date */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {type !== 'TRANSFER' && (
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Kategori</label>
+                                    <select
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                    >
+                                        <option value="Makanan & Minuman">Makanan & Minuman</option>
+                                        <option value="Belanja & Groceries">Belanja & Groceries</option>
+                                        <option value="Transportasi">Transportasi</option>
+                                        <option value="Tagihan & Utilitas">Tagihan & Utilitas</option>
+                                        <option value="Hiburan & Gaya Hidup">Hiburan & Gaya Hidup</option>
+                                        <option value="Gaji / Income">Gaji / Income</option>
+                                        <option value="Lainnya">Lainnya</option>
+                                    </select>
+                                </div>
+                            )}
+
+                            {type === 'TRANSFER' && (
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Biaya Admin (Opsional)</label>
+                                    <input
+                                        type="number"
+                                        placeholder="0"
+                                        value={adminFee}
+                                        onChange={(e) => setAdminFee(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                    />
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Tanggal Transaksi</label>
+                                <input
+                                    type="date"
+                                    value={date}
+                                    onChange={(e) => setDate(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Catatan / Keterangan */}
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Catatan / Keterangan</label>
+                            <input
+                                type="text"
+                                placeholder="Contoh: Beli Kopi Latte"
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                            />
+                        </div>
+
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-violet-600/30 active:scale-95 transition-all"
+                        >
+                            Simpan Transaksi
+                        </button>
+                    </form>
+                </div>
+            );
+        }
+
+        function ScanTab({ accounts, onAddTransaction, geminiApiKey, showToast }) {
+            const [selectedImage, setSelectedImage] = useState(null);
+            const [isAnalyzing, setIsAnalyzing] = useState(false);
+            const [scannedData, setScannedData] = useState(null);
+            const [selectedAccount, setSelectedAccount] = useState(accounts[0]?.id || '');
+
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setSelectedImage(reader.result);
+                        setScannedData(null);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const analyzeReceiptWithGemini = async () => {
+                if (!selectedImage) return;
+                if (!geminiApiKey) {
+                    showToast('Harap isi Gemini API Key di tab Cloud DB!', 'error');
+                    return;
+                }
+
+                setIsAnalyzing(true);
+                try {
+                    const base64Data = selectedImage.split(',')[1];
+                    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+
+                    const promptText = `
+                        Analisis foto nota/struk belanjaan ini. Ekstrak data dan kembalikan HANYA format JSON valid tanpa tanda backtick markdown seperti berikut:
+                        {
+                            "storeName": "Nama Toko",
+                            "date": "YYYY-MM-DD",
+                            "items": [
+                                { "name": "Nama Barang 1", "qty": 1, "price": 15000 },
+                                { "name": "Nama Barang 2", "qty": 2, "price": 8000 }
+                            ],
+                            "totalAmount": 31000,
+                            "category": "Belanja & Groceries"
+                        }
+                    `;
+
+                    const payload = {
+                        contents: [{
+                            parts: [
+                                { text: promptText },
+                                { inline_data: { mime_type: "image/jpeg", data: base64Data } }
+                            ]
+                        }]
+                    };
+
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const resData = await response.json();
+                    const rawText = resData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    
+                    // Extract JSON safely using regex
+                    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+                    if (!jsonMatch) {
+                        throw new Error("Respon AI tidak berisi format JSON valid");
+                    }
+                    const parsed = JSON.parse(jsonMatch[0]);
+
+                    setScannedData(parsed);
+                    showToast('✨ Nota berhasil di-scan AI!');
+                } catch (err) {
+                    console.error("Gemini Vision Error:", err);
+                    showToast('Gagal memproses nota. Pastikan gambar jelas.', 'error');
+                } finally {
+                    setIsAnalyzing(false);
+                }
+            };
+
+            const handleSaveScannedReceipt = () => {
+                if (!scannedData) return;
+
+                onAddTransaction({
+                    type: 'EXPENSE',
+                    amount: scannedData.totalAmount || 0,
+                    accountId: selectedAccount,
+                    category: scannedData.category || 'Belanja & Groceries',
+                    date: scannedData.date || new Date().toISOString().split('T')[0],
+                    note: `Scan Struk: ${scannedData.storeName || 'Toko'} (${scannedData.items?.length || 0} item)`
+                });
+
+                setSelectedImage(null);
+                setScannedData(null);
+            };
+
+            return (
+                <div className="space-y-6 max-w-2xl mx-auto">
+                    <div>
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Scan Nota AI</h2>
+                        <p className="text-xs text-slate-500 font-medium">Foto struk belanja untuk otomatisasi pencatatan rincian barang</p>
+                    </div>
+
+                    {/* Image Upload Box */}
+                    <div className="glass-card p-6 rounded-3xl border-2 border-dashed border-violet-200 text-center space-y-4">
+                        {selectedImage ? (
+                            <div className="space-y-4">
+                                <img src={selectedImage} alt="Struk" className="max-h-64 mx-auto rounded-2xl shadow-md border border-slate-200 object-contain" />
+                                <div className="flex justify-center gap-2">
+                                    <label className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer">
+                                        Ganti Foto
+                                        <input type="file" accept="image/*" capture="environment" onChange={handleImageUpload} className="hidden" />
+                                    </label>
+                                    <button
+                                        onClick={analyzeReceiptWithGemini}
+                                        disabled={isAnalyzing}
+                                        className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50"
+                                    >
+                                        {isAnalyzing ? (
+                                            <>
+                                                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                <span>Menganalisis Struk...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <i data-lucide="sparkles" className="w-4 h-4"></i>
+                                                <span>Proses Dengan AI</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <label className="cursor-pointer block py-8">
+                                <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center">
+                                    <i data-lucide="camera" className="w-7 h-7"></i>
+                                </div>
+                                <h3 className="font-extrabold text-slate-900 text-sm">Ambil Foto atau Pilih Gambar Struk</h3>
+                                <p className="text-xs text-slate-400 font-medium mt-1">Dukung format JPG, PNG</p>
+                                <input type="file" accept="image/*" capture="environment" onChange={handleImageUpload} className="hidden" />
+                            </label>
+                        )}
+                    </div>
+
+                    {}
+                    {/* Scanned Result Breakdown */}
+                    {scannedData && (
+                        <div className="glass-card p-5 sm:p-6 rounded-3xl space-y-4 border-emerald-200 bg-emerald-50/20 animate-fadeIn">
+                            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                                <div>
+                                    <h3 className="font-extrabold text-slate-900 text-sm">{scannedData.storeName || 'Toko'}</h3>
+                                    <p className="text-[10px] text-slate-500 font-bold">{scannedData.date} • {scannedData.category}</p>
+                                </div>
+                                <span className="font-black text-lg text-emerald-600">{formatIDR(scannedData.totalAmount)}</span>
+                            </div>
+
+                            {/* Itemized Table */}
+                            <div className="space-y-2">
+                                <h4 className="text-[10px] font-black uppercase text-slate-400">Rincian Barang</h4>
+                                {(scannedData.items || []).map((item, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 text-xs">
+                                        <div>
+                                            <span className="font-bold text-slate-800">{item.name}</span>
+                                            <span className="text-slate-400 text-[10px] block">{item.qty}x @ {formatIDR(item.price)}</span>
+                                        </div>
+                                        <span className="font-bold text-slate-900">{formatIDR((item.qty || 1) * (item.price || 0))}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Destination Account */}
+                            <div>
+                                <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Pilih Rekening Pembayaran</label>
+                                <select
+                                    value={selectedAccount}
+                                    onChange={(e) => setSelectedAccount(e.target.value)}
+                                    className="w-full bg-white border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                >
+                                    {accounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>{acc.name} ({formatIDR(acc.balance)})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <button
+                                onClick={handleSaveScannedReceipt}
+                                className="w-full py-3.5 bg-emerald-600 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-600/20 active:scale-95 transition-all"
+                            >
+                                Simpan Ke Pengeluaran
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function AccountsTab({ accounts, setAccounts, showToast }) {
+            const [name, setName] = useState('');
+            const [type, setType] = useState('Bank');
+            const [balance, setBalance] = useState('');
+
+            const handleAddAccount = (e) => {
+                e.preventDefault();
+                if (!name || !balance) return;
+
+                const newAcc = {
+                    id: 'acc_' + Date.now(),
+                    name,
+                    type,
+                    balance: Number(balance),
+                    color: type === 'Bank' ? 'bg-blue-500' : type === 'E-Wallet' ? 'bg-emerald-500' : 'bg-amber-500'
+                };
+
+                setAccounts(prev => [...prev, newAcc]);
+                setName('');
+                setBalance('');
+                showToast('Rekening baru berhasil ditambahkan!');
+            };
+
+            return (
+                <div className="space-y-6 max-w-2xl mx-auto">
+                    <div>
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Kelola Rekening & Dompet</h2>
+                        <p className="text-xs text-slate-500 font-medium">Tambah atau atur saldo akun bank, e-wallet, dan cash</p>
+                    </div>
+
+                    {/* Account Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        {accounts.map(acc => (
+                            <div key={acc.id} className="glass-card p-5 rounded-3xl flex items-center justify-between border-slate-200/80">
+                                <div className="flex items-center gap-3.5">
+                                    <div className={`w-11 h-11 rounded-2xl text-white ${acc.color || 'bg-violet-600'} flex items-center justify-center font-black shadow-md`}>
+                                        {acc.name.substring(0, 2).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <h4 className="font-extrabold text-sm text-slate-900">{acc.name}</h4>
+                                        <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded-lg">{acc.type}</span>
+                                    </div>
+                                </div>
+                                <span className="font-extrabold text-sm text-slate-900">{formatIDR(acc.balance)}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {}
+                    {/* Add Account Form */}
+                    <form onSubmit={handleAddAccount} className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
+                        <h3 className="font-extrabold text-slate-900 text-sm">Tambah Rekening Baru</h3>
+                        
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Nama Rekening / Dompet</label>
+                            <input
+                                type="text"
+                                required
+                                placeholder="Contoh: Bank Mandiri / OVO"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Tipe Rekening</label>
+                                <select
+                                    value={type}
+                                    onChange={(e) => setType(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                >
+                                    <option value="Bank">Bank</option>
+                                    <option value="E-Wallet">E-Wallet</option>
+                                    <option value="Cash">Uang Tunai / Cash</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Saldo Awal (IDR)</label>
+                                <input
+                                    type="number"
+                                    required
+                                    placeholder="0"
+                                    value={balance}
+                                    onChange={(e) => setBalance(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                />
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="w-full py-3 bg-slate-900 text-white font-extrabold text-xs rounded-2xl shadow-md active:scale-95 transition-all"
+                        >
+                            Simpan Rekening Baru
+                        </button>
+                    </form>
+                </div>
+            );
+        }
+
+        function SupabaseTab({ supabaseUrl, setSupabaseUrl, supabaseKey, setSupabaseKey, sheetsWebhookUrl, setSheetsWebhookUrl, transactions, accounts, isConnected, showToast, geminiApiKey, setGeminiApiKey }) {
+            const [copied, setCopied] = useState(false);
+
+            const sqlScript = `CREATE TABLE IF NOT EXISTS public.transactions (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    amount NUMERIC NOT NULL,
+    account_id TEXT NOT NULL,
+    to_account_id TEXT,
+    category TEXT,
+    date DATE NOT NULL,
+    note TEXT,
+    admin_fee NUMERIC DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public full access" ON public.transactions FOR ALL USING (true);`;
+
+            const exportToCsv = () => {
+                if (!transactions || transactions.length === 0) {
+                    showToast('Belum ada transaksi untuk diexport', 'error');
+                    return;
+                }
+
+                const headers = ['ID', 'Tanggal', 'Jenis', 'Nominal', 'Rekening Asal', 'Rekening Tujuan', 'Kategori', 'Catatan', 'Biaya Admin'];
+                const rows = transactions.map(t => {
+                    const acc = accounts.find(a => a.id === t.accountId)?.name || '-';
+                    const toAcc = t.toAccountId ? (accounts.find(a => a.id === t.toAccountId)?.name || '-') : '-';
+                    return [
+                        t.id,
+                        t.date,
+                        t.type,
+                        t.amount,
+                        `"${acc}"`,
+                        `"${toAcc}"`,
+                        `"${t.category || '-'}"`,
+                        `"${(t.note || '-').replace(/"/g, '""')}"`,
+                        t.adminFee || 0
+                    ].join(',');
+                });
+
+                const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows].join('\n');
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement('a');
+                link.setAttribute('href', encodedUri);
+                link.setAttribute('download', `KeuanganKu_Export_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast('✨ File CSV berhasil diunduh!');
+            };
+
+            const handleSaveConfig = (e) => {
+                e.preventDefault();
+                localStorage.setItem('supabase_url', supabaseUrl);
+                localStorage.setItem('supabase_key', supabaseKey);
+                localStorage.setItem('gemini_api_key', geminiApiKey);
+                localStorage.setItem('sheets_webhook_url', sheetsWebhookUrl);
+                showToast('Pengaturan berhasil disimpan!');
+            };
+
+            return (
+                <div className="space-y-6 max-w-2xl mx-auto">
+                    <div>
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Cloud DB & Spreadsheet Sync</h2>
+                        <p className="text-xs text-slate-500 font-medium">Hubungkan Supabase Cloud, Google Sheets & Gemini API</p>
+                    </div>
+
+                    {/* Quick CSV Download */}
+                    <div className="glass-card p-5 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-3 border-emerald-200 bg-emerald-50/30">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-md">
+                                <i data-lucide="file-spreadsheet" className="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h4 className="font-extrabold text-slate-900 text-xs sm:text-sm">Export Data Ke CSV</h4>
+                                <p className="text-[10px] text-slate-500 font-medium">Unduh data transaksi sebagai format Spreadsheet/Excel</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={exportToCsv}
+                            className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
+                        >
+                            <i data-lucide="download" className="w-4 h-4"></i>
+                            <span>Unduh CSV</span>
+                        </button>
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className={`p-4 rounded-3xl border flex items-center justify-between ${isConnected ? 'bg-emerald-50 border-emerald-200' : 'glass-card border-slate-200'}`}>
+                        <div className="flex items-center gap-3">
+                            <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></div>
+                            <div>
+                                <h4 className="font-extrabold text-slate-900 text-xs sm:text-sm">Status Koneksi Cloud</h4>
+                                <p className="text-[10px] text-slate-500 font-medium">{isConnected ? 'Terhubung Supabase Cloud DB' : 'Mode Offline Browser (LocalStorage)'}</p>
+                            </div>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black ${isConnected ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'}`}>
+                            {isConnected ? 'ONLINE' : 'OFFLINE'}
+                        </span>
+                    </div>
+
+                    {/* API Configuration Form */}
+                    <form onSubmit={handleSaveConfig} className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
+                        <h3 className="font-extrabold text-slate-900 text-sm border-b border-slate-200 pb-2">Kredensial API & Webhook</h3>
+                        
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Supabase URL</label>
+                            <input
+                                type="text"
+                                value={supabaseUrl}
+                                onChange={(e) => setSupabaseUrl(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-900 font-mono"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Supabase Anon Key</label>
+                            <input
+                                type="password"
+                                value={supabaseKey}
+                                onChange={(e) => setSupabaseKey(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-900 font-mono"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Google Sheets Webhook URL</label>
+                            <input
+                                type="text"
+                                placeholder="https://script.google.com/macros/s/.../exec"
+                                value={sheetsWebhookUrl}
+                                onChange={(e) => setSheetsWebhookUrl(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-900 font-mono"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Gemini API Key (Scan Struk Vision)</label>
+                            <input
+                                type="password"
+                                value={geminiApiKey}
+                                onChange={(e) => setGeminiApiKey(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-900 font-mono"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="w-full py-3.5 bg-violet-600 hover:bg-violet-700 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-md active:scale-95 transition-all"
+                        >
+                            Simpan Konfigurasi
+                        </button>
+                    </form>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
