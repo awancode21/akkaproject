@@ -120,8 +120,8 @@
         };
 
         const INITIAL_TRANSACTIONS = [
-            { id: 'tx_1', date: getOffsetDate(0), type: 'EXPENSE', amount: 45000, accountId: 'acc_gopay', category: 'Makanan & Minuman', note: 'Kopi & Snack Hari Ini' },
-            { id: 'tx_2', date: getOffsetDate(1), type: 'EXPENSE', amount: 125000, accountId: 'acc_bca', category: 'Belanja & Groceries', note: 'Belanja Bahan Makanan' },
+            { id: 'tx_1', date: getOffsetDate(0), type: 'EXPENSE', amount: 45000, accountId: 'acc_gopay', category: 'Makanan & Minuman', note: 'Kopi & Snack Hari Ini', items: [{ name: 'Kopi Americano', qty: 1, price: 30000 }, { name: 'Croissant', qty: 1, price: 15000 }] },
+            { id: 'tx_2', date: getOffsetDate(1), type: 'EXPENSE', amount: 125000, accountId: 'acc_bca', category: 'Belanja & Groceries', note: 'Belanja Bahan Makanan', items: [{ name: 'Minyak Goreng 2L', qty: 1, price: 35000 }, { name: 'Beras 5kg', qty: 1, price: 72000 }, { name: 'Telur Ayam 1kg', qty: 1, price: 18000 }] },
             { id: 'tx_3', date: getOffsetDate(3), type: 'EXPENSE', amount: 350000, accountId: 'acc_bca', category: 'Belanja & Groceries', note: 'Belanja Supermarket' },
             { id: 'tx_4', date: getOffsetDate(5), type: 'TRANSFER', amount: 200000, accountId: 'acc_bca', toAccountId: 'acc_gopay', category: 'Transfer Internal', note: 'Top up GoPay', adminFee: 1000 },
             { id: 'tx_5', date: getOffsetDate(12), type: 'EXPENSE', amount: 450000, accountId: 'acc_bca', category: 'Tagihan & Utilitas', note: 'Tagihan Listrik & Wifi' },
@@ -148,7 +148,7 @@
             const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('supabase_url') || DEFAULT_SUPABASE_URL);
             const [supabaseKey, setSupabaseKey] = useState(() => localStorage.getItem('supabase_key') || DEFAULT_SUPABASE_KEY);
             const [sheetsWebhookUrl, setSheetsWebhookUrl] = useState(() => localStorage.getItem('sheets_webhook_url') || DEFAULT_SHEETS_WEBHOOK);
-            const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+            const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('gemini_api_key') || 'AQ.Ab8RN6K18UNgnft_iPYHO4tliXVGizzQo3FvGkxCtMUWu7hoow');
 
             const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
             const [supabaseClient, setSupabaseClient] = useState(null);
@@ -199,7 +199,11 @@
             }, [accounts]);
 
             const handleAddTransaction = (newTx) => {
-                const createdTx = { ...newTx, id: 'tx_' + Date.now() };
+                const createdTx = { 
+                    ...newTx, 
+                    id: 'tx_' + Date.now(),
+                    items: newTx.items || [] 
+                };
                 setTransactions(prev => [createdTx, ...prev]);
 
                 setAccounts(prev => prev.map(acc => {
@@ -219,6 +223,7 @@
                     return { ...acc, balance: newBal };
                 }));
 
+                // Sync to Supabase
                 if (supabaseClient) {
                     supabaseClient.from('transactions').insert([{
                         id: createdTx.id,
@@ -232,9 +237,24 @@
                         admin_fee: createdTx.adminFee || 0
                     }]).then(({ error }) => {
                         if (error) console.warn("Supabase tx sync notice:", error);
+
+                        // Save items to transaction_items table in Supabase
+                        if (!error && createdTx.items && createdTx.items.length > 0) {
+                            const itemsPayload = createdTx.items.map((item, idx) => ({
+                                id: `item_${Date.now()}_${idx}`,
+                                transaction_id: createdTx.id,
+                                name: item.name,
+                                qty: Number(item.qty) || 1,
+                                price: Number(item.price) || 0
+                            }));
+                            supabaseClient.from('transaction_items').insert(itemsPayload).then(({ error: itemErr }) => {
+                                if (itemErr) console.warn("Supabase transaction_items sync notice:", itemErr);
+                            });
+                        }
                     });
                 }
 
+                // Sync to Google Sheets Webhook
                 if (sheetsWebhookUrl) {
                     const accName = accounts.find(a => a.id === createdTx.accountId)?.name || '-';
                     const toAccName = createdTx.toAccountId ? (accounts.find(a => a.id === createdTx.toAccountId)?.name || '-') : '-';
@@ -252,7 +272,8 @@
                             to_account: toAccName,
                             category: createdTx.category,
                             note: createdTx.note || '-',
-                            admin_fee: createdTx.adminFee || 0
+                            admin_fee: createdTx.adminFee || 0,
+                            items: createdTx.items || []
                         })
                     }).catch(err => console.warn('Google Sheets Webhook Sync Notice:', err));
                 }
@@ -386,6 +407,7 @@
             const [dateFilter, setDateFilter] = useState('30days');
             const [searchQuery, setSearchQuery] = useState('');
             const [typeFilter, setTypeFilter] = useState('ALL');
+            const [expandedTxId, setExpandedTxId] = useState(null);
             
             const getTodayStr = () => {
                 const d = new Date();
@@ -403,7 +425,7 @@
                 if (window.lucide && typeof window.lucide.createIcons === 'function') {
                     window.lucide.createIcons();
                 }
-            }, [dateFilter, transactions, searchQuery, typeFilter]);
+            }, [dateFilter, transactions, searchQuery, typeFilter, expandedTxId]);
 
             const dateRangeLabel = useMemo(() => {
                 const today = getTodayStr();
@@ -464,7 +486,8 @@
                         const q = searchQuery.toLowerCase();
                         const note = (t.note || '').toLowerCase();
                         const cat = (t.category || '').toLowerCase();
-                        matchesSearch = note.includes(q) || cat.includes(q);
+                        const itemNames = (t.items || []).map(i => i.name.toLowerCase()).join(' ');
+                        matchesSearch = note.includes(q) || cat.includes(q) || itemNames.includes(q);
                     }
 
                     return matchesDate && matchesType && matchesSearch;
@@ -734,6 +757,7 @@
                         </div>
                     </div>
 
+                    {/* Histori Transaksi & Item Breakdown */}
                     <div className="glass-card rounded-3xl p-5 sm:p-6 space-y-4">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
                             <div>
@@ -745,7 +769,7 @@
                                 <div className="relative">
                                     <input
                                         type="text"
-                                        placeholder="Cari transaksi..."
+                                        placeholder="Cari transaksi / barang..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         className="bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs font-bold text-slate-800 w-36 sm:w-48 focus:outline-none focus:ring-2 focus:ring-violet-500"
@@ -775,20 +799,57 @@
                                 {filteredTransactions.map(t => {
                                     const acc = accounts.find(a => a.id === t.accountId)?.name || 'Rekening';
                                     const toAcc = t.toAccountId ? accounts.find(a => a.id === t.toAccountId)?.name : null;
+                                    const hasItems = Array.isArray(t.items) && t.items.length > 0;
+                                    const isExpanded = expandedTxId === t.id;
+
                                     return (
-                                        <div key={t.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`p-2.5 rounded-2xl text-white ${t.type === 'INCOME' ? 'bg-emerald-500' : t.type === 'EXPENSE' ? 'bg-rose-500' : 'bg-cyan-600'}`}>
-                                                    <i data-lucide={t.type === 'INCOME' ? 'arrow-down-left' : t.type === 'EXPENSE' ? 'arrow-up-right' : 'repeat'} className="w-4 h-4"></i>
+                                        <div key={t.id} className="rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all overflow-hidden">
+                                            <div 
+                                                onClick={() => hasItems && setExpandedTxId(isExpanded ? null : t.id)}
+                                                className={`p-3.5 flex items-center justify-between ${hasItems ? 'cursor-pointer hover:bg-slate-50/80' : ''}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-2.5 rounded-2xl text-white ${t.type === 'INCOME' ? 'bg-emerald-500' : t.type === 'EXPENSE' ? 'bg-rose-500' : 'bg-cyan-600'}`}>
+                                                        <i data-lucide={t.type === 'INCOME' ? 'arrow-down-left' : t.type === 'EXPENSE' ? 'arrow-up-right' : 'repeat'} className="w-4 h-4"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <h4 className="font-extrabold text-xs text-slate-900">{t.note || t.category || 'Transaksi'}</h4>
+                                                            {hasItems && (
+                                                                <span className="text-[10px] font-bold bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                                    <i data-lucide="shopping-bag" className="w-3 h-3"></i>
+                                                                    <span>{t.items.length} Item</span>
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[10px] font-medium text-slate-400 mt-0.5">{t.date} • {acc} {toAcc ? `➔ ${toAcc}` : ''}</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h4 className="font-extrabold text-xs text-slate-900">{t.note || t.category || 'Transaksi'}</h4>
-                                                    <p className="text-[10px] font-medium text-slate-400">{t.date} • {acc} {toAcc ? `➔ ${toAcc}` : ''}</p>
+
+                                                <div className="text-right flex items-center gap-2">
+                                                    <span className={`font-black text-xs sm:text-sm ${t.type === 'INCOME' ? 'text-emerald-600' : t.type === 'EXPENSE' ? 'text-rose-600' : 'text-cyan-600'}`}>
+                                                        {t.type === 'INCOME' ? '+' : t.type === 'EXPENSE' ? '-' : ''}{formatIDR(t.amount)}
+                                                    </span>
+                                                    {hasItems && (
+                                                        <i data-lucide={isExpanded ? "chevron-up" : "chevron-down"} className="w-4 h-4 text-slate-400"></i>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <span className={`font-black text-xs sm:text-sm ${t.type === 'INCOME' ? 'text-emerald-600' : t.type === 'EXPENSE' ? 'text-rose-600' : 'text-cyan-600'}`}>
-                                                {t.type === 'INCOME' ? '+' : t.type === 'EXPENSE' ? '-' : ''}{formatIDR(t.amount)}
-                                            </span>
+
+                                            {/* Item Breakdown Accordion */}
+                                            {hasItems && isExpanded && (
+                                                <div className="bg-slate-50 p-3.5 border-t border-slate-100 space-y-2 animate-fadeIn">
+                                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Rincian Item Nota:</span>
+                                                    <div className="space-y-1.5">
+                                                        {t.items.map((item, idx) => (
+                                                            <div key={idx} className="flex items-center justify-between text-xs bg-white p-2 rounded-xl border border-slate-200/60">
+                                                                <span className="font-bold text-slate-800">{item.name} <span className="text-slate-400 font-normal">({item.qty}x)</span></span>
+                                                                <span className="font-extrabold text-slate-900">{formatIDR((item.qty || 1) * (item.price || 0))}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
@@ -832,7 +893,8 @@
                     category: type === 'TRANSFER' ? 'Transfer Internal' : category,
                     date,
                     note,
-                    adminFee: type === 'TRANSFER' ? Number(adminFee || 0) : 0
+                    adminFee: type === 'TRANSFER' ? Number(adminFee || 0) : 0,
+                    items: []
                 });
 
                 setAmount('');
@@ -1186,7 +1248,8 @@ PETUNJUK ANALISIS PEMBACAAN NOTA:
                     accountId: selectedAccount,
                     category: scannedData.category || expenseCategories[0] || 'Belanja & Groceries',
                     date: scannedData.date || new Date().toISOString().split('T')[0],
-                    note: `Scan Struk: ${scannedData.storeName || 'Toko'} (${(scannedData.items || []).length} item)`
+                    note: `Scan Struk: ${scannedData.storeName || 'Toko'} (${(scannedData.items || []).length} item)`,
+                    items: scannedData.items || []
                 });
 
                 setSelectedImage(null);
@@ -1324,7 +1387,7 @@ PETUNJUK ANALISIS PEMBACAAN NOTA:
                                                     type="number"
                                                     value={item.price}
                                                     onChange={(e) => handleUpdateItem(idx, 'price', Number(e.target.value))}
-                                                    placeholder="Harga"
+                                                    placeholder="Harga Satuan"
                                                     className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-800 text-right"
                                                 />
                                             </div>
@@ -1603,10 +1666,14 @@ PETUNJUK ANALISIS PEMBACAAN NOTA:
                     return;
                 }
 
-                const headers = ['ID', 'Tanggal', 'Jenis', 'Nominal', 'Rekening Asal', 'Rekening Tujuan', 'Kategori', 'Catatan', 'Biaya Admin'];
+                const headers = ['ID', 'Tanggal', 'Jenis', 'Nominal', 'Rekening Asal', 'Rekening Tujuan', 'Kategori', 'Catatan', 'Biaya Admin', 'Rincian Item'];
                 const rows = transactions.map(t => {
                     const acc = accounts.find(a => a.id === t.accountId)?.name || '-';
                     const toAcc = t.toAccountId ? (accounts.find(a => a.id === t.toAccountId)?.name || '-') : '-';
+                    const itemsStr = Array.isArray(t.items) && t.items.length > 0
+                        ? t.items.map(i => `${i.name} (${i.qty}x @${i.price})`).join('; ')
+                        : '-';
+
                     return [
                         t.id,
                         t.date,
@@ -1616,7 +1683,8 @@ PETUNJUK ANALISIS PEMBACAAN NOTA:
                         `"${toAcc}"`,
                         `"${t.category || '-'}"`,
                         `"${(t.note || '-').replace(/"/g, '""')}"`,
-                        t.adminFee || 0
+                        t.adminFee || 0,
+                        `"${itemsStr.replace(/"/g, '""')}"`
                     ].join(',');
                 });
 
@@ -1733,9 +1801,6 @@ PETUNJUK ANALISIS PEMBACAAN NOTA:
                                 onChange={(e) => setGeminiApiKey(e.target.value)}
                                 className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-900 font-mono"
                             />
-                            <p className="text-[10px] text-slate-400 font-medium mt-1">
-                                Jika dikosongkan, sistem otomatis menggunakan kredensial runtime Canvas untuk memproses foto nota dengan Gemini 3 Flash.
-                            </p>
                         </div>
 
                         <button
