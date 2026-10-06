@@ -44,9 +44,6 @@
     <!-- Supabase Client JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -62,18 +59,11 @@
             animation: fadeIn 0.25s ease-out forwards;
         }
         .glass-card {
-            background: rgba(255, 255, 255, 0.88);
+            background: rgba(255, 255, 255, 0.92);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(226, 232, 240, 0.8);
-            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);
-        }
-        .glass-card-hover {
-            transition: all 0.2s ease-in-out;
-        }
-        .glass-card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px -4px rgba(124, 58, 237, 0.12);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03);
         }
         .custom-scrollbar::-webkit-scrollbar {
             width: 4px;
@@ -95,15 +85,28 @@
         const { useState, useEffect, useRef, useMemo } = React;
 
         const DEFAULT_ACCOUNTS = [
-            { id: 'acc_bca', name: 'Bank BCA', type: 'Bank', balance: 5250000, icon: 'landmark', color: 'bg-blue-500' },
-            { id: 'acc_gopay', name: 'GoPay', type: 'E-Wallet', balance: 450000, icon: 'wallet', color: 'bg-emerald-500' },
-            { id: 'acc_cash', name: 'Uang Tunai / Cash', type: 'Cash', balance: 320000, icon: 'banknote', color: 'bg-amber-500' }
+            { id: 'acc_bca', name: 'Bank BCA', type: 'Bank', balance: 7500000, color: 'bg-blue-600' },
+            { id: 'acc_gopay', name: 'GoPay', type: 'E-Wallet', balance: 650000, color: 'bg-emerald-600' },
+            { id: 'acc_cash', name: 'Uang Tunai / Cash', type: 'Cash', balance: 420000, color: 'bg-amber-500' }
         ];
 
+        const getOffsetDate = (daysAgo) => {
+            const d = new Date();
+            d.setDate(d.getDate() - daysAgo);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
         const INITIAL_TRANSACTIONS = [
-            { id: 'tx_1', date: new Date().toISOString().split('T')[0], type: 'INCOME', amount: 3500000, accountId: 'acc_bca', category: 'Gaji / Income', note: 'Gaji Bulanan' },
-            { id: 'tx_2', date: new Date().toISOString().split('T')[0], type: 'EXPENSE', amount: 45000, accountId: 'acc_gopay', category: 'Makanan & Minuman', note: 'Kopi & Snack' },
-            { id: 'tx_3', date: new Date().toISOString().split('T')[0], type: 'TRANSFER', amount: 200000, accountId: 'acc_bca', toAccountId: 'acc_gopay', category: 'Transfer Int', note: 'Top up GoPay', adminFee: 1000 }
+            { id: 'tx_1', date: getOffsetDate(0), type: 'EXPENSE', amount: 45000, accountId: 'acc_gopay', category: 'Makanan & Minuman', note: 'Kopi & Snack Hari Ini' },
+            { id: 'tx_2', date: getOffsetDate(3), type: 'EXPENSE', amount: 350000, accountId: 'acc_bca', category: 'Belanja & Groceries', note: 'Belanja Supermarket (3 hari lalu)' },
+            { id: 'tx_3', date: getOffsetDate(5), type: 'TRANSFER', amount: 200000, accountId: 'acc_bca', toAccountId: 'acc_gopay', category: 'Transfer Internal', note: 'Top up GoPay', adminFee: 1000 },
+            { id: 'tx_4', date: getOffsetDate(12), type: 'EXPENSE', amount: 450000, accountId: 'acc_bca', category: 'Tagihan & Utilitas', note: 'Tagihan Listrik & Wifi' },
+            { id: 'tx_5', date: getOffsetDate(20), type: 'INCOME', amount: 7500000, accountId: 'acc_bca', category: 'Gaji / Income', note: 'Gaji Bulanan' },
+            { id: 'tx_6', date: getOffsetDate(40), type: 'INCOME', amount: 2500000, accountId: 'acc_bca', category: 'Gaji / Income', note: 'Bonus Project Bulan Lalu' },
+            { id: 'tx_7', date: getOffsetDate(42), type: 'EXPENSE', amount: 600000, accountId: 'acc_cash', category: 'Hiburan & Gaya Hidup', note: 'Jalan-jalan Bulan Lalu' }
         ];
 
         // Format Currency Helper
@@ -116,7 +119,7 @@
             const [accounts, setAccounts] = useState(() => JSON.parse(localStorage.getItem('keuanganku_accounts')) || DEFAULT_ACCOUNTS);
             const [transactions, setTransactions] = useState(() => JSON.parse(localStorage.getItem('keuanganku_transactions')) || INITIAL_TRANSACTIONS);
 
-            // Supabase Config State
+            // Supabase & Gemini Config State
             const DEFAULT_SUPABASE_URL = 'https://fqaewybhgsxlkgkvjnjv.supabase.co';
             const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxYWV3eWJoZ3N4bGtna3Zqbmp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyODc4MzQsImV4cCI6MjEwNjg2MzgzNH0.s4Frl_Mpj77Fc321j7MWykvxaXA7XWkKjWzJKEn-LXE';
             const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6K6GAGHd1iE89vTMRFLsf3yPazWM_LNw4iLWVG2-mzyew';
@@ -152,7 +155,7 @@
             }, [supabaseUrl, supabaseKey]);
 
             useEffect(() => {
-                if (window.lucide) {
+                if (window.lucide && typeof window.lucide.createIcons === 'function') {
                     window.lucide.createIcons();
                 }
             }, [activeTab, transactions, accounts]);
@@ -233,8 +236,8 @@
 
             return (
                 <div className="min-h-screen flex flex-col pb-24 lg:pb-0">
-                    {/* Header Bar */}
-                    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 sm:px-6">
+                    {/* Top Header Bar */}
+                    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 sm:px-6">
                         <div className="max-w-5xl mx-auto flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-violet-500/20">
@@ -242,19 +245,19 @@
                                 </div>
                                 <div>
                                     <h1 className="font-extrabold text-slate-900 text-base tracking-tight leading-none">KeuanganKu <span className="text-violet-600">AI</span></h1>
-                                    <p className="text-[11px] text-slate-500 font-medium">Smart Finance & Receipt Scanner</p>
+                                    <p className="text-[11px] text-slate-500 font-semibold">Pencatatan Finansial Pintar</p>
                                 </div>
                             </div>
 
-                            {/* Total Balance Badge */}
+                            {/* Total Balance Snapshot */}
                             <div className="text-right">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Kekayaan</span>
-                                <span className="font-black text-sm sm:text-base text-slate-900">{formatIDR(totalBalance)}</span>
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Total Aset</span>
+                                <span className="font-black text-base sm:text-lg text-slate-900">{formatIDR(totalBalance)}</span>
                             </div>
                         </div>
                     </header>
 
-                    {/* Toast Notification */}
+                    {/* Toast Alert */}
                     {toastMessage && (
                         <div className="fixed top-16 right-4 z-50 bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-slate-800 animate-bounce">
                             <i data-lucide="check-circle-2" className="w-4 h-4 text-emerald-400"></i>
@@ -262,7 +265,7 @@
                         </div>
                     )}
 
-                    {/* Main Content Area */}
+                    {/* Main Workspace */}
                     <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
                         {activeTab === 'dashboard' && <DashboardTab transactions={transactions} accounts={accounts} onNavigate={setActiveTab} />}
                         {activeTab === 'transactions' && <TransactionsTab transactions={transactions} accounts={accounts} onAddTransaction={handleAddTransaction} />}
@@ -286,15 +289,14 @@
                         )}
                     </main>
 
-                    {}
-                    {/* Bottom Navigation Dock for Smartphones */}
-                    <nav className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-full px-3 py-2 shadow-2xl flex items-center gap-1 sm:gap-2">
+                    {/* Bottom Navigation Dock */}
+                    <nav className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-full px-3 py-2 shadow-2xl flex items-center gap-1 sm:gap-2">
                         <button
                             onClick={() => setActiveTab('dashboard')}
                             className={`flex flex-col items-center py-1.5 px-3.5 rounded-full transition-all ${activeTab === 'dashboard' ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30' : 'text-slate-500 hover:text-slate-900'}`}
                         >
                             <i data-lucide="layout-dashboard" className="w-5 h-5"></i>
-                            <span className="text-[10px] font-bold mt-0.5">Laporan</span>
+                            <span className="text-[10px] font-bold mt-0.5">Ringkasan</span>
                         </button>
 
                         <button
@@ -302,13 +304,14 @@
                             className={`flex flex-col items-center py-1.5 px-3.5 rounded-full transition-all ${activeTab === 'transactions' ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30' : 'text-slate-500 hover:text-slate-900'}`}
                         >
                             <i data-lucide="receipt-text" className="w-5 h-5"></i>
-                            <span className="text-[10px] font-bold mt-0.5">Transaksi</span>
+                            <span className="text-[10px] font-bold mt-0.5">Catat</span>
                         </button>
 
-                        {/* Floating Center Scan Action Button */}
+                        {/* Scan AI Floating Center Button */}
                         <button
                             onClick={() => setActiveTab('scan')}
                             className={`relative -top-3 p-3.5 rounded-full text-white bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 shadow-lg shadow-violet-500/40 active:scale-95 transition-all ${activeTab === 'scan' ? 'ring-4 ring-violet-200' : ''}`}
+                            title="Scan Struk AI"
                         >
                             <i data-lucide="scan-line" className="w-6 h-6"></i>
                         </button>
@@ -333,18 +336,59 @@
             );
         }
 
+        /* -------------------------------------------------------------------------- */
+        /*                          HIGH READABILITY DASHBOARD                         */
+        /* -------------------------------------------------------------------------- */
         function DashboardTab({ transactions, accounts, onNavigate }) {
             const [dateFilter, setDateFilter] = useState('30days'); // 'today', '7days', '30days', 'month', 'custom'
+            
+            const getTodayStr = () => {
+                const d = new Date();
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            };
+
             const [startDate, setStartDate] = useState(() => {
                 const d = new Date();
                 d.setDate(d.getDate() - 30);
-                return d.toISOString().split('T')[0];
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             });
-            const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+            const [endDate, setEndDate] = useState(() => getTodayStr());
+
+            // Ensure Lucide updates when filter changes
+            useEffect(() => {
+                if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                    window.lucide.createIcons();
+                }
+            }, [dateFilter, transactions]);
+
+            const dateRangeLabel = useMemo(() => {
+                const today = getTodayStr();
+                if (dateFilter === 'today') return `Hari Ini (${today})`;
+                if (dateFilter === '7days') {
+                    const d = new Date();
+                    d.setDate(d.getDate() - 7);
+                    const start7 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    return `7 Hari Terakhir (${start7} s/d ${today})`;
+                }
+                if (dateFilter === '30days') {
+                    const d = new Date();
+                    d.setDate(d.getDate() - 30);
+                    const start30 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    return `30 Hari Terakhir (${start30} s/d ${today})`;
+                }
+                if (dateFilter === 'month') {
+                    const curMonth = today.substring(0, 7);
+                    return `Bulan Ini (${curMonth})`;
+                }
+                if (dateFilter === 'custom') {
+                    return `Kustom (${startDate} s/d ${endDate})`;
+                }
+                return 'Semua Transaksi';
+            }, [dateFilter, startDate, endDate]);
 
             // Filter Transactions by selected date range
             const filteredTransactions = useMemo(() => {
-                const todayStr = new Date().toISOString().split('T')[0];
+                const todayStr = getTodayStr();
                 return transactions.filter(t => {
                     const txDate = t.date;
                     if (dateFilter === 'today') {
@@ -352,11 +396,13 @@
                     } else if (dateFilter === '7days') {
                         const d = new Date();
                         d.setDate(d.getDate() - 7);
-                        return txDate >= d.toISOString().split('T')[0] && txDate <= todayStr;
+                        const start7 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                        return txDate >= start7 && txDate <= todayStr;
                     } else if (dateFilter === '30days') {
                         const d = new Date();
                         d.setDate(d.getDate() - 30);
-                        return txDate >= d.toISOString().split('T')[0] && txDate <= todayStr;
+                        const start30 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                        return txDate >= start30 && txDate <= todayStr;
                     } else if (dateFilter === 'month') {
                         const curMonth = todayStr.substring(0, 7);
                         return txDate.startsWith(curMonth);
@@ -378,17 +424,36 @@
 
             const netCashflow = totalIncome - totalExpense;
 
+            // Expense Breakdown by Category
+            const categoryBreakdown = useMemo(() => {
+                const map = {};
+                filteredTransactions.forEach(t => {
+                    if (t.type === 'EXPENSE') {
+                        const cat = t.category || 'Lainnya';
+                        map[cat] = (map[cat] || 0) + Number(t.amount || 0);
+                    }
+                });
+
+                return Object.entries(map)
+                    .map(([category, amount]) => ({
+                        category,
+                        amount,
+                        percentage: totalExpense > 0 ? Math.round((amount / totalExpense) * 100) : 0
+                    }))
+                    .sort((a, b) => b.amount - a.amount);
+            }, [filteredTransactions, totalExpense]);
+
             return (
                 <div className="space-y-6">
-                    {/* Header & Date Range Filter Bar */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    {/* Header & Date Range Segmented Controller */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
-                            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Laporan Keuangan</h2>
-                            <p className="text-xs text-slate-500 font-medium">Analisis arus kas dan statistik pengeluaran</p>
+                            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Ringkasan Keuangan</h2>
+                            <p className="text-xs text-slate-500 font-medium">Laporan pemasukan, pengeluaran, & alokasi dana</p>
                         </div>
 
-                        {/* Date Filter Buttons */}
-                        <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80">
+                        {/* Clean Filter Options */}
+                        <div className="flex flex-wrap items-center gap-1 bg-slate-200/70 p-1 rounded-2xl border border-slate-300/60">
                             <button
                                 onClick={() => setDateFilter('today')}
                                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${dateFilter === 'today' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
@@ -423,17 +488,24 @@
                         </div>
                     </div>
 
-                    {}
+                    {/* Active Date Range Indicator Badge */}
+                    <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold text-violet-700 bg-violet-50 px-3 py-1.5 rounded-xl border border-violet-200/80 shadow-2xs flex items-center gap-1.5">
+                            <i data-lucide="calendar-range" className="w-3.5 h-3.5 text-violet-600"></i>
+                            <span>Periode Aktif: <strong>{dateRangeLabel}</strong></span>
+                        </span>
+                    </div>
+
                     {/* Custom Date Picker Section (Visible only when dateFilter === 'custom') */}
                     {dateFilter === 'custom' && (
-                        <div className="glass-card p-4 rounded-3xl border border-violet-100 bg-violet-50/30 flex flex-col sm:flex-row items-center gap-3 animate-fadeIn">
+                        <div className="glass-card p-4 rounded-3xl border border-violet-100 bg-violet-50/40 flex flex-col sm:flex-row items-center gap-3 animate-fadeIn">
                             <div className="w-full sm:w-auto flex-1">
                                 <label className="block text-[10px] font-black uppercase text-violet-700 mb-1">Dari Tanggal</label>
                                 <input
                                     type="date"
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
-                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-500"
                                 />
                             </div>
                             <span className="hidden sm:inline text-slate-400 font-bold mt-4">s/d</span>
@@ -443,53 +515,177 @@
                                     type="date"
                                     value={endDate}
                                     onChange={(e) => setEndDate(e.target.value)}
-                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-500"
                                 />
                             </div>
                         </div>
                     )}
 
-                    {/* Summary Cards Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                        {/* Income */}
-                        <div className="glass-card p-4 sm:p-5 rounded-3xl border-emerald-100 bg-emerald-50/30 flex items-center gap-3.5">
-                            <div className="p-3 rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-500/20">
-                                <i data-lucide="arrow-down-left" className="w-5 h-5"></i>
+                    {/* 🚀 High-Impact Hero Cashflow Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Pemasukan Card */}
+                        <div className="bg-white p-5 rounded-3xl border border-emerald-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-100/50 rounded-full blur-2xl -mr-6 -mt-6"></div>
+                            <div className="flex items-center justify-between mb-3 relative z-10">
+                                <span className="text-xs font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl">Pemasukan</span>
+                                <div className="w-9 h-9 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+                                    <i data-lucide="arrow-down-left" className="w-5 h-5"></i>
+                                </div>
                             </div>
-                            <div>
-                                <span className="text-[11px] font-bold text-slate-500 block">Pemasukan</span>
-                                <span className="font-extrabold text-lg text-emerald-600">{formatIDR(totalIncome)}</span>
-                            </div>
-                        </div>
-
-                        {/* Expense */}
-                        <div className="glass-card p-4 sm:p-5 rounded-3xl border-rose-100 bg-rose-50/30 flex items-center gap-3.5">
-                            <div className="p-3 rounded-2xl bg-rose-500 text-white shadow-md shadow-rose-500/20">
-                                <i data-lucide="arrow-up-right" className="w-5 h-5"></i>
-                            </div>
-                            <div>
-                                <span className="text-[11px] font-bold text-slate-500 block">Pengeluaran</span>
-                                <span className="font-extrabold text-lg text-rose-600">{formatIDR(totalExpense)}</span>
+                            <div className="relative z-10">
+                                <span className="font-black text-2xl sm:text-3xl text-emerald-600 block">{formatIDR(totalIncome)}</span>
+                                <span className="text-[11px] text-slate-400 font-bold mt-1 block">Total dana masuk periode ini</span>
                             </div>
                         </div>
 
-                        {/* Net Cashflow */}
-                        <div className="glass-card p-4 sm:p-5 rounded-3xl border-violet-100 bg-violet-50/30 flex items-center gap-3.5">
-                            <div className="p-3 rounded-2xl bg-violet-600 text-white shadow-md shadow-violet-600/20">
-                                <i data-lucide="scale" className="w-5 h-5"></i>
+                        {/* Pengeluaran Card */}
+                        <div className="bg-white p-5 rounded-3xl border border-rose-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-rose-100/50 rounded-full blur-2xl -mr-6 -mt-6"></div>
+                            <div className="flex items-center justify-between mb-3 relative z-10">
+                                <span className="text-xs font-black uppercase tracking-wider text-rose-700 bg-rose-50 px-2.5 py-1 rounded-xl">Pengeluaran</span>
+                                <div className="w-9 h-9 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-md shadow-rose-500/20">
+                                    <i data-lucide="arrow-up-right" className="w-5 h-5"></i>
+                                </div>
                             </div>
-                            <div>
-                                <span className="text-[11px] font-bold text-slate-500 block">Arus Kas Bersih</span>
-                                <span className={`font-extrabold text-lg ${netCashflow >= 0 ? 'text-violet-700' : 'text-rose-600'}`}>{formatIDR(netCashflow)}</span>
+                            <div className="relative z-10">
+                                <span className="font-black text-2xl sm:text-3xl text-rose-600 block">{formatIDR(totalExpense)}</span>
+                                <span className="text-[11px] text-slate-400 font-bold mt-1 block">Total dana keluar periode ini</span>
+                            </div>
+                        </div>
+
+                        {/* Arus Kas Bersih Card */}
+                        <div className="bg-white p-5 rounded-3xl border border-violet-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-violet-100/50 rounded-full blur-2xl -mr-6 -mt-6"></div>
+                            <div className="flex items-center justify-between mb-3 relative z-10">
+                                <span className="text-xs font-black uppercase tracking-wider text-violet-700 bg-violet-50 px-2.5 py-1 rounded-xl">Arus Kas Bersih</span>
+                                <div className="w-9 h-9 rounded-2xl bg-violet-600 text-white flex items-center justify-center shadow-md shadow-violet-600/20">
+                                    <i data-lucide="scale" className="w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <div className="relative z-10">
+                                <span className={`font-black text-2xl sm:text-3xl block ${netCashflow >= 0 ? 'text-violet-700' : 'text-rose-600'}`}>
+                                    {formatIDR(netCashflow)}
+                                </span>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                    <span className={`w-2 h-2 rounded-full ${netCashflow >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                                    <span className="text-[11px] text-slate-500 font-bold">
+                                        {netCashflow >= 0 ? 'Surplus (Hemat)' : 'Defisit (Pengeluaran > Pemasukan)'}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {}
-                    {/* Recent Filtered Transactions List */}
-                    <div className="glass-card rounded-3xl p-5 space-y-4">
+                    {/* Quick Action Buttons */}
+                    <div className="grid grid-cols-3 gap-2.5">
+                        <button
+                            onClick={() => onNavigate('transactions')}
+                            className="p-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs font-bold"
+                        >
+                            <i data-lucide="plus-circle" className="w-4 h-4"></i>
+                            <span>+ Pemasukan</span>
+                        </button>
+                        <button
+                            onClick={() => onNavigate('transactions')}
+                            className="p-3.5 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs font-bold"
+                        >
+                            <i data-lucide="minus-circle" className="w-4 h-4"></i>
+                            <span>- Pengeluaran</span>
+                        </button>
+                        <button
+                            onClick={() => onNavigate('scan')}
+                            className="p-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs font-bold"
+                        >
+                            <i data-lucide="camera" className="w-4 h-4"></i>
+                            <span>Scan Struk AI</span>
+                        </button>
+                    </div>
+
+                    {/* Two-Column Layout for Breakdown & Accounts */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        {/* 📊 Visual Category Expense Breakdown */}
+                        <div className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <div>
+                                    <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">Alokasi Pengeluaran</h3>
+                                    <p className="text-[11px] text-slate-400 font-medium">Berdasarkan kategori belanja</p>
+                                </div>
+                                <span className="text-xs font-black text-rose-600 bg-rose-50 px-2.5 py-1 rounded-xl">
+                                    {formatIDR(totalExpense)}
+                                </span>
+                            </div>
+
+                            {categoryBreakdown.length === 0 ? (
+                                <div className="text-center py-8 text-slate-400 text-xs font-medium">
+                                    Belum ada pengeluaran dicatat pada periode ini.
+                                </div>
+                            ) : (
+                                <div className="space-y-3.5">
+                                    {categoryBreakdown.map((item, idx) => (
+                                        <div key={idx} className="space-y-1">
+                                            <div className="flex justify-between items-center text-xs font-bold">
+                                                <span className="text-slate-800 flex items-center gap-1.5">
+                                                    <span className="w-2 h-2 rounded-full bg-violet-600"></span>
+                                                    {item.category}
+                                                </span>
+                                                <div className="text-right">
+                                                    <span className="text-slate-900 font-extrabold">{formatIDR(item.amount)}</span>
+                                                    <span className="text-[10px] text-slate-400 font-bold ml-1">({item.percentage}%)</span>
+                                                </div>
+                                            </div>
+                                            {/* Progress Bar */}
+                                            <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-violet-500 to-indigo-600 rounded-full transition-all duration-500"
+                                                    style={{ width: `${item.percentage}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 🏦 Account Balances Snapshot */}
+                        <div className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <div>
+                                    <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">Saldo Rekening & Dompet</h3>
+                                    <p className="text-[11px] text-slate-400 font-medium">Posisi saldo aktif saat ini</p>
+                                </div>
+                                <button onClick={() => onNavigate('accounts')} className="text-xs font-bold text-violet-600 hover:text-violet-700 flex items-center gap-1">
+                                    <span>Kelola</span>
+                                    <i data-lucide="chevron-right" className="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+
+                            <div className="space-y-2.5">
+                                {accounts.map(acc => (
+                                    <div key={acc.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 hover:bg-slate-100/80 transition-all">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-xl text-white font-black flex items-center justify-center text-xs shadow-sm ${acc.color || 'bg-violet-600'}`}>
+                                                {acc.name.substring(0, 2).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-extrabold text-xs text-slate-900">{acc.name}</h4>
+                                                <span className="text-[10px] font-bold text-slate-400">{acc.type}</span>
+                                            </div>
+                                        </div>
+                                        <span className="font-extrabold text-xs text-slate-900">{formatIDR(acc.balance)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 📝 Recent Filtered Transactions List */}
+                    <div className="glass-card rounded-3xl p-5 sm:p-6 space-y-4">
                         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                            <h3 className="font-extrabold text-slate-900 text-sm">Histori Transaksi Periode Ini ({filteredTransactions.length})</h3>
+                            <div>
+                                <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">Histori Transaksi ({filteredTransactions.length})</h3>
+                                <p className="text-[11px] text-slate-400 font-medium">Transaksi pada rentang tanggal terpilih</p>
+                            </div>
                             <button onClick={() => onNavigate('transactions')} className="text-xs font-bold text-violet-600 hover:text-violet-700 flex items-center gap-1">
                                 <span>Lihat Semua</span>
                                 <i data-lucide="chevron-right" className="w-3.5 h-3.5"></i>
@@ -502,13 +698,13 @@
                             </div>
                         ) : (
                             <div className="space-y-2.5">
-                                {filteredTransactions.slice(0, 5).map(t => {
+                                {filteredTransactions.slice(0, 6).map(t => {
                                     const acc = accounts.find(a => a.id === t.accountId)?.name || 'Rekening';
                                     const toAcc = t.toAccountId ? accounts.find(a => a.id === t.toAccountId)?.name : null;
                                     return (
-                                        <div key={t.id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50/80 border border-slate-100 hover:bg-slate-100/60 transition-all">
+                                        <div key={t.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all">
                                             <div className="flex items-center gap-3">
-                                                <div className={`p-2.5 rounded-xl text-white ${t.type === 'INCOME' ? 'bg-emerald-500' : t.type === 'EXPENSE' ? 'bg-rose-500' : 'bg-cyan-500'}`}>
+                                                <div className={`p-2.5 rounded-2xl text-white ${t.type === 'INCOME' ? 'bg-emerald-500' : t.type === 'EXPENSE' ? 'bg-rose-500' : 'bg-cyan-600'}`}>
                                                     <i data-lucide={t.type === 'INCOME' ? 'arrow-down-left' : t.type === 'EXPENSE' ? 'arrow-up-right' : 'repeat'} className="w-4 h-4"></i>
                                                 </div>
                                                 <div>
@@ -516,7 +712,7 @@
                                                     <p className="text-[10px] font-medium text-slate-400">{t.date} • {acc} {toAcc ? `➔ ${toAcc}` : ''}</p>
                                                 </div>
                                             </div>
-                                            <span className={`font-black text-xs ${t.type === 'INCOME' ? 'text-emerald-600' : t.type === 'EXPENSE' ? 'text-rose-600' : 'text-cyan-600'}`}>
+                                            <span className={`font-black text-xs sm:text-sm ${t.type === 'INCOME' ? 'text-emerald-600' : t.type === 'EXPENSE' ? 'text-rose-600' : 'text-cyan-600'}`}>
                                                 {t.type === 'INCOME' ? '+' : t.type === 'EXPENSE' ? '-' : ''}{formatIDR(t.amount)}
                                             </span>
                                         </div>
@@ -529,6 +725,9 @@
             );
         }
 
+        /* -------------------------------------------------------------------------- */
+        /*                             TRANSACTIONS TAB                               */
+        /* -------------------------------------------------------------------------- */
         function TransactionsTab({ transactions, accounts, onAddTransaction }) {
             const [type, setType] = useState('EXPENSE'); // 'INCOME', 'EXPENSE', 'TRANSFER'
             const [amount, setAmount] = useState('');
@@ -566,9 +765,8 @@
                         <p className="text-xs text-slate-500 font-medium">Tambah Pemasukan, Pengeluaran, atau Transfer Antar Rekening</p>
                     </div>
 
-                    {}
                     <form onSubmit={handleSubmit} className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
-                        {/* Transaction Type Segment Switcher */}
+                        {/* Transaction Type Switcher */}
                         <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200/80">
                             <button
                                 type="button"
@@ -708,6 +906,9 @@
             );
         }
 
+        /* -------------------------------------------------------------------------- */
+        /*                               SCAN TAB                                     */
+        /* -------------------------------------------------------------------------- */
         function ScanTab({ accounts, onAddTransaction, geminiApiKey, showToast }) {
             const [selectedImage, setSelectedImage] = useState(null);
             const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -736,27 +937,25 @@
                 setIsAnalyzing(true);
                 try {
                     const base64Data = selectedImage.split(',')[1];
+                    const mimeType = selectedImage.substring(selectedImage.indexOf(":") + 1, selectedImage.indexOf(";")) || "image/jpeg";
+                    
                     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
 
                     const promptText = `
-                        Analisis foto nota/struk belanjaan ini. Ekstrak data dan kembalikan HANYA format JSON valid tanpa tanda backtick markdown seperti berikut:
-                        {
-                            "storeName": "Nama Toko",
-                            "date": "YYYY-MM-DD",
-                            "items": [
-                                { "name": "Nama Barang 1", "qty": 1, "price": 15000 },
-                                { "name": "Nama Barang 2", "qty": 2, "price": 8000 }
-                            ],
-                            "totalAmount": 31000,
-                            "category": "Belanja & Groceries"
-                        }
+                        Analisis nota / struk belanja ini secara sangat teliti.
+                        Ekstrak data berikut dan hasilkan JSON murni:
+                        1. Nama Toko/Merchant (storeName)
+                        2. Tanggal transaksi dalam format YYYY-MM-DD (date). Jika tidak ada tahun, gunakan tahun ini.
+                        3. Rincian setiap item barang yang dibeli: nama barang (name), kuantitas/jumlah (qty), dan harga satuan (price).
+                        4. Total pembayaran akhir (totalAmount). Abaikan baris tunai/kembalian.
+                        5. Kategori yang sesuai (category): Makanan & Minuman, Belanja & Groceries, Transportasi, Tagihan & Utilitas, Hiburan & Gaya Hidup, atau Lainnya.
                     `;
 
                     const payload = {
                         contents: [{
                             parts: [
                                 { text: promptText },
-                                { inline_data: { mime_type: "image/jpeg", data: base64Data } }
+                                { inlineData: { mimeType: mimeType, data: base64Data } }
                             ]
                         }]
                     };
@@ -767,24 +966,76 @@
                         body: JSON.stringify(payload)
                     });
 
-                    const resData = await response.json();
+                    const responseText = await response.text();
+                    let resData;
+                    
+                    try {
+                        resData = JSON.parse(responseText);
+                    } catch (pErr) {
+                        throw new Error("Respon server bukan JSON yang valid. Pastikan Gemini API Key aktif.");
+                    }
+
+                    if (!response.ok) {
+                        const errDetails = resData?.error?.message || responseText;
+                        throw new Error(`API Error (${response.status}): ${errDetails}`);
+                    }
+
                     const rawText = resData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
                     
-                    // Extract JSON safely using regex
                     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
                     if (!jsonMatch) {
-                        throw new Error("Respon AI tidak berisi format JSON valid");
+                        throw new Error("Gagal mengekstrak format JSON dari hasil AI.");
                     }
+
                     const parsed = JSON.parse(jsonMatch[0]);
 
+                    parsed.items = (parsed.items || []).map(item => ({
+                        name: item.name || 'Barang',
+                        qty: Number(item.qty) || 1,
+                        price: Number(item.price) || 0
+                    }));
+
                     setScannedData(parsed);
-                    showToast('✨ Nota berhasil di-scan AI!');
+                    showToast('✨ Struk berhasil dianalisis!');
                 } catch (err) {
-                    console.error("Gemini Vision Error:", err);
-                    showToast('Gagal memproses nota. Pastikan gambar jelas.', 'error');
+                    console.error("Gemini Vision Scan Error:", err);
+                    showToast(`Gagal memproses nota: ${err.message}`, 'error');
                 } finally {
                     setIsAnalyzing(false);
                 }
+            };
+
+            const handleUpdateItem = (index, field, value) => {
+                if (!scannedData) return;
+                const updatedItems = [...(scannedData.items || [])];
+                updatedItems[index] = { ...updatedItems[index], [field]: value };
+                
+                const newTotal = updatedItems.reduce((sum, item) => sum + ((Number(item.qty) || 1) * (Number(item.price) || 0)), 0);
+
+                setScannedData({
+                    ...scannedData,
+                    items: updatedItems,
+                    totalAmount: newTotal > 0 ? newTotal : scannedData.totalAmount
+                });
+            };
+
+            const handleAddItem = () => {
+                if (!scannedData) return;
+                setScannedData({
+                    ...scannedData,
+                    items: [...(scannedData.items || []), { name: 'Barang Baru', qty: 1, price: 0 }]
+                });
+            };
+
+            const handleDeleteItem = (index) => {
+                if (!scannedData) return;
+                const updatedItems = (scannedData.items || []).filter((_, i) => i !== index);
+                const newTotal = updatedItems.reduce((sum, item) => sum + ((Number(item.qty) || 1) * (Number(item.price) || 0)), 0);
+                setScannedData({
+                    ...scannedData,
+                    items: updatedItems,
+                    totalAmount: newTotal
+                });
             };
 
             const handleSaveScannedReceipt = () => {
@@ -792,11 +1043,11 @@
 
                 onAddTransaction({
                     type: 'EXPENSE',
-                    amount: scannedData.totalAmount || 0,
+                    amount: Number(scannedData.totalAmount) || 0,
                     accountId: selectedAccount,
                     category: scannedData.category || 'Belanja & Groceries',
                     date: scannedData.date || new Date().toISOString().split('T')[0],
-                    note: `Scan Struk: ${scannedData.storeName || 'Toko'} (${scannedData.items?.length || 0} item)`
+                    note: `Scan Struk: ${scannedData.storeName || 'Toko'} (${(scannedData.items || []).length} item)`
                 });
 
                 setSelectedImage(null);
@@ -806,24 +1057,23 @@
             return (
                 <div className="space-y-6 max-w-2xl mx-auto">
                     <div>
-                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Scan Nota AI</h2>
-                        <p className="text-xs text-slate-500 font-medium">Foto struk belanja untuk otomatisasi pencatatan rincian barang</p>
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Scan Nota AI High-Precision</h2>
+                        <p className="text-xs text-slate-500 font-medium">AI Gemini membaca struk belanja dan mengonversi menjadi rincian barang interaktif</p>
                     </div>
 
-                    {/* Image Upload Box */}
                     <div className="glass-card p-6 rounded-3xl border-2 border-dashed border-violet-200 text-center space-y-4">
                         {selectedImage ? (
                             <div className="space-y-4">
                                 <img src={selectedImage} alt="Struk" className="max-h-64 mx-auto rounded-2xl shadow-md border border-slate-200 object-contain" />
                                 <div className="flex justify-center gap-2">
-                                    <label className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer">
+                                    <label className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer transition-all">
                                         Ganti Foto
                                         <input type="file" accept="image/*" capture="environment" onChange={handleImageUpload} className="hidden" />
                                     </label>
                                     <button
                                         onClick={analyzeReceiptWithGemini}
                                         disabled={isAnalyzing}
-                                        className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50"
+                                        className="px-5 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50 transition-all"
                                     >
                                         {isAnalyzing ? (
                                             <>
@@ -833,7 +1083,7 @@
                                         ) : (
                                             <>
                                                 <i data-lucide="sparkles" className="w-4 h-4"></i>
-                                                <span>Proses Dengan AI</span>
+                                                <span>Proses Dengan AI Gemini</span>
                                             </>
                                         )}
                                     </button>
@@ -841,61 +1091,150 @@
                             </div>
                         ) : (
                             <label className="cursor-pointer block py-8">
-                                <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center">
+                                <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center shadow-inner">
                                     <i data-lucide="camera" className="w-7 h-7"></i>
                                 </div>
                                 <h3 className="font-extrabold text-slate-900 text-sm">Ambil Foto atau Pilih Gambar Struk</h3>
-                                <p className="text-xs text-slate-400 font-medium mt-1">Dukung format JPG, PNG</p>
+                                <p className="text-xs text-slate-400 font-medium mt-1">Mendukung nota fisik, struk digital, minimarket, resto, dll.</p>
                                 <input type="file" accept="image/*" capture="environment" onChange={handleImageUpload} className="hidden" />
                             </label>
                         )}
                     </div>
 
-                    {}
-                    {/* Scanned Result Breakdown */}
                     {scannedData && (
-                        <div className="glass-card p-5 sm:p-6 rounded-3xl space-y-4 border-emerald-200 bg-emerald-50/20 animate-fadeIn">
-                            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                                <div>
-                                    <h3 className="font-extrabold text-slate-900 text-sm">{scannedData.storeName || 'Toko'}</h3>
-                                    <p className="text-[10px] text-slate-500 font-bold">{scannedData.date} • {scannedData.category}</p>
-                                </div>
-                                <span className="font-black text-lg text-emerald-600">{formatIDR(scannedData.totalAmount)}</span>
-                            </div>
-
-                            {/* Itemized Table */}
-                            <div className="space-y-2">
-                                <h4 className="text-[10px] font-black uppercase text-slate-400">Rincian Barang</h4>
-                                {(scannedData.items || []).map((item, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-100 text-xs">
-                                        <div>
-                                            <span className="font-bold text-slate-800">{item.name}</span>
-                                            <span className="text-slate-400 text-[10px] block">{item.qty}x @ {formatIDR(item.price)}</span>
-                                        </div>
-                                        <span className="font-bold text-slate-900">{formatIDR((item.qty || 1) * (item.price || 0))}</span>
+                        <div className="glass-card p-5 sm:p-6 rounded-3xl space-y-4 border-violet-200 bg-white shadow-xl animate-fadeIn">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 rounded-xl bg-violet-100 text-violet-700">
+                                        <i data-lucide="receipt" className="w-4 h-4"></i>
                                     </div>
-                                ))}
+                                    <h3 className="font-extrabold text-slate-900 text-sm">Hasil Deteksi AI</h3>
+                                </div>
+                                <span className="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2.5 py-1 rounded-full">
+                                    Verified Output
+                                </span>
                             </div>
 
-                            {/* Destination Account */}
-                            <div>
-                                <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Pilih Rekening Pembayaran</label>
-                                <select
-                                    value={selectedAccount}
-                                    onChange={(e) => setSelectedAccount(e.target.value)}
-                                    className="w-full bg-white border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
-                                >
-                                    {accounts.map(acc => (
-                                        <option key={acc.id} value={acc.id}>{acc.name} ({formatIDR(acc.balance)})</option>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Nama Toko</label>
+                                    <input
+                                        type="text"
+                                        value={scannedData.storeName || ''}
+                                        onChange={(e) => setScannedData({ ...scannedData, storeName: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Tanggal Struk</label>
+                                    <input
+                                        type="date"
+                                        value={scannedData.date || new Date().toISOString().split('T')[0]}
+                                        onChange={(e) => setScannedData({ ...scannedData, date: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Kategori</label>
+                                    <select
+                                        value={scannedData.category || 'Belanja & Groceries'}
+                                        onChange={(e) => setScannedData({ ...scannedData, category: e.target.value })}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800"
+                                    >
+                                        <option value="Makanan & Minuman">Makanan & Minuman</option>
+                                        <option value="Belanja & Groceries">Belanja & Groceries</option>
+                                        <option value="Transportasi">Transportasi</option>
+                                        <option value="Tagihan & Utilitas">Tagihan & Utilitas</option>
+                                        <option value="Hiburan & Gaya Hidup">Hiburan & Gaya Hidup</option>
+                                        <option value="Lainnya">Lainnya</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-[10px] font-black uppercase text-slate-400">Rincian Barang</h4>
+                                    <button
+                                        onClick={handleAddItem}
+                                        className="text-[11px] font-bold text-violet-600 hover:text-violet-700 flex items-center gap-1"
+                                    >
+                                        <i data-lucide="plus" className="w-3.5 h-3.5"></i>
+                                        <span>Tambah Item</span>
+                                    </button>
+                                </div>
+
+                                <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                                    {(scannedData.items || []).map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200">
+                                            <input
+                                                type="text"
+                                                value={item.name}
+                                                onChange={(e) => handleUpdateItem(idx, 'name', e.target.value)}
+                                                placeholder="Nama Barang"
+                                                className="flex-1 bg-white border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-800"
+                                            />
+                                            <div className="w-16">
+                                                <input
+                                                    type="number"
+                                                    value={item.qty}
+                                                    min="1"
+                                                    onChange={(e) => handleUpdateItem(idx, 'qty', Number(e.target.value))}
+                                                    placeholder="Qty"
+                                                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-800 text-center"
+                                                />
+                                            </div>
+                                            <div className="w-28">
+                                                <input
+                                                    type="number"
+                                                    value={item.price}
+                                                    onChange={(e) => handleUpdateItem(idx, 'price', Number(e.target.value))}
+                                                    placeholder="Harga"
+                                                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-800 text-right"
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => handleDeleteItem(idx)}
+                                                className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-all"
+                                                title="Hapus Item"
+                                            >
+                                                <i data-lucide="trash-2" className="w-4 h-4"></i>
+                                            </button>
+                                        </div>
                                     ))}
-                                </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Total Pengeluaran (IDR)</label>
+                                    <input
+                                        type="number"
+                                        value={scannedData.totalAmount || 0}
+                                        onChange={(e) => setScannedData({ ...scannedData, totalAmount: Number(e.target.value) })}
+                                        className="w-full bg-emerald-50/60 border border-emerald-300 rounded-2xl p-3 text-base font-black text-emerald-700 focus:outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Pilih Rekening Pembayaran</label>
+                                    <select
+                                        value={selectedAccount}
+                                        onChange={(e) => setSelectedAccount(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800"
+                                    >
+                                        {accounts.map(acc => (
+                                            <option key={acc.id} value={acc.id}>{acc.name} ({formatIDR(acc.balance)})</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
                             <button
                                 onClick={handleSaveScannedReceipt}
-                                className="w-full py-3.5 bg-emerald-600 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-600/20 active:scale-95 transition-all"
+                                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                             >
-                                Simpan Ke Pengeluaran
+                                <i data-lucide="check-circle" className="w-4 h-4"></i>
+                                <span>Simpan Ke Pengeluaran ({formatIDR(scannedData.totalAmount)})</span>
                             </button>
                         </div>
                     )}
@@ -903,6 +1242,9 @@
             );
         }
 
+        /* -------------------------------------------------------------------------- */
+        /*                            ACCOUNTS TAB                                    */
+        /* -------------------------------------------------------------------------- */
         function AccountsTab({ accounts, setAccounts, showToast }) {
             const [name, setName] = useState('');
             const [type, setType] = useState('Bank');
@@ -917,7 +1259,7 @@
                     name,
                     type,
                     balance: Number(balance),
-                    color: type === 'Bank' ? 'bg-blue-500' : type === 'E-Wallet' ? 'bg-emerald-500' : 'bg-amber-500'
+                    color: type === 'Bank' ? 'bg-blue-600' : type === 'E-Wallet' ? 'bg-emerald-600' : 'bg-amber-500'
                 };
 
                 setAccounts(prev => [...prev, newAcc]);
@@ -933,7 +1275,6 @@
                         <p className="text-xs text-slate-500 font-medium">Tambah atau atur saldo akun bank, e-wallet, dan cash</p>
                     </div>
 
-                    {/* Account Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                         {accounts.map(acc => (
                             <div key={acc.id} className="glass-card p-5 rounded-3xl flex items-center justify-between border-slate-200/80">
@@ -951,8 +1292,6 @@
                         ))}
                     </div>
 
-                    {}
-                    {/* Add Account Form */}
                     <form onSubmit={handleAddAccount} className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
                         <h3 className="font-extrabold text-slate-900 text-sm">Tambah Rekening Baru</h3>
                         
@@ -1006,25 +1345,10 @@
             );
         }
 
+        /* -------------------------------------------------------------------------- */
+        /*                            SUPABASE & CONFIG TAB                           */
+        /* -------------------------------------------------------------------------- */
         function SupabaseTab({ supabaseUrl, setSupabaseUrl, supabaseKey, setSupabaseKey, sheetsWebhookUrl, setSheetsWebhookUrl, transactions, accounts, isConnected, showToast, geminiApiKey, setGeminiApiKey }) {
-            const [copied, setCopied] = useState(false);
-
-            const sqlScript = `CREATE TABLE IF NOT EXISTS public.transactions (
-    id TEXT PRIMARY KEY,
-    type TEXT NOT NULL,
-    amount NUMERIC NOT NULL,
-    account_id TEXT NOT NULL,
-    to_account_id TEXT,
-    category TEXT,
-    date DATE NOT NULL,
-    note TEXT,
-    admin_fee NUMERIC DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public full access" ON public.transactions FOR ALL USING (true);`;
-
             const exportToCsv = () => {
                 if (!transactions || transactions.length === 0) {
                     showToast('Belum ada transaksi untuk diexport', 'error');
@@ -1075,7 +1399,6 @@ CREATE POLICY "Public full access" ON public.transactions FOR ALL USING (true);`
                         <p className="text-xs text-slate-500 font-medium">Hubungkan Supabase Cloud, Google Sheets & Gemini API</p>
                     </div>
 
-                    {/* Quick CSV Download */}
                     <div className="glass-card p-5 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-3 border-emerald-200 bg-emerald-50/30">
                         <div className="flex items-center gap-3">
                             <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-md">
@@ -1095,7 +1418,6 @@ CREATE POLICY "Public full access" ON public.transactions FOR ALL USING (true);`
                         </button>
                     </div>
 
-                    {/* Status Badge */}
                     <div className={`p-4 rounded-3xl border flex items-center justify-between ${isConnected ? 'bg-emerald-50 border-emerald-200' : 'glass-card border-slate-200'}`}>
                         <div className="flex items-center gap-3">
                             <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></div>
@@ -1109,7 +1431,6 @@ CREATE POLICY "Public full access" ON public.transactions FOR ALL USING (true);`
                         </span>
                     </div>
 
-                    {/* API Configuration Form */}
                     <form onSubmit={handleSaveConfig} className="glass-card p-5 sm:p-6 rounded-3xl space-y-4">
                         <h3 className="font-extrabold text-slate-900 text-sm border-b border-slate-200 pb-2">Kredensial API & Webhook</h3>
                         
