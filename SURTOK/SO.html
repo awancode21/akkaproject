@@ -48,7 +48,7 @@
           <h1 class="font-black text-sm sm:text-base leading-none text-white flex items-center gap-1.5">
             ScanOpname <span class="bg-emerald-500/20 text-emerald-400 text-[10px] px-1.5 py-0.5 rounded-md border border-emerald-500/30">Mobile</span>
           </h1>
-          <p class="text-[10px] text-slate-400 mt-0.5">Deduplicated Supabase & Sheet Sync</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">Real-time Auto-Sync Supabase & Sheet</p>
         </div>
       </div>
 
@@ -60,7 +60,7 @@
 
         <button id="btn-sync-all" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-extrabold shadow flex items-center gap-1.5 transition">
           <svg id="icon-sync-spin" class="w-3.5 h-3.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-          <span class="hidden sm:inline">Sync Data</span>
+          <span class="hidden sm:inline">Sync Manual</span>
         </button>
       </div>
     </div>
@@ -82,7 +82,8 @@
     </div>
   </header>
 
-  <div id="sync-banner" class="hidden px-4 py-2.5 text-xs font-medium flex items-center justify-between gap-2 border-b bg-cyan-950 text-cyan-200 border-cyan-800">
+  <!-- AUTO-SYNC STATUS BANNER -->
+  <div id="sync-banner" class="hidden px-4 py-2.5 text-xs font-medium flex items-center justify-between gap-2 border-b bg-cyan-950 text-cyan-200 border-cyan-800 transition-all">
     <div class="flex items-center gap-2">
       <div id="sync-spinner" class="w-3.5 h-3.5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
       <span id="sync-banner-text">Menyinkronkan data...</span>
@@ -93,6 +94,7 @@
   <!-- MAIN CONTAINER -->
   <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5">
 
+    <!-- TAB SCANNER -->
     <section id="tab-scanner" class="space-y-3.5">
       
       <!-- SESSION CONTEXT -->
@@ -102,8 +104,8 @@
             <svg class="w-4 h-4 text-emerald-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
             <span class="text-xs font-extrabold text-slate-200">Sesi Scan & Lokasi Rak SO</span>
           </div>
-          <button id="btn-toggle-session-lock" class="text-[10px] px-2.5 py-1 rounded-full font-bold border transition bg-slate-800 text-slate-300 border-slate-700">
-            🔓 Ubah Sesi
+          <button id="btn-toggle-session-lock" class="text-[11px] px-3 py-1.5 rounded-xl font-black border transition bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30">
+            🔒 Kunci Sesi & Mulai Scan
           </button>
         </div>
 
@@ -125,9 +127,9 @@
           <div>
             <label class="text-[10px] font-bold text-amber-400 uppercase flex items-center justify-between">
               <span>Nama Rak SO (Manual)</span>
-              <span class="text-[9px] text-slate-400 font-normal">Free Text</span>
+              <span id="label-rak-status" class="text-[9px] text-slate-400 font-normal">Free Text</span>
             </label>
-            <input id="input-rak-manual" type="text" placeholder="Ketik Kode Rak (mis: RAK-A-01)" value="RAK-A-01" class="session-input w-full bg-slate-950 border-2 border-emerald-500/60 rounded-xl px-2.5 py-2 text-emerald-300 font-mono font-extrabold outline-none uppercase mt-1">
+            <input id="input-rak-manual" type="text" placeholder="Ketik Kode Rak (mis: RAK-A-01)" value="" class="session-input w-full bg-slate-950 border-2 border-emerald-500/60 rounded-xl px-2.5 py-2 text-emerald-300 font-mono font-extrabold outline-none uppercase mt-1">
             
             <div id="recent-raks-container" class="flex gap-1 mt-1 overflow-x-auto no-scrollbar">
             </div>
@@ -236,7 +238,55 @@
                 Batal / Scan Lain
               </button>
               <button id="btn-modal-save" class="flex-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black py-3 px-4 rounded-xl text-xs shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-1.5">
-                ✓ SIMPAN HASIL (ENTER)
+                ⚡ SIMPAN & AUTO-SYNC (ENTER)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL SELESAIKAN RAK -->
+        <div id="modal-finish-rak" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+          <div class="bg-slate-900 border-2 border-teal-500 rounded-2xl w-full max-w-md p-4 sm:p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
+            
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <span class="bg-teal-500/20 text-teal-300 text-xs px-2.5 py-1 rounded-lg font-mono font-extrabold border border-teal-500/30 flex items-center gap-1.5">
+                ✅ RINGKASAN SELESAI RAK SO
+              </span>
+              <button id="btn-close-finish-modal" class="text-slate-400 hover:text-white font-bold text-xs px-2 py-1">✕</button>
+            </div>
+
+            <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-3 text-center">
+              <div>
+                <span class="text-[10px] text-slate-400 uppercase font-bold block">Lokasi Rak SO Selesai:</span>
+                <p id="finish-modal-rak" class="text-2xl font-mono font-black text-amber-400 mt-0.5">RAK-A-01</p>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
+                <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                  <span class="text-[10px] text-slate-400 uppercase font-bold block">Total Item Unique</span>
+                  <span id="finish-modal-count" class="text-xl font-mono font-black text-white">0 Entry</span>
+                </div>
+                <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                  <span class="text-[10px] text-slate-400 uppercase font-bold block">Total Qty Fisik</span>
+                  <span id="finish-modal-qty" class="text-xl font-mono font-black text-emerald-400">0 Pcs</span>
+                </div>
+              </div>
+
+              <div id="finish-sync-status-box" class="bg-cyan-950/60 border border-cyan-800 p-2.5 rounded-xl text-left text-xs text-cyan-200 space-y-1">
+                <p class="font-bold flex items-center gap-1.5 text-cyan-300">
+                  <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                  Pemeriksaan Sinkronisasi Database...
+                </p>
+                <p id="finish-sync-desc" class="text-[11px] text-slate-300">Memastikan semua data rak ini tersimpan di Supabase & Sheet.</p>
+              </div>
+            </div>
+
+            <div class="flex gap-2 pt-1">
+              <button id="btn-cancel-finish" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl text-xs">
+                Lanjut Scan Rak Ini
+              </button>
+              <button id="btn-confirm-finish" class="flex-2 bg-teal-600 hover:bg-teal-500 active:scale-95 text-white font-black py-3 px-4 rounded-xl text-xs shadow-lg shadow-teal-900/40 flex items-center justify-center gap-1.5">
+                🚀 PUSH & BUKA SESI RAK BARU
               </button>
             </div>
           </div>
@@ -293,7 +343,7 @@
         </div>
 
         <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 col-span-2 sm:col-span-1">
-          <p class="text-[10px] text-slate-400 font-bold uppercase">Synced (Supabase / Sheet)</p>
+          <p class="text-[10px] text-slate-400 font-bold uppercase">Synced (Supabase & Sheet)</p>
           <p id="stat-synced-count" class="text-xl font-extrabold text-teal-400 mt-1">0/0</p>
         </div>
       </div>
@@ -490,9 +540,9 @@
       autoResetQty: true,
       masterItems: JSON.parse(localStorage.getItem('so_master_items') || '[]'),
       petugasByTeam: JSON.parse(localStorage.getItem('so_petugas_map') || 'null') || DEFAULT_PETUGAS,
-      selectedTeam: 'TIM 1',
+      selectedTeam: '',
       selectedPetugas: '',
-      manualRakInput: 'RAK-A-01',
+      manualRakInput: '',
       recentRaks: ['RAK-A-01', 'RAK-B-02', 'RAK-C-05'],
       isSessionLocked: false,
       soResults: JSON.parse(localStorage.getItem('so_scanned_results') || '[]'),
@@ -594,13 +644,12 @@
       if (!selectTeam) return;
 
       const availableTeams = Object.keys(state.petugasByTeam);
+      let html = '<option value="">-- Pilih Tim --</option>';
       if (availableTeams.length > 0) {
-        selectTeam.innerHTML = availableTeams.map(t => `<option value="${t}">${t}</option>`).join('');
-        if (!availableTeams.includes(state.selectedTeam)) {
-          state.selectedTeam = availableTeams[0];
-        }
-        selectTeam.value = state.selectedTeam;
+        html += availableTeams.map(t => `<option value="${t}">${t}</option>`).join('');
       }
+      selectTeam.innerHTML = html;
+      selectTeam.value = state.selectedTeam || '';
     }
 
     function renderPetugasOptions() {
@@ -608,12 +657,21 @@
       const selectPetugas = document.getElementById('select-petugas');
       if (!selectPetugas) return;
 
-      const list = getPetugasForTeam(state.selectedTeam);
-      selectPetugas.innerHTML = list.map(p => `<option value="${p}">${p}</option>`).join('');
-      if (list.length > 0) {
-        state.selectedPetugas = list[0];
-        selectPetugas.value = state.selectedPetugas;
+      if (!state.selectedTeam) {
+        selectPetugas.innerHTML = '<option value="">-- Pilih Tim Terlebih Dahulu --</option>';
+        state.selectedPetugas = '';
+        selectPetugas.value = '';
+        return;
       }
+
+      const list = getPetugasForTeam(state.selectedTeam);
+      selectPetugas.innerHTML = '<option value="">-- Pilih Petugas --</option>' + 
+        list.map(p => `<option value="${p}">${p}</option>`).join('');
+      
+      if (!list.includes(state.selectedPetugas)) {
+        state.selectedPetugas = '';
+      }
+      selectPetugas.value = state.selectedPetugas || '';
     }
 
     async function fetchPetugasFromSpreadsheet() {
@@ -637,11 +695,30 @@
       const cleanCode = String(barcodeValue || '').trim();
       if (!cleanCode) return;
 
+      if (!state.selectedTeam) {
+        triggerFeedback('error');
+        showBannerStatus(false, 'Wajib pilih TIM OPNAME terlebih dahulu!');
+        document.getElementById('select-team')?.focus();
+        return;
+      }
+
+      if (!state.selectedPetugas) {
+        triggerFeedback('error');
+        showBannerStatus(false, 'Wajib pilih NAMA PETUGAS terlebih dahulu!');
+        document.getElementById('select-petugas')?.focus();
+        return;
+      }
+
       const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
       if (!currentRak) {
         triggerFeedback('error');
         showBannerStatus(false, 'Wajib isi KODE RAK SO terlebih dahulu!');
+        document.getElementById('input-rak-manual')?.focus();
         return;
+      }
+
+      if (!state.isSessionLocked) {
+        lockSession(true);
       }
 
       if (currentRak && !state.recentRaks.includes(currentRak)) {
@@ -680,361 +757,255 @@
         }
       }
 
-      if (!matchedItem) {
-        matchedItem = {
-          sku: cleanCode,
-          namaBarang: '*** ITEM TIDAK TERDAFTAR ***',
-          family: 'N/A',
-          originalCode: cleanCode
-        };
-      }
-
-      state.pendingScanItem = { matchedItem, rak: currentRak };
-
-      document.getElementById('confirm-item-rak').textContent = `RAK: ${currentRak}`;
-      document.getElementById('confirm-item-family').textContent = `Family: ${matchedItem.family || '-'}`;
-      document.getElementById('confirm-item-nama').textContent = matchedItem.namaBarang || matchedItem.nama_barang || 'Item Barcode';
-      document.getElementById('confirm-item-sku').textContent = matchedItem.sku || cleanCode;
-      document.getElementById('confirm-item-orig').textContent = matchedItem.originalCode || matchedItem.original_code || '-';
-      
-      const qtyInput = document.getElementById('input-confirm-qty');
-      if (qtyInput) qtyInput.value = 1;
-
-      const modal = document.getElementById('modal-confirm-qty');
-      if (modal) modal.classList.remove('hidden');
+      state.pendingScanItem = {
+        sku: matchedItem ? matchedItem.sku : cleanCode,
+        namaBarang: matchedItem ? (matchedItem.namaBarang || matchedItem.nama_barang) : '*** BARANG BARU / UNKNOWN ***',
+        family: matchedItem ? (matchedItem.family || '-') : '-',
+        originalCode: matchedItem ? (matchedItem.originalCode || matchedItem.original_code || '-') : '-'
+      };
 
       triggerFeedback('success');
 
+      document.getElementById('confirm-item-rak').textContent = `RAK: ${currentRak}`;
+      document.getElementById('confirm-item-family').textContent = `Family: ${state.pendingScanItem.family}`;
+      document.getElementById('confirm-item-nama').textContent = state.pendingScanItem.namaBarang;
+      document.getElementById('confirm-item-sku').textContent = state.pendingScanItem.sku;
+      document.getElementById('confirm-item-orig').textContent = state.pendingScanItem.originalCode;
+      
+      const qtyInput = document.getElementById('input-confirm-qty');
+      qtyInput.value = 1;
+      
+      const modal = document.getElementById('modal-confirm-qty');
+      modal.classList.remove('hidden');
+
       setTimeout(() => {
-        if (qtyInput) {
-          qtyInput.focus();
-          qtyInput.select();
-        }
-      }, 150);
+        qtyInput.focus();
+        qtyInput.select();
+      }, 100);
     }
 
     function confirmScanEntry() {
-      if (!state.pendingScanItem) {
-        closeConfirmModal();
-        return;
-      }
-      const qtyInput = document.getElementById('input-confirm-qty');
-      const qty = Math.max(1, parseInt(qtyInput ? qtyInput.value : 1) || 1);
-      const item = state.pendingScanItem.matchedItem;
-      const rak = state.pendingScanItem.rak;
+      if (!state.pendingScanItem) return;
 
-      // Unik ID Permanen berbasis TIMESTAMP + RANDOM SUFFIX
-      const uniqueEntryId = 'so-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+      const qtyInput = document.getElementById('input-confirm-qty');
+      const qtyVal = Math.max(1, parseInt(qtyInput.value) || 1);
+      const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
 
       const newEntry = {
-        id: uniqueEntryId,
+        id: `so-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         timestamp: new Date().toISOString(),
+        rak: currentRak,
         team: state.selectedTeam,
         petugas: state.selectedPetugas || 'Petugas 1',
-        rak: rak,
-        sku: item.sku,
-        originalCode: item.originalCode || item.original_code || '-',
-        namaBarang: item.namaBarang || item.nama_barang || 'Unknown Item',
-        family: item.family || '-',
-        qty: qty,
-        syncedSheet: false,
-        syncedSupabase: false
+        sku: state.pendingScanItem.sku,
+        originalCode: state.pendingScanItem.originalCode,
+        namaBarang: state.pendingScanItem.namaBarang,
+        family: state.pendingScanItem.family,
+        qty: qtyVal,
+        syncedSupabase: false,
+        syncedSheet: false
       };
 
       state.soResults.unshift(newEntry);
+      
       state.lastScannedItem = {
-        ...item,
-        sku: item.sku,
-        originalCode: item.originalCode || item.original_code || '-',
-        namaBarang: item.namaBarang || item.nama_barang || 'Unknown Item',
-        scannedQty: qty,
-        rak: rak,
+        ...state.pendingScanItem,
+        qty: qtyVal,
+        rak: currentRak,
         time: new Date().toLocaleTimeString('id-ID')
       };
 
       saveState();
-      renderLastScannedCard();
+
+      closeConfirmModal();
+
       renderRecentScansList();
       renderResultsTable();
-      closeConfirmModal();
-      
-      triggerFeedback('success');
-      
-      const scanInput = document.getElementById('input-barcode-scan');
-      if (scanInput) {
-        scanInput.value = '';
-        setTimeout(() => scanInput.focus(), 150);
-      }
+      updateLastScannedCard();
+
+      autoSyncSingleEntry(newEntry);
     }
 
     function closeConfirmModal() {
       const modal = document.getElementById('modal-confirm-qty');
       if (modal) modal.classList.add('hidden');
       state.pendingScanItem = null;
+
       const scanInput = document.getElementById('input-barcode-scan');
       if (scanInput) {
         scanInput.value = '';
-        setTimeout(() => scanInput.focus(), 150);
+        scanInput.focus();
       }
     }
 
-    async function handleSyncSheetToSupabaseDirect() {
-      if (!state.gasUrl) {
-        showBannerStatus(false, 'URL Apps Script belum diisi di Setting!');
-        switchTab('settings');
-        return;
-      }
+    async function autoSyncSingleEntry(entry) {
+      showBannerStatus(null, `Auto-Sync: ${entry.namaBarang} (+${entry.qty})...`);
 
-      showBannerStatus(null, 'Memulai Push 70.000 SKU dari Spreadsheet ke Supabase via Server...');
+      let syncedSp = false;
+      let syncedSh = false;
 
-      try {
-        const res = await fetch(`${state.gasUrl}?action=pushToSupabase`);
-        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-        const json = await res.json();
+      if (state.supabaseUrl && state.supabaseKey) {
+        try {
+          const resSp = await fetch(`${state.supabaseUrl}/rest/v1/hasil_so?on_conflict=id`, {
+            method: 'POST',
+            headers: {
+              'apikey': state.supabaseKey,
+              'Authorization': `Bearer ${state.supabaseKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates'
+            },
+            body: JSON.stringify([{
+              id: entry.id,
+              timestamp: entry.timestamp,
+              rak: entry.rak,
+              tim: entry.team,
+              petugas: entry.petugas,
+              sku: entry.sku,
+              original_code: entry.originalCode,
+              nama_barang: entry.namaBarang,
+              family: entry.family,
+              qty: Number(entry.qty) || 1
+            }])
+          });
 
-        if (json.success) {
-          showBannerStatus(true, json.message || 'Berhasil mengunggah master SKU dari Sheet ke Supabase!');
-          triggerFeedback('success');
-          handleFetchMasterFromSupabase();
-        } else {
-          showBannerStatus(false, `Gagal Sync Server: ${json.message}`);
-          triggerFeedback('error');
-        }
-      } catch (err) {
-        showBannerStatus(false, `Gagal memanggil Apps Script: ${err.message}`);
-        triggerFeedback('error');
-      }
-    }
-
-    /* PUSH DATA HASIL SO KE SUPABASE DENGAN UPSERT ON CONFLICT (ID) - MENCEGAH DUPLIKASI */
-    async function handlePushResultsToSupabase() {
-      if (!state.supabaseUrl || !state.supabaseKey) {
-        showBannerStatus(false, 'Masukkan Supabase URL dan Anon Key di Settings!');
-        switchTab('settings');
-        return;
-      }
-
-      showBannerStatus(null, 'Mengirim Hasil SO ke Supabase Database...');
-      
-      try {
-        const unsynced = state.soResults.filter(r => !r.syncedSupabase);
-        const targetData = unsynced.length > 0 ? unsynced : state.soResults;
-
-        if (targetData.length === 0) {
-          showBannerStatus(true, 'Semua data SO sudah tersinkron ke Supabase.');
-          return;
-        }
-
-        // Kirim `id` transaksi scan dari HP sebagai Primary Key ke Supabase
-        const payload = targetData.map(r => ({
-          id: r.id,
-          timestamp: r.timestamp,
-          rak: r.rak,
-          tim: r.team,
-          petugas: r.petugas,
-          sku: r.sku,
-          original_code: r.originalCode,
-          nama_barang: r.namaBarang,
-          family: r.family,
-          qty: Number(r.qty) || 1
-        }));
-
-        // Menggunakan ?on_conflict=id & resolution=merge-duplicates untuk UPSERT
-        const res = await fetch(`${state.supabaseUrl}/rest/v1/hasil_so?on_conflict=id`, {
-          method: 'POST',
-          headers: {
-            'apikey': state.supabaseKey,
-            'Authorization': `Bearer ${state.supabaseKey}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (!res.ok) throw new Error(`Status ${res.status}`);
-
-        state.soResults = state.soResults.map(item => ({ ...item, syncedSupabase: true }));
-        saveState();
-        renderResultsTable();
-        showBannerStatus(true, `Berhasil terkirim/ter-update ${payload.length} data SO ke Supabase!`);
-        triggerFeedback('success');
-      } catch (err) {
-        showBannerStatus(false, `Gagal Sync ke Supabase: ${err.message}`);
-        triggerFeedback('error');
-      }
-    }
-
-    /* PUSH DATA HASIL SO KE SPREADSHEET DENGAN DEDUPLIKASI DI SERVER CODE.GS */
-    async function handlePushResultsToSpreadsheet() {
-      if (!state.gasUrl) {
-        showBannerStatus(false, 'Masukkan URL Apps Script!');
-        switchTab('settings');
-        return;
-      }
-
-      showBannerStatus(null, 'Mengirim Hasil SO ke Sheet "Hasil SO"...');
-
-      try {
-        const unsyncedData = state.soResults.filter(r => !r.syncedSheet);
-        const payload = {
-          action: 'syncHasilSo',
-          data: unsyncedData.length > 0 ? unsyncedData : state.soResults
-        };
-
-        const res = await fetch(state.gasUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify(payload)
-        });
-
-        const json = await res.json();
-
-        state.soResults = state.soResults.map(item => ({ ...item, syncedSheet: true }));
-        saveState();
-        renderResultsTable();
-
-        showBannerStatus(true, json.message || `Berhasil mengirim data ke Google Spreadsheet!`);
-        triggerFeedback('success');
-      } catch (err) {
-        showBannerStatus(false, 'Gagal mengirim data ke Google Sheet.');
-        triggerFeedback('error');
-      }
-    }
-
-    async function handleFetchMasterFromSupabase() {
-      if (!state.supabaseUrl || !state.supabaseKey) {
-        showBannerStatus(false, 'Masukkan Supabase URL dan Anon Key!');
-        switchTab('settings');
-        return;
-      }
-
-      showBannerStatus(null, 'Menarik Sample Master SKU dari Supabase Database...');
-
-      try {
-        const res = await fetch(`${state.supabaseUrl}/rest/v1/master_items?select=sku,nama_barang,family,original_code&limit=5000`, {
-          headers: {
-            'apikey': state.supabaseKey,
-            'Authorization': `Bearer ${state.supabaseKey}`
+          if (resSp.ok) {
+            syncedSp = true;
+            entry.syncedSupabase = true;
           }
-        });
-
-        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-        const data = await res.json();
-
-        if (Array.isArray(data) && data.length > 0) {
-          const formatted = data.map((item) => ({
-            sku: item.sku || '',
-            namaBarang: item.nama_barang || '',
-            family: item.family || '',
-            originalCode: item.original_code || ''
-          }));
-
-          state.masterItems = formatted;
-          saveState();
-          renderMasterTable();
-          showBannerStatus(true, `Berhasil menarik ${formatted.length.toLocaleString('id-ID')} SKU dari Supabase!`);
-          triggerFeedback('success');
-        } else {
-          showBannerStatus(false, 'Supabase terhubung tapi tabel master_items masih kosong.');
+        } catch (err) {
+          console.warn('Auto sync Supabase error', err);
         }
-      } catch (err) {
-        showBannerStatus(false, `Gagal terhubung ke Supabase: ${err.message}`);
-        triggerFeedback('error');
-      }
-    }
-
-    async function handleFetchMasterFromSpreadsheet() {
-      if (!state.gasUrl) {
-        showBannerStatus(false, 'Masukkan URL Apps Script!');
-        switchTab('settings');
-        return;
       }
 
-      showBannerStatus(null, 'Menarik Data Master Item & Petugas dari Google Spreadsheet...');
+      if (state.gasUrl) {
+        try {
+          const resGas = await fetch(state.gasUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+              action: 'syncHasilSo',
+              data: [entry]
+            })
+          });
 
-      try {
-        const res = await fetch(`${state.gasUrl}?action=getMaster`);
-        if (!res.ok) throw new Error('Gagal terhubung ke Apps Script');
-        const json = await res.json();
-
-        if (json.items && Array.isArray(json.items)) {
-          state.masterItems = json.items.map(item => ({
-            sku: item.sku,
-            namaBarang: item.nama_barang,
-            family: item.family,
-            originalCode: item.original_code
-          }));
+          if (resGas.ok) {
+            syncedSh = true;
+            entry.syncedSheet = true;
+          }
+        } catch (err) {
+          console.warn('Auto sync Spreadsheet error', err);
         }
+      }
 
-        await fetchPetugasFromSpreadsheet();
+      saveState();
+      renderRecentScansList();
+      renderResultsTable();
 
-        saveState();
-        renderMasterTable();
-        showBannerStatus(true, `Sync Sheet Berhasil! (${state.masterItems.length.toLocaleString('id-ID')} SKU ter-update)`);
-        triggerFeedback('success');
-      } catch (err) {
-        showBannerStatus(false, 'Gagal sync dari Spreadsheet. Pastikan URL Apps Script benar.');
-        triggerFeedback('error');
+      if (syncedSp && syncedSh) {
+        showBannerStatus(true, `✓ Tersimpan & Ter-sync 100% (Supabase & Sheet)`);
+      } else if (syncedSp) {
+        showBannerStatus(true, `✓ Tersimpan di Supabase (Sheet Pending)`);
+      } else if (syncedSh) {
+        showBannerStatus(true, `✓ Tersimpan di Google Sheet (Supabase Pending)`);
+      } else {
+        showBannerStatus(false, `⚠️ Tersimpan di HP (Koneksi offline, sync otomatis nanti)`);
       }
     }
 
-    async function handleSyncAll() {
-      await handlePushResultsToSupabase();
-      await handlePushResultsToSpreadsheet();
-    }
-
-    function renderRecentRaks() {
-      const container = document.getElementById('recent-raks-container');
-      if (!container) return;
-      container.innerHTML = state.recentRaks.map(r => `
-        <button class="btn-recent-rak text-[9px] px-2 py-0.5 rounded border font-mono shrink-0 ${
-          state.manualRakInput.toUpperCase() === r.toUpperCase()
-            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold'
-            : 'bg-slate-950 text-slate-400 border-slate-800'
-        }" data-rak="${r}">${r}</button>
-      `).join('');
+    function lockSession(locked) {
+      state.isSessionLocked = locked;
+      document.querySelectorAll('.session-input').forEach(i => i.disabled = state.isSessionLocked);
       
-      document.querySelectorAll('.btn-recent-rak').forEach(btn => {
-        btn.onclick = () => {
-          if (state.isSessionLocked) return;
-          state.manualRakInput = btn.dataset.rak;
-          document.getElementById('input-rak-manual').value = btn.dataset.rak;
-          renderRecentRaks();
-        };
-      });
+      const lockBtn = document.getElementById('btn-toggle-session-lock');
+      if (lockBtn) {
+        if (state.isSessionLocked) {
+          lockBtn.textContent = '✅ Selesaikan Rak & Buka Sesi Baru';
+          lockBtn.className = 'text-[11px] px-3 py-1.5 rounded-xl font-black border transition bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30';
+        } else {
+          lockBtn.textContent = '🔒 Kunci Sesi & Mulai Scan';
+          lockBtn.className = 'text-[11px] px-3 py-1.5 rounded-xl font-black border transition bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30';
+        }
+      }
     }
 
-    function renderLastScannedCard() {
-      const card = document.getElementById('last-scanned-card');
-      if (!card) return;
-      if (!state.lastScannedItem) {
-        card.classList.add('hidden');
-        return;
+    function openFinishRakModal() {
+      const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
+      const rakResults = state.soResults.filter(r => r.rak.toUpperCase() === currentRak);
+      const totalQty = rakResults.reduce((acc, c) => acc + (Number(c.qty) || 0), 0);
+      const unsyncedCount = rakResults.filter(r => !r.syncedSupabase || !r.syncedSheet).length;
+
+      document.getElementById('finish-modal-rak').textContent = currentRak || 'RAK-SO';
+      document.getElementById('finish-modal-count').textContent = `${rakResults.length} Entry`;
+      document.getElementById('finish-modal-qty').textContent = `${totalQty.toLocaleString('id-ID')} Pcs`;
+
+      const desc = document.getElementById('finish-sync-desc');
+      if (unsyncedCount > 0) {
+        desc.textContent = `Ada ${unsyncedCount} data yang belum tersinkron. Sistem akan otomatis melakukan push sync.`;
+      } else {
+        desc.textContent = `Semua data pada rak ini sudah 100% tersimpan di Supabase & Sheet!`;
       }
+
+      const modal = document.getElementById('modal-finish-rak');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    async function confirmFinishRak() {
+      const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
+      
+      showBannerStatus(null, `Memverifikasi & Sync Data Rak ${currentRak}...`);
+      
+      await handleSyncAll();
+
+      lockSession(false);
+      state.manualRakInput = '';
+      const inputRak = document.getElementById('input-rak-manual');
+      if (inputRak) {
+        inputRak.value = '';
+        inputRak.focus();
+      }
+
+      const modal = document.getElementById('modal-finish-rak');
+      if (modal) modal.classList.add('hidden');
+
+      showBannerStatus(true, `✓ Sesi Rak ${currentRak} telah selesai & ter-sync! Silakan masukkan Kode Rak baru.`);
+      triggerFeedback('success');
+    }
+
+    function updateLastScannedCard() {
+      const card = document.getElementById('last-scanned-card');
+      if (!card || !state.lastScannedItem) return;
+
       card.classList.remove('hidden');
       document.getElementById('last-scanned-time').textContent = `Terscan (${state.lastScannedItem.time})`;
       document.getElementById('last-scanned-rak').textContent = `Rak: ${state.lastScannedItem.rak}`;
       document.getElementById('last-scanned-name').textContent = state.lastScannedItem.namaBarang;
-      document.getElementById('last-scanned-sku-orig').textContent = `SKU: ${state.lastScannedItem.sku} | Orig: ${state.lastScannedItem.originalCode || '-'}`;
-      document.getElementById('last-scanned-family').textContent = `Family: ${state.lastScannedItem.family || '-'}`;
-      document.getElementById('last-scanned-qty').textContent = `+${state.lastScannedItem.scannedQty}`;
+      document.getElementById('last-scanned-sku-orig').textContent = `SKU: ${state.lastScannedItem.sku} | OrigCode: ${state.lastScannedItem.originalCode}`;
+      document.getElementById('last-scanned-family').textContent = `Family: ${state.lastScannedItem.family}`;
+      document.getElementById('last-scanned-qty').textContent = `+${state.lastScannedItem.qty}`;
     }
 
     function renderRecentScansList() {
       const container = document.getElementById('recent-scans-list');
+      const countText = document.getElementById('recent-count-text');
       if (!container) return;
-      document.getElementById('recent-count-text').textContent = `${state.soResults.length} Entry`;
 
-      if (state.soResults.length === 0) {
-        container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">Belum ada item yang di-scan pada sesi ini.</div>`;
+      const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
+      const currentSessionList = state.soResults.filter(r => r.rak.toUpperCase() === currentRak);
+
+      if (countText) countText.textContent = `${currentSessionList.length} Entry`;
+
+      if (currentSessionList.length === 0) {
+        container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">Belum ada item yang di-scan pada rak ${currentRak || 'ini'}.</div>`;
         return;
       }
 
-      container.innerHTML = state.soResults.slice(0, 10).map(row => `
+      container.innerHTML = currentSessionList.slice(0, 15).map(row => `
         <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
           <div>
             <div class="flex items-center gap-1.5">
-              <span class="font-mono font-bold text-emerald-400 text-[11px] bg-emerald-500/10 px-1.5 py-0.5 rounded">${row.rak}</span>
+              <span class="font-mono font-bold text-emerald-400 text-[11px] bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                ${row.rak}
+              </span>
               <span class="text-[10px] text-slate-500">${new Date(row.timestamp).toLocaleTimeString('id-ID')}</span>
             </div>
             <p class="font-bold text-white text-xs mt-0.5">${row.namaBarang}</p>
@@ -1044,8 +1015,12 @@
           <div class="text-right shrink-0">
             <p class="font-black text-emerald-300 text-sm">+${row.qty}</p>
             <div class="flex gap-1 justify-end mt-0.5">
-              <span class="text-[8px] px-1 py-0.5 rounded font-bold ${row.syncedSupabase ? 'bg-teal-500/20 text-teal-300' : 'bg-slate-800 text-slate-500'}">Supabase</span>
-              <span class="text-[8px] px-1 py-0.5 rounded font-bold ${row.syncedSheet ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'}">Sheet</span>
+              <span class="text-[8px] px-1 py-0.5 rounded font-bold ${row.syncedSupabase ? 'bg-teal-500/20 text-teal-300' : 'bg-slate-800 text-slate-500'}">
+                Supabase
+              </span>
+              <span class="text-[8px] px-1 py-0.5 rounded font-bold ${row.syncedSheet ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'}">
+                Sheet
+              </span>
             </div>
           </div>
         </div>
@@ -1055,29 +1030,35 @@
     function renderResultsTable() {
       const tbody = document.getElementById('table-results-body');
       if (!tbody) return;
-      
+
       const filtered = state.soResults.filter(item => {
-        const q = state.resultsSearch.toLowerCase();
-        const matchSearch = !q || 
-          item.sku.toLowerCase().includes(q) ||
-          item.namaBarang.toLowerCase().includes(q) ||
-          item.rak.toLowerCase().includes(q) ||
-          item.petugas.toLowerCase().includes(q);
+        const matchSearch = !state.resultsSearch || 
+          item.sku.toLowerCase().includes(state.resultsSearch.toLowerCase()) ||
+          item.namaBarang.toLowerCase().includes(state.resultsSearch.toLowerCase()) ||
+          item.rak.toLowerCase().includes(state.resultsSearch.toLowerCase()) ||
+          item.petugas.toLowerCase().includes(state.resultsSearch.toLowerCase());
+        
         const matchTeam = state.filterTeam === 'ALL' || item.team === state.filterTeam;
         return matchSearch && matchTeam;
       });
 
-      const totalQty = state.soResults.reduce((acc, c) => acc + (Number(c.qty) || 0), 0);
-      const syncedCount = state.soResults.filter(r => r.syncedSupabase || r.syncedSheet).length;
+      const totalEntriesEl = document.getElementById('stat-total-entries');
+      const totalQtyEl = document.getElementById('stat-total-qty');
+      const syncedCountEl = document.getElementById('stat-synced-count');
+      const badgeResults = document.getElementById('count-badge-results');
+      const mobileBadgeResults = document.getElementById('mobile-badge-results');
 
-      document.getElementById('stat-total-entries').textContent = state.soResults.length;
-      document.getElementById('stat-total-qty').textContent = totalQty.toLocaleString('id-ID');
-      document.getElementById('stat-synced-count').textContent = `${syncedCount}/${state.soResults.length}`;
-      document.getElementById('count-badge-results').textContent = state.soResults.length;
-      document.getElementById('mobile-badge-results').textContent = state.soResults.length;
+      const totalQty = state.soResults.reduce((a, b) => a + (Number(b.qty) || 0), 0);
+      const syncedCount = state.soResults.filter(r => r.syncedSupabase && r.syncedSheet).length;
+
+      if (totalEntriesEl) totalEntriesEl.textContent = state.soResults.length;
+      if (totalQtyEl) totalQtyEl.textContent = totalQty.toLocaleString('id-ID');
+      if (syncedCountEl) syncedCountEl.textContent = `${syncedCount}/${state.soResults.length}`;
+      if (badgeResults) badgeResults.textContent = state.soResults.length;
+      if (mobileBadgeResults) mobileBadgeResults.textContent = state.soResults.length;
 
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500">Tidak ada data SO.</td></tr>`;
+        tbody.innerHTML = `<tr><td colSpan="5" class="p-6 text-center text-slate-500">Tidak ada data SO.</td></tr>`;
         return;
       }
 
@@ -1094,131 +1075,306 @@
             <p class="text-[10px] text-slate-500">${row.team}</p>
           </td>
           <td class="p-3 text-center">
-            <button class="btn-delete-so text-slate-500 hover:text-rose-400 p-1" data-id="${row.id}">🗑️</button>
+            <button onclick="deleteEntry('${row.id}')" class="text-slate-500 hover:text-rose-400 p-1">
+              🗑
+            </button>
           </td>
         </tr>
       `).join('');
+    }
 
-      document.querySelectorAll('.btn-delete-so').forEach(btn => {
-        btn.onclick = () => {
-          state.soResults = state.soResults.filter(i => i.id !== btn.dataset.id);
-          saveState();
-          renderResultsTable();
-          renderRecentScansList();
-        };
-      });
+    function deleteEntry(id) {
+      state.soResults = state.soResults.filter(i => i.id !== id);
+      saveState();
+      renderRecentScansList();
+      renderResultsTable();
     }
 
     function renderMasterTable() {
       const tbody = document.getElementById('table-master-body');
+      const countInfo = document.getElementById('master-count-info');
+      const badgeMaster = document.getElementById('count-badge-master');
+      const pageInfo = document.getElementById('master-page-info');
       if (!tbody) return;
-      document.getElementById('count-badge-master').textContent = state.masterItems.length.toLocaleString('id-ID');
-      document.getElementById('master-count-info').textContent = `${state.masterItems.length.toLocaleString('id-ID')} SKU terdaftar di memori web HP.`;
 
-      const q = state.masterSearch.toLowerCase();
-      const filtered = !q ? state.masterItems : state.masterItems.filter(item => 
-        (item.sku && item.sku.toLowerCase().includes(q)) ||
-        (item.originalCode && item.originalCode.toLowerCase().includes(q)) ||
-        (item.namaBarang && item.namaBarang.toLowerCase().includes(q)) ||
-        (item.family && item.family.toLowerCase().includes(q))
-      );
+      if (countInfo) countInfo.textContent = `${state.masterItems.length.toLocaleString('id-ID')} SKU terdaftar di memori web HP.`;
+      if (badgeMaster) badgeMaster.textContent = state.masterItems.length.toLocaleString('id-ID');
+
+      const filtered = state.masterItems.filter(item => {
+        if (!state.masterSearch) return true;
+        const q = state.masterSearch.toLowerCase();
+        return (item.sku && item.sku.toLowerCase().includes(q)) ||
+               (item.originalCode && item.originalCode.toLowerCase().includes(q)) ||
+               (item.original_code && item.original_code.toLowerCase().includes(q)) ||
+               (item.namaBarang && item.namaBarang.toLowerCase().includes(q)) ||
+               (item.nama_barang && item.nama_barang.toLowerCase().includes(q));
+      });
 
       const totalPages = Math.ceil(filtered.length / state.masterItemsPerPage) || 1;
-      if (state.masterPage > totalPages) state.masterPage = 1;
+      state.masterPage = Math.min(state.masterPage, totalPages);
 
       const start = (state.masterPage - 1) * state.masterItemsPerPage;
-      const currentPageItems = filtered.slice(start, start + state.masterItemsPerPage);
+      const pageItems = filtered.slice(start, start + state.masterItemsPerPage);
 
-      document.getElementById('master-page-info').textContent = `Hal ${state.masterPage} dari ${totalPages}`;
-      document.getElementById('btn-master-prev').disabled = state.masterPage === 1;
-      document.getElementById('btn-master-next').disabled = state.masterPage >= totalPages;
+      if (pageInfo) pageInfo.textContent = `Hal ${state.masterPage} dari ${totalPages}`;
 
-      if (currentPageItems.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500">Tidak ada item master ditemukan.</td></tr>`;
+      const btnPrev = document.getElementById('btn-master-prev');
+      const btnNext = document.getElementById('btn-master-next');
+      if (btnPrev) btnPrev.disabled = state.masterPage <= 1;
+      if (btnNext) btnNext.disabled = state.masterPage >= totalPages;
+
+      if (pageItems.length === 0) {
+        tbody.innerHTML = `<tr><td colSpan="4" class="p-6 text-center text-slate-500">Tidak ada SKU terdaftar.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = currentPageItems.map(item => `
+      tbody.innerHTML = pageItems.map(item => `
         <tr class="hover:bg-slate-800/40">
           <td class="p-3 font-mono font-bold text-emerald-400 whitespace-nowrap">${item.sku}</td>
-          <td class="p-3 font-mono text-slate-300 whitespace-nowrap">${item.originalCode || '-'}</td>
-          <td class="p-3 font-bold text-white">${item.namaBarang}</td>
+          <td class="p-3 font-mono text-slate-300 whitespace-nowrap">${item.originalCode || item.original_code || '-'}</td>
+          <td class="p-3 font-bold text-white">${item.namaBarang || item.nama_barang || '-'}</td>
           <td class="p-3 text-slate-300">${item.family || '-'}</td>
         </tr>
       `).join('');
     }
 
+    function renderRecentRaks() {
+      const container = document.getElementById('recent-raks-container');
+      if (!container) return;
+
+      container.innerHTML = state.recentRaks.map(r => `
+        <button onclick="selectRecentRak('${r}')" class="text-[10px] px-2 py-1 rounded-lg border font-mono font-bold shrink-0 transition ${
+          state.manualRakInput.toUpperCase() === r.toUpperCase() 
+            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50' 
+            : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800'
+        }">
+          ${r}
+        </button>
+      `).join('');
+    }
+
+    function selectRecentRak(rakName) {
+      if (state.isSessionLocked) return;
+      state.manualRakInput = rakName;
+      const input = document.getElementById('input-rak-manual');
+      if (input) input.value = rakName;
+      renderRecentRaks();
+      renderRecentScansList();
+    }
+
     function switchTab(tabName) {
+      state.activeTab = tabName;
+      document.querySelectorAll('section[id^="tab-"]').forEach(sec => sec.classList.add('hidden'));
+      const activeSec = document.getElementById(`tab-${tabName}`);
+      if (activeSec) activeSec.classList.remove('hidden');
+
+      document.querySelectorAll('.nav-tab-btn, .mobile-nav-btn').forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+          btn.className = btn.className.replace('text-slate-400', 'text-slate-950').replace('text-slate-500', 'text-emerald-400 font-bold');
+          if (btn.classList.contains('nav-tab-btn')) {
+            btn.classList.add('bg-emerald-500', 'text-slate-950');
+          }
+        } else {
+          if (btn.classList.contains('nav-tab-btn')) {
+            btn.classList.remove('bg-emerald-500', 'text-slate-950');
+            btn.classList.add('text-slate-400');
+          } else {
+            btn.classList.remove('text-emerald-400', 'font-bold');
+            btn.classList.add('text-slate-500');
+          }
+        }
+      });
+
       if (tabName !== 'scanner') {
         stopHtml5CameraScanner();
-      }
-      state.activeTab = tabName;
-      ['scanner', 'results', 'master', 'settings'].forEach(t => {
-        const sec = document.getElementById(`tab-${t}`);
-        if (sec) {
-          if (t === tabName) sec.classList.remove('hidden');
-          else sec.classList.add('hidden');
-        }
-      });
-
-      document.querySelectorAll('.nav-tab-btn').forEach(btn => {
-        if (btn.dataset.tab === tabName) {
-          btn.className = 'nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition bg-emerald-500 text-slate-950';
-        } else {
-          btn.className = 'nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800';
-        }
-      });
-
-      document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
-        if (btn.dataset.tab === tabName) {
-          btn.className = 'mobile-nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition text-emerald-400 font-bold';
-        } else {
-          btn.className = 'mobile-nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition text-slate-500';
-        }
-      });
-
-      if (tabName === 'scanner') {
-        setTimeout(() => document.getElementById('input-barcode-scan')?.focus(), 200);
+      } else {
+        setTimeout(() => document.getElementById('input-barcode-scan')?.focus(), 300);
       }
     }
 
     function startHtml5CameraScanner() {
-      document.getElementById('camera-viewport').classList.remove('hidden');
-      document.getElementById('btn-mode-camera').className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow';
-      document.getElementById('btn-mode-gun').className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 text-slate-400';
+      const viewport = document.getElementById('camera-viewport');
+      viewport?.classList.remove('hidden');
 
       if (!state.html5QrcodeScanner) {
         state.html5QrcodeScanner = new Html5Qrcode("reader");
       }
 
-      if (state.html5QrcodeScanner.isScanning) return;
-
       state.html5QrcodeScanner.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 180 } },
+        { fps: 10, qrbox: { width: 250, height: 150 } },
         (decodedText) => {
           handleBarcodeSubmit(decodedText);
         },
-        () => {}
-      ).catch(err => console.warn("Camera start exception", err));
+        (errorMessage) => {}
+      ).catch(err => {
+        console.warn("Camera start error", err);
+      });
     }
 
     function stopHtml5CameraScanner() {
-      const hideCameraUI = () => {
-        const viewport = document.getElementById('camera-viewport');
-        if (viewport) viewport.classList.add('hidden');
-        const btnGun = document.getElementById('btn-mode-gun');
-        if (btnGun) btnGun.className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow';
-        const btnCam = document.getElementById('btn-mode-camera');
-        if (btnCam) btnCam.className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 text-slate-400';
-      };
+      const viewport = document.getElementById('camera-viewport');
+      viewport?.classList.add('hidden');
 
       if (state.html5QrcodeScanner && state.html5QrcodeScanner.isScanning) {
-        state.html5QrcodeScanner.stop()
-          .then(() => hideCameraUI())
-          .catch(() => hideCameraUI());
-      } else {
-        hideCameraUI();
+        state.html5QrcodeScanner.stop().then(() => {
+          state.html5QrcodeScanner.clear();
+        }).catch(err => console.warn(err));
+      }
+    }
+
+    async function handleSyncAll() {
+      showBannerStatus(null, 'Memulai sinkronisasi seluruh data...');
+      await handlePushResultsToSupabase();
+      await handlePushResultsToSpreadsheet();
+    }
+
+    async function handlePushResultsToSupabase() {
+      if (!state.supabaseUrl || !state.supabaseKey) return;
+      showBannerStatus(null, 'Sync data SO ke Supabase...');
+
+      try {
+        const unsynced = state.soResults.filter(r => !r.syncedSupabase);
+        const payload = (unsynced.length > 0 ? unsynced : state.soResults).map(r => ({
+          id: r.id,
+          timestamp: r.timestamp,
+          rak: r.rak,
+          tim: r.team,
+          petugas: r.petugas,
+          sku: r.sku,
+          original_code: r.originalCode,
+          nama_barang: r.namaBarang,
+          family: r.family,
+          qty: Number(r.qty) || 1
+        }));
+
+        const res = await fetch(`${state.supabaseUrl}/rest/v1/hasil_so?on_conflict=id`, {
+          method: 'POST',
+          headers: {
+            'apikey': state.supabaseKey,
+            'Authorization': `Bearer ${state.supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          state.soResults.forEach(r => r.syncedSupabase = true);
+          saveState();
+          renderRecentScansList();
+          renderResultsTable();
+          showBannerStatus(true, `✓ Berhasil Sync ${payload.length} data ke Supabase!`);
+        }
+      } catch (e) {
+        showBannerStatus(false, `Gagal Sync Supabase: ${e.message}`);
+      }
+    }
+
+    async function handlePushResultsToSpreadsheet() {
+      if (!state.gasUrl) return;
+      showBannerStatus(null, 'Sync data SO ke Google Spreadsheet...');
+
+      try {
+        const unsynced = state.soResults.filter(r => !r.syncedSheet);
+        const target = unsynced.length > 0 ? unsynced : state.soResults;
+
+        const res = await fetch(state.gasUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'syncHasilSo',
+            data: target
+          })
+        });
+
+        if (res.ok) {
+          state.soResults.forEach(r => r.syncedSheet = true);
+          saveState();
+          renderRecentScansList();
+          renderResultsTable();
+          showBannerStatus(true, `✓ Berhasil Sync ${target.length} data ke Google Spreadsheet!`);
+        }
+      } catch (e) {
+        showBannerStatus(false, `Gagal Sync Sheet: ${e.message}`);
+      }
+    }
+
+    async function handleSyncSheetToSupabaseDirect() {
+      if (!state.gasUrl) return;
+      showBannerStatus(null, 'Server Google Apps Script sedang mengirim 70.000 SKU ke Supabase...');
+
+      try {
+        const res = await fetch(`${state.gasUrl}?action=pushToSupabase`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success) {
+            showBannerStatus(true, `✓ ${json.message}`);
+            triggerFeedback('success');
+          } else {
+            showBannerStatus(false, `Gagal Sync Server: ${json.message}`);
+            triggerFeedback('error');
+          }
+        }
+      } catch (e) {
+        showBannerStatus(false, `Gagal memanggil pemicu Sync Server: ${e.message}`);
+        triggerFeedback('error');
+      }
+    }
+
+    async function handleFetchMasterFromSupabase() {
+      if (!state.supabaseUrl || !state.supabaseKey) return;
+      showBannerStatus(null, 'Menarik Master SKU dari Supabase...');
+
+      try {
+        const res = await fetch(`${state.supabaseUrl}/rest/v1/master_items?select=sku,nama_barang,family,original_code&limit=75000`, {
+          headers: {
+            'apikey': state.supabaseKey,
+            'Authorization': `Bearer ${state.supabaseKey}`
+          }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            state.masterItems = data.map(i => ({
+              sku: i.sku || '',
+              namaBarang: i.nama_barang || '',
+              family: i.family || '',
+              originalCode: i.original_code || ''
+            }));
+            saveState();
+            renderMasterTable();
+            showBannerStatus(true, `✓ Berhasil menarik ${state.masterItems.length.toLocaleString('id-ID')} SKU dari Supabase!`);
+          }
+        }
+      } catch (e) {
+        showBannerStatus(false, `Gagal tarik dari Supabase: ${e.message}`);
+      }
+    }
+
+    async function handleFetchMasterFromSpreadsheet() {
+      if (!state.gasUrl) return;
+      showBannerStatus(null, 'Menarik Master SKU dari Google Sheet...');
+
+      try {
+        const res = await fetch(`${state.gasUrl}?action=getMaster`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.items && Array.isArray(json.items)) {
+            state.masterItems = json.items.map(i => ({
+              sku: i.sku || '',
+              namaBarang: i.nama_barang || '',
+              family: i.family || '',
+              originalCode: i.original_code || ''
+            }));
+            saveState();
+            renderMasterTable();
+            showBannerStatus(true, `✓ Berhasil menarik ${state.masterItems.length.toLocaleString('id-ID')} SKU dari Spreadsheet!`);
+          }
+        }
+      } catch (e) {
+        showBannerStatus(false, `Gagal tarik dari Sheet: ${e.message}`);
       }
     }
 
@@ -1248,12 +1404,40 @@
       };
 
       document.getElementById('btn-toggle-session-lock').onclick = () => {
-        state.isSessionLocked = !state.isSessionLocked;
-        document.querySelectorAll('.session-input').forEach(i => i.disabled = state.isSessionLocked);
-        document.getElementById('btn-toggle-session-lock').textContent = state.isSessionLocked ? '🔒 Sesi Terkunci' : '🔓 Ubah Sesi';
-        document.getElementById('btn-toggle-session-lock').className = state.isSessionLocked 
-          ? 'text-[10px] px-2.5 py-1 rounded-full font-bold border transition bg-amber-500/20 text-amber-300 border-amber-500/30'
-          : 'text-[10px] px-2.5 py-1 rounded-full font-bold border transition bg-slate-800 text-slate-300 border-slate-700';
+        if (!state.isSessionLocked) {
+          if (!state.selectedTeam) {
+            showBannerStatus(false, 'Pilih TIM OPNAME terlebih dahulu sebelum mengunci sesi!');
+            triggerFeedback('error');
+            document.getElementById('select-team')?.focus();
+            return;
+          }
+          if (!state.selectedPetugas) {
+            showBannerStatus(false, 'Pilih NAMA PETUGAS terlebih dahulu sebelum mengunci sesi!');
+            triggerFeedback('error');
+            document.getElementById('select-petugas')?.focus();
+            return;
+          }
+          const rak = String(state.manualRakInput || '').trim();
+          if (!rak) {
+            showBannerStatus(false, 'Masukkan Kode Rak SO terlebih dahulu sebelum mengunci sesi!');
+            triggerFeedback('error');
+            document.getElementById('input-rak-manual')?.focus();
+            return;
+          }
+          lockSession(true);
+          showBannerStatus(true, `🔒 Sesi terkunci untuk Rak: ${rak.toUpperCase()}`);
+          triggerFeedback('success');
+        } else {
+          openFinishRakModal();
+        }
+      };
+
+      document.getElementById('btn-confirm-finish').onclick = confirmFinishRak;
+      document.getElementById('btn-cancel-finish').onclick = () => {
+        document.getElementById('modal-finish-rak').classList.add('hidden');
+      };
+      document.getElementById('btn-close-finish-modal').onclick = () => {
+        document.getElementById('modal-finish-rak').classList.add('hidden');
       };
 
       document.getElementById('btn-modal-save').onclick = confirmScanEntry;
@@ -1304,11 +1488,6 @@
       document.getElementById('btn-mode-gun').onclick = stopHtml5CameraScanner;
       document.getElementById('btn-mode-camera').onclick = startHtml5CameraScanner;
       document.getElementById('btn-stop-camera').onclick = stopHtml5CameraScanner;
-      
-      document.getElementById('btn-random-scan').onclick = () => {
-        const rand = state.masterItems[Math.floor(Math.random() * state.masterItems.length)];
-        if (rand) handleBarcodeSubmit(rand.sku);
-      };
 
       document.getElementById('setting-gas-url').value = state.gasUrl;
       document.getElementById('setting-gas-url').onchange = (e) => {
