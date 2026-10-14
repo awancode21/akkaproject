@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Aplikasi Revisi SO Mobile (Spreadsheet & Supabase Bridge)</title>
+  <title>Aplikasi Revisi SO Mobile (Hybrid Supabase & Spreadsheet)</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -14,9 +14,6 @@
   
   <!-- Babel CDN for JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Supabase JS Client CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -50,6 +47,8 @@
   <script type="text/babel">
     const DEFAULT_SPREADSHEET_ID = "10I100dl5URh59Y7hiwxBfW8cyWPBE1R0wDY75Q5XcqA";
     const DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxk8sBWXYGZghCvlGMkzsmP4uf8LWOaL6e9tkyBg1m237nKlHS0qjKK-4QO2q1Ewxxq/exec";
+    const DEFAULT_SUPABASE_URL = "https://qtfyfrvrqvbgyaezorbb.supabase.co";
+    const DEFAULT_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0ZnlmcnZycXZiZ3lhZXpvcmJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4OTkyNzIsImV4cCI6MjEwNjQ3NTI3Mn0.vL8COXCm7UrhoMSj0iBV8HwvN6VZtd8X08YbxSkLcQM";
 
     const DEFAULT_OFFICERS = {
       "TIM 1": ["Wildan", "Budi Santoso", "Andi Wijaya", "Agus Pratama", "Rian Hidayat", "Dedi Kurniawan", "Asep"],
@@ -57,35 +56,99 @@
     };
 
     const INITIAL_DEMO_ITEMS = [
-      { id: 1, petugasAwal: "Wildan", rak: "RAK-1", kodeItem: "10401019", kodeOriginal: "8992771010024", namaItem: "PIGEON UV PROTECT REF+PUFF", tim1: 15, tim2: 12, selisih: 3, qtyRevisi: 11, petugasRevisi: "Asep (TIM 1)", status: "Sudah Revisi", keterangan: "salah kode dan tambahan" },
-      { id: 2, petugasAwal: "Wildan", rak: "RAK-1", kodeItem: "102041076", kodeOriginal: "8710103838630", namaItem: "AVENT BTL NAT 260ML", tim1: 10, tim2: 8, selisih: 2, qtyRevisi: 8, petugasRevisi: "Riki (TIM 1)", status: "Sudah Revisi", keterangan: "" }
+      { id: 1, petugasAwal: "Wildan", rak: "RAK-1", kodeItem: "10401019", kodeOriginal: "8992771010024", namaItem: "PIGEON UV PROTECT REF+PUFF", tim1: 15, tim2: 12, selisih: 3, qtyRevisi: null, petugasRevisi: "", status: "Belum Revisi", keterangan: "" }
     ];
 
+    const SVG_ICONS = {
+      'cloud-download': <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M12 12v9m-3-3 3 3 3-3"/>,
+      'settings': <><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.07-7.07-1.41 1.41M6.34 17.66l-1.41 1.41m12.14 0-1.41-1.41M6.34 6.34 4.93 4.93"/></>,
+      'user-check': <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></>,
+      'search': <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
+      'x': <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+      'chevron-down': <path d="m6 9 6 6 6-6"/>,
+      'package-search': <><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/><circle cx="18.5" cy="15.5" r="2.5"/><path d="M20.27 17.27 22 19"/></>,
+      'edit-2': <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>,
+      'edit-3': <><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></>,
+      'lock': <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>,
+      'users': <><path d="M17 21v-2a4 4 0 0 0-3-3.87"/><path d="M9 21v-2a4 4 0 0 1 4-4h1"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><circle cx="19" cy="11" r="2"/></>,
+      'key-round': <><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></>,
+      'check': <polyline points="20 6 9 17 4 12"/>,
+      'save': <><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>,
+      'download': <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
+      'layout-grid': <><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></>,
+      'alert-circle': <><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>,
+      'check-circle': <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>,
+      'help-circle': <><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></>
+    };
+
+    function Icon({ name, className = "w-4 h-4", ...props }) {
+      const iconContent = SVG_ICONS[name] || SVG_ICONS['help-circle'];
+      return (
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="currentColor" 
+          strokeWidth="2" 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+          className={`shrink-0 ${className}`} 
+          {...props}
+        >
+          {iconContent}
+        </svg>
+      );
+    }
+
+    function parseCSVLine(text) {
+      const result = [];
+      let cur = '';
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        if (char === '"') {
+          if (inQuotes && text[i + 1] === '"') {
+            cur += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          result.push(cur.trim());
+          cur = '';
+        } else {
+          cur += char;
+        }
+      }
+      result.push(cur.trim());
+      return result;
+    }
+
+    function safeInt(val, fallback = 0) {
+      if (val === null || val === undefined || val === "") return fallback;
+      const parsed = parseInt(String(val).replace(/[^0-9-]/g, ''), 10);
+      return isNaN(parsed) ? fallback : parsed;
+    }
+
     function App() {
-      // Config States
       const [spreadsheetId, setSpreadsheetId] = React.useState(() => localStorage.getItem("so_sheet_id") || DEFAULT_SPREADSHEET_ID);
       const [appsScriptUrl, setAppsScriptUrl] = React.useState(() => localStorage.getItem("so_script_url") || DEFAULT_APPS_SCRIPT_URL);
-      const [supabaseUrl, setSupabaseUrl] = React.useState(() => localStorage.getItem("so_supabase_url") || "");
-      const [supabaseKey, setSupabaseKey] = React.useState(() => localStorage.getItem("so_supabase_key") || "");
+      const [supabaseUrl, setSupabaseUrl] = React.useState(() => localStorage.getItem("so_supabase_url") || DEFAULT_SUPABASE_URL);
+      const [supabaseKey, setSupabaseKey] = React.useState(() => localStorage.getItem("so_supabase_key") || DEFAULT_SUPABASE_KEY);
       const [supabaseClient, setSupabaseClient] = React.useState(null);
 
-      // Data States
       const [items, setItems] = React.useState(INITIAL_DEMO_ITEMS);
       const [officers, setOfficers] = React.useState(DEFAULT_OFFICERS);
       const [searchQuery, setSearchQuery] = React.useState("");
       const [selectedRak, setSelectedRak] = React.useState("ALL");
       const [statusFilter, setStatusFilter] = React.useState("ALL");
 
-      // UI Control States
-      const [isLoading, setIsLoading] = React.useState(false);
       const [isSyncingSheet, setIsSyncingSheet] = React.useState(false);
       const [isConnectedToSupabase, setIsConnectedToSupabase] = React.useState(false);
       const [activeModalItem, setActiveModalItem] = React.useState(null);
       const [showSettingsModal, setShowSettingsModal] = React.useState(false);
-      const [showSqlModal, setShowSqlModal] = React.useState(false);
       const [toastMsg, setToastMsg] = React.useState("");
 
-      // Locked Session Officer State (Defaults to empty)
       const [sessionOfficer, setSessionOfficer] = React.useState(() => {
         try {
           const saved = localStorage.getItem("so_session_officer");
@@ -97,11 +160,9 @@
         try { return !localStorage.getItem("so_session_officer"); } catch (e) { return true; }
       });
 
-      // Temporary inputs for Session Lock (Team & Officer start EMPTY)
       const [tempSessionTeam, setTempSessionTeam] = React.useState("TIM 1");
       const [tempSessionOfficer, setTempSessionOfficer] = React.useState("");
 
-      // Modal Inputs (Col I, J, K, L)
       const [qtyInput, setQtyInput] = React.useState("");
       const [notesInput, setNotesInput] = React.useState("");
 
@@ -117,7 +178,7 @@
             setSupabaseClient(client);
             setIsConnectedToSupabase(true);
           } catch (e) {
-            console.error("Gagal konek Supabase:", e);
+            console.error("Gagal koneksi Supabase:", e);
             setIsConnectedToSupabase(false);
           }
         } else {
@@ -131,32 +192,31 @@
           const res = await fetch(url);
           if (res.ok) {
             const csvText = await res.text();
-            const lines = csvText.split("\n").map(l => l.split(",").map(c => c.replace(/^"|"$/g, '').trim()));
-            if (lines.length > 1) {
-              const tim1List = [];
-              const tim2List = [];
-              
-              lines.forEach((row, idx) => {
-                if (idx === 0) return; // Header
-                if (row[0]) tim1List.push(row[0]);
-                if (row[1]) tim2List.push(row[1]);
-              });
-
-              setOfficers({
-                "TIM 1": tim1List.filter(Boolean).length > 0 ? tim1List.filter(Boolean) : DEFAULT_OFFICERS["TIM 1"],
-                "TIM 2": tim2List.filter(Boolean).length > 0 ? tim2List.filter(Boolean) : DEFAULT_OFFICERS["TIM 2"]
-              });
+            if (!csvText.startsWith("<!DOCTYPE") && !csvText.includes("<html")) {
+              const lines = csvText.split(/\r?\n/);
+              if (lines.length > 1) {
+                const tim1List = [];
+                const tim2List = [];
+                lines.forEach((line, idx) => {
+                  if (idx === 0 || !line.trim()) return;
+                  const row = parseCSVLine(line);
+                  if (row[0]) tim1List.push(row[0]);
+                  if (row[1]) tim2List.push(row[1]);
+                });
+                setOfficers({
+                  "TIM 1": tim1List.filter(Boolean).length > 0 ? tim1List.filter(Boolean) : DEFAULT_OFFICERS["TIM 1"],
+                  "TIM 2": tim2List.filter(Boolean).length > 0 ? tim2List.filter(Boolean) : DEFAULT_OFFICERS["TIM 2"]
+                });
+              }
             }
           }
         } catch (e) {
-          console.warn("Gagal load petugas dari Spreadsheet, pakai fallback:", e);
+          console.warn("Gagal load petugas dari Spreadsheet:", e);
         }
       }, [spreadsheetId]);
 
       const fetchFromSupabase = React.useCallback(async () => {
         if (!supabaseClient) return;
-        setIsLoading(true);
-
         try {
           const { data: soData, error: soErr } = await supabaseClient.from('revisi_so').select('*').order('id', { ascending: true });
           if (!soErr && soData && soData.length > 0) {
@@ -167,10 +227,10 @@
               kodeItem: d.kode_item || "",
               kodeOriginal: d.kode_original || "",
               namaItem: d.nama_item || "",
-              tim1: d.tim1 || 0,
-              tim2: d.tim2 || 0,
-              selisih: d.selisih !== undefined ? d.selisih : ((d.tim1 || 0) - (d.tim2 || 0)),
-              qtyRevisi: d.qty_revisi !== undefined && d.qty_revisi !== null ? d.qty_revisi : null,
+              tim1: safeInt(d.tim1, 0),
+              tim2: safeInt(d.tim2, 0),
+              selisih: d.selisih !== undefined && d.selisih !== null ? safeInt(d.selisih, 0) : (safeInt(d.tim1, 0) - safeInt(d.tim2, 0)),
+              qtyRevisi: d.qty_revisi !== undefined && d.qty_revisi !== null ? safeInt(d.qty_revisi, 0) : null,
               petugasRevisi: d.petugas_revisi || "",
               status: d.status_revisi || (d.qty_revisi !== null ? "Sudah Revisi" : "Belum Revisi"),
               keterangan: d.keterangan || ""
@@ -179,14 +239,12 @@
           }
         } catch (err) {
           console.error("Supabase Fetch Error:", err);
-        } finally {
-          setIsLoading(false);
         }
       }, [supabaseClient]);
 
-      const importYellowSheetToSupabase = async () => {
+      const importYellowSheetToSupabase = React.useCallback(async () => {
         setIsSyncingSheet(true);
-        triggerToast("⏳ Membaca Data Kuning (A-H) dari Spreadsheet...");
+        triggerToast("⏳ Sinkronisasi Master Data (Kolom Kuning) dari Spreadsheet...");
 
         try {
           const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=Revisi%20SO`;
@@ -194,27 +252,29 @@
           if (!res.ok) throw new Error("Gagal akses Spreadsheet");
           
           const csvText = await res.text();
-          const rows = csvText.split("\n").map(line => {
-            const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-            return line.split(",").map(c => c.replace(/^"|"$/g, '').trim());
-          });
-
-          if (rows.length <= 1) {
-            triggerToast("⚠️ Sheet 'Revisi SO' kosong atau format salah!");
+          if (csvText.startsWith("<!DOCTYPE") || csvText.includes("<html")) {
+            triggerToast("⚠️ Spreadsheet private! Set Share: Anyone with link.");
             setIsSyncingSheet(false);
             return;
           }
 
-          // Parse Data Kuning (Col A - H) & Data Merah (Col I - L) jika ada
-          const parsedData = [];
-          for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            if (!row || row.length < 3 || !row[2]) continue; // butuh kode item
+          const lines = csvText.split(/\r?\n/);
+          if (lines.length <= 1) {
+            triggerToast("⚠️ Sheet 'Revisi SO' kosong!");
+            setIsSyncingSheet(false);
+            return;
+          }
 
-            const tim1Val = parseInt(row[5], 10) || 0;
-            const tim2Val = parseInt(row[6], 10) || 0;
-            const selisihVal = row[7] !== "" ? parseInt(row[7], 10) : (tim1Val - tim2Val);
-            const qtyRevVal = row[8] !== "" && row[8] !== undefined && !isNaN(parseInt(row[8], 10)) ? parseInt(row[8], 10) : null;
+          const parsedData = [];
+          for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            const row = parseCSVLine(lines[i]);
+            if (!row || row.length < 3 || !row[2]) continue;
+
+            const tim1Val = safeInt(row[5], 0);
+            const tim2Val = safeInt(row[6], 0);
+            const selisihVal = row[7] !== "" && row[7] !== undefined ? safeInt(row[7], (tim1Val - tim2Val)) : (tim1Val - tim2Val);
+            const qtyRevVal = row[8] !== "" && row[8] !== undefined && !isNaN(parseInt(row[8], 10)) ? safeInt(row[8], 0) : null;
 
             parsedData.push({
               petugas_awal: row[0] || "",
@@ -233,16 +293,43 @@
           }
 
           if (supabaseClient && parsedData.length > 0) {
-            // Upsert / Refresh Data di Supabase
-            const { error } = await supabaseClient.from('revisi_so').upsert(parsedData, { onConflict: 'kode_item,rak' });
-            if (error) {
-              console.warn("Upsert error, mencoba insert standard:", error);
-              await supabaseClient.from('revisi_so').insert(parsedData);
+            const { data: existingData } = await supabaseClient.from('revisi_so').select('kode_item, rak, qty_revisi, petugas_revisi, status_revisi, keterangan');
+            const existingMap = new Map();
+            if (existingData) {
+              existingData.forEach(item => {
+                existingMap.set(`${item.kode_item}_${item.rak}`, item);
+              });
             }
-            triggerToast("⚡ Data Kuning dari Sheet Berhasil Disinkronkan ke Supabase!");
+
+            const mergedData = parsedData.map(item => {
+              const key = `${item.kode_item}_${item.rak}`;
+              const existing = existingMap.get(key);
+              if (existing && existing.status_revisi === 'Sudah Revisi' && item.status_revisi !== 'Sudah Revisi') {
+                return {
+                  ...item,
+                  qty_revisi: existing.qty_revisi,
+                  petugas_revisi: existing.petugas_revisi,
+                  status_revisi: existing.status_revisi,
+                  keterangan: existing.keterangan
+                };
+              }
+              return item;
+            });
+
+            const uniqueMergedMap = new Map();
+            mergedData.forEach(item => {
+              uniqueMergedMap.set(`${item.kode_item}_${item.rak}`, item);
+            });
+            const deduplicatedMergedData = Array.from(uniqueMergedMap.values());
+
+            const { error } = await supabaseClient.from('revisi_so').upsert(deduplicatedMergedData, { onConflict: 'kode_item,rak' });
+            if (error) {
+              triggerToast(`⚠️ Supabase Upsert Warning: ${error.message}`);
+            } else {
+              triggerToast("⚡ Data Kuning Berhasil Disinkronkan ke Supabase!");
+            }
             fetchFromSupabase();
           } else {
-            // Fallback Local
             setItems(parsedData.map((d, idx) => ({
               id: idx + 1,
               petugasAwal: d.petugas_awal,
@@ -258,39 +345,41 @@
               status: d.status_revisi,
               keterangan: d.keterangan
             })));
-            triggerToast("💾 Data Kuning Dimuat ke Memori HP");
+            triggerToast("💾 Data Dimuat ke Memori");
           }
         } catch (e) {
-          console.error("Gagal Sync Sheet:", e);
-          triggerToast("⚠️ Gagal membaca data dari Google Spreadsheet.");
+          triggerToast("⚠️ Gagal membaca spreadsheet.");
         } finally {
           setIsSyncingSheet(false);
         }
-      };
+      }, [spreadsheetId, supabaseClient, fetchFromSupabase, triggerToast]);
 
       React.useEffect(() => {
         fetchOfficersFromSheet();
-        
         if (supabaseClient) {
           fetchFromSupabase();
-          const channel = supabaseClient
-            .channel('schema-db-changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'revisi_so' }, () => {
-              fetchFromSupabase();
-            })
-            .subscribe();
-
-          return () => { supabaseClient.removeChannel(channel); };
+          // Safe WebSocket fallback: try subscription, catch sandbox WS errors safely
+          try {
+            const channel = supabaseClient
+              .channel('schema-db-changes')
+              .on('postgres_changes', { event: '*', schema: 'public', table: 'revisi_so' }, () => {
+                fetchFromSupabase();
+              })
+              .subscribe((status, err) => {
+                if (err) console.warn("Realtime channel notice:", err);
+              });
+            return () => { 
+              if (channel) supabaseClient.removeChannel(channel); 
+            };
+          } catch (wsErr) {
+            console.warn("WebSocket Realtime restricted in sandbox environment:", wsErr);
+          }
         }
       }, [supabaseClient, fetchOfficersFromSheet, fetchFromSupabase]);
 
-      React.useEffect(() => {
-        if (window.lucide) window.lucide.createIcons();
-      }, [items, activeModalItem, showSettingsModal, showSqlModal, showSessionModal, toastMsg, statusFilter, selectedRak, isConnectedToSupabase]);
-
       const handleSaveSession = (team, officerName) => {
         if (!team) {
-          triggerToast("⚠️ Silakan pilih Tim terlebih dahulu!");
+          triggerToast("⚠️ Silakan pilih Tim!");
           return;
         }
         if (!officerName || officerName.trim() === "") {
@@ -301,14 +390,9 @@
         setSessionOfficer(sessionData);
         try {
           localStorage.setItem("so_session_officer", JSON.stringify(sessionData));
-        } catch (e) { console.warn("Error save session", e); }
+        } catch (e) {}
         setShowSessionModal(false);
         triggerToast(`🔒 Sesi dikunci: ${officerName} (${team})`);
-      };
-
-      const handleTempTeamChange = (team) => {
-        setTempSessionTeam(team);
-        setTempSessionOfficer(""); // Reset nama petugas ke kosong
       };
 
       const openRevisionModal = (item) => {
@@ -317,7 +401,6 @@
           triggerToast("⚠️ Kunci sesi nama petugas Anda terlebih dahulu!");
           return;
         }
-
         setActiveModalItem(item);
         setQtyInput(item.qtyRevisi !== null && item.qtyRevisi !== undefined ? String(item.qtyRevisi) : String(item.tim1 !== undefined ? item.tim1 : 0));
         setNotesInput(item.keterangan || "");
@@ -328,17 +411,15 @@
         
         const finalOfficer = sessionOfficer.name;
         const selectedTeam = sessionOfficer.team;
-
         const parsedQty = parseInt(qtyInput, 10);
         if (isNaN(parsedQty) || parsedQty < 0) {
-          triggerToast("⚠️ Jumlah QTY Revisi tidak valid");
+          triggerToast("⚠️ QTY Revisi tidak valid");
           return;
         }
 
         const updatedOfficerName = `${finalOfficer} (${selectedTeam})`;
         const statusText = "Sudah Revisi";
 
-        // 1. Local State Update
         const updatedItems = items.map(item => {
           if (item.id === activeModalItem.id) {
             return {
@@ -353,7 +434,6 @@
         });
         setItems(updatedItems);
 
-        // 2. Save to Supabase (Realtime across all mobile devices)
         if (supabaseClient) {
           try {
             await supabaseClient
@@ -367,35 +447,28 @@
               })
               .eq('id', activeModalItem.id);
           } catch (e) {
-            console.error("Supabase Update Error:", e);
+            console.error(e);
           }
         }
 
-        // 3. Push Red Columns (I, J, K, L) to Google Spreadsheet via Apps Script Webhook
         if (appsScriptUrl) {
           try {
             fetch(appsScriptUrl, {
               method: 'POST',
               mode: 'no-cors',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 rak: activeModalItem.rak,
                 kodeItem: activeModalItem.kodeItem,
-                qtyRevisi: parsedQty,             // Kolom I
-                petugasRevisi: updatedOfficerName,// Kolom J
-                statusRevisi: statusText,         // Kolom K
-                keterangan: notesInput            // Kolom L
+                qtyRevisi: parsedQty,
+                petugasRevisi: updatedOfficerName,
+                statusRevisi: statusText,
+                keterangan: notesInput
               })
-            }).catch(err => console.warn("Apps Script Push warning:", err));
-
-            triggerToast("⚡ Ter-update di Supabase & dikirim ke Spreadsheet!");
-          } catch (e) {
-            triggerToast("⚡ Tersimpan di Supabase!");
-          }
-        } else {
-          triggerToast("⚡ Tersimpan di Supabase Realtime!");
+            }).catch(err => {});
+          } catch (e) {}
         }
 
+        triggerToast("⚡ Tersimpan di Supabase & Spreadsheet!");
         setActiveModalItem(null);
       };
 
@@ -408,7 +481,7 @@
           setShowSettingsModal(false);
           triggerToast("💾 Pengaturan Tersimpan!");
         } catch (e) {
-          triggerToast("⚠️ Gagal menyimpan konfigurasi");
+          triggerToast("⚠️ Gagal menyimpan pengaturan");
         }
       };
 
@@ -423,10 +496,8 @@
           item.kodeItem.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.kodeOriginal.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.rak.toLowerCase().includes(searchQuery.toLowerCase());
-        
         const matchesRak = selectedRak === "ALL" || item.rak === selectedRak;
         const matchesStatus = statusFilter === "ALL" || item.status === statusFilter;
-
         return matchesSearch && matchesRak && matchesStatus;
       });
 
@@ -437,7 +508,6 @@
       const exportToCSV = () => {
         let csvContent = "data:text/csv;charset=utf-8,";
         csvContent += "petugas,Rak,kode item,kode original,nama item,Tim1,Tim2,Selisih,QTY Revisi,Petugas Revisi,Status Revisi,Keterangan\n";
-        
         items.forEach(i => {
           const row = [
             `"${i.petugasAwal || ''}"`,
@@ -445,9 +515,7 @@
             `"${i.kodeItem || ''}"`,
             `"${i.kodeOriginal || ''}"`,
             `"${i.namaItem || ''}"`,
-            i.tim1,
-            i.tim2,
-            i.selisih,
+            i.tim1, i.tim2, i.selisih,
             i.qtyRevisi !== null && i.qtyRevisi !== undefined ? i.qtyRevisi : "",
             `"${i.petugasRevisi || ''}"`,
             `"${i.status || ''}"`,
@@ -455,7 +523,6 @@
           ].join(",");
           csvContent += row + "\n";
         });
-
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -463,13 +530,12 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        triggerToast("📥 Unduh File CSV Berhasil");
+        triggerToast("📥 Unduh CSV Berhasil");
       };
 
       return (
         <div className="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col shadow-xl relative pb-20">
           
-          {/* Main Header */}
           <header className="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-md">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -480,10 +546,10 @@
                   <h1 className="font-bold text-base leading-tight flex items-center gap-1.5">
                     <span>Revisi SO Mobile</span>
                     <span className="text-[9px] bg-emerald-950 text-emerald-400 font-mono px-1.5 py-0.5 rounded border border-emerald-800">
-                      Hybrid Bridge
+                      Hybrid Sync
                     </span>
                   </h1>
-                  <p className="text-[11px] text-slate-400">Spreadsheet ↔️ Supabase Live</p>
+                  <p className="text-[11px] text-slate-400">Sheet ↔️ Supabase Bridge</p>
                 </div>
               </div>
               
@@ -492,31 +558,27 @@
                   onClick={importYellowSheetToSupabase}
                   disabled={isSyncingSheet}
                   className="p-2 bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-emerald-100 rounded-lg transition-all border border-emerald-600 flex items-center gap-1 text-xs font-bold"
-                  title="Tarik Data Kuning (A-H) dari Spreadsheet"
+                  title="Tarik Data Kuning dari Spreadsheet"
                 >
-                  <i data-lucide="cloud-download" className={`w-4 h-4 ${isSyncingSheet ? 'animate-bounce text-amber-300' : ''}`}></i>
+                  <Icon name="cloud-download" className={`w-4 h-4 ${isSyncingSheet ? 'animate-bounce text-amber-300' : ''}`} />
                   <span>Sync Sheet</span>
                 </button>
                 <button 
                   onClick={() => setShowSettingsModal(true)}
                   className="p-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg transition-all border border-slate-700 relative"
-                  title="Pengaturan Koneksi"
                 >
-                  <i data-lucide="settings" className="w-4 h-4"></i>
+                  <Icon name="settings" className="w-4 h-4" />
                   {isConnectedToSupabase && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 absolute -top-0.5 -right-0.5 animate-ping"></span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 absolute -top-0.5 -right-0.5"></span>
                   )}
                 </button>
               </div>
             </div>
 
-            {/* Active Locked Officer Bar */}
             <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${isConnectedToSupabase ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
-                <span className="text-xs font-semibold text-slate-300">
-                  Sesi Petugas:
-                </span>
+                <span className={`w-2 h-2 rounded-full ${isConnectedToSupabase ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
+                <span className="text-xs font-semibold text-slate-300">Sesi:</span>
                 {sessionOfficer ? (
                   <span className="text-xs font-bold text-emerald-300 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-800/80">
                     👤 {sessionOfficer.name} ({sessionOfficer.team})
@@ -531,32 +593,30 @@
                 onClick={() => setShowSessionModal(true)}
                 className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-lg border border-slate-700 flex items-center gap-1 active:scale-95 transition-all"
               >
-                <i data-lucide="user-check" className="w-3.5 h-3.5"></i>
+                <Icon name="user-check" className="w-3.5 h-3.5" />
                 {sessionOfficer ? "Ganti" : "Kunci Sesi"}
               </button>
             </div>
 
-            {/* Quick Metrics Bar */}
             <div className="grid grid-cols-3 gap-2 mt-3 text-center">
               <div className="bg-slate-800/80 rounded-lg p-2 border border-slate-700/50">
-                <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-medium">Total Item</span>
+                <span className="text-[10px] uppercase text-slate-400 block font-medium">Total</span>
                 <span className="text-lg font-bold text-white">{totalItems}</span>
               </div>
               <div className="bg-amber-950/40 rounded-lg p-2 border border-amber-800/40">
-                <span className="text-[10px] uppercase tracking-wider text-amber-400 block font-medium">Belum Revisi</span>
+                <span className="text-[10px] uppercase text-amber-400 block font-medium">Belum</span>
                 <span className="text-lg font-bold text-amber-400">{belumRevisiCount}</span>
               </div>
               <div className="bg-emerald-950/40 rounded-lg p-2 border border-emerald-800/40">
-                <span className="text-[10px] uppercase tracking-wider text-emerald-400 block font-medium">Sudah Revisi</span>
+                <span className="text-[10px] uppercase text-emerald-400 block font-medium">Sudah</span>
                 <span className="text-lg font-bold text-emerald-400">{sudahRevisiCount}</span>
               </div>
             </div>
           </header>
 
-          {/* Search & Filter Section */}
           <section className="p-3 bg-white border-b border-slate-200 sticky top-[125px] z-20 shadow-sm space-y-2.5">
             <div className="relative">
-              <i data-lucide="search" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <Icon name="search" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input 
                 type="text"
                 placeholder="Cari Rak, Nama, atau Kode Item..."
@@ -565,49 +625,31 @@
                 className="w-full pl-9 pr-8 py-2 bg-slate-100 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 border border-slate-200 text-slate-800 placeholder-slate-400"
               />
               {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <i data-lucide="x" className="w-4 h-4"></i>
+                <button onClick={() => setSearchQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+                  <Icon name="x" className="w-4 h-4" />
                 </button>
               )}
             </div>
 
             <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-0.5">
               <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs shrink-0">
-                <button 
-                  onClick={() => setStatusFilter("ALL")}
-                  className={`px-2.5 py-1 rounded-md font-medium transition-all ${statusFilter === "ALL" ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
-                >
-                  Semua ({totalItems})
-                </button>
-                <button 
-                  onClick={() => setStatusFilter("Belum Revisi")}
-                  className={`px-2.5 py-1 rounded-md font-medium transition-all ${statusFilter === "Belum Revisi" ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500'}`}
-                >
-                  Belum ({belumRevisiCount})
-                </button>
-                <button 
-                  onClick={() => setStatusFilter("Sudah Revisi")}
-                  className={`px-2.5 py-1 rounded-md font-medium transition-all ${statusFilter === "Sudah Revisi" ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500'}`}
-                >
-                  Sudah ({sudahRevisiCount})
-                </button>
+                <button onClick={() => setStatusFilter("ALL")} className={`px-2.5 py-1 rounded-md font-medium ${statusFilter === "ALL" ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Semua ({totalItems})</button>
+                <button onClick={() => setStatusFilter("Belum Revisi")} className={`px-2.5 py-1 rounded-md font-medium ${statusFilter === "Belum Revisi" ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500'}`}>Belum ({belumRevisiCount})</button>
+                <button onClick={() => setStatusFilter("Sudah Revisi")} className={`px-2.5 py-1 rounded-md font-medium ${statusFilter === "Sudah Revisi" ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500'}`}>Sudah ({sudahRevisiCount})</button>
               </div>
 
               <div className="relative shrink-0">
                 <select 
                   value={selectedRak}
                   onChange={(e) => setSelectedRak(e.target.value)}
-                  className="bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-6 appearance-none cursor-pointer"
+                  className="bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg px-2.5 py-1.5 focus:outline-none pr-6 appearance-none cursor-pointer"
                 >
                   <option value="ALL">📍 Semua Rak</option>
                   {rakList.filter(r => r !== "ALL").map(rak => (
                     <option key={rak} value={rak}>Rak {rak}</option>
                   ))}
                 </select>
-                <i data-lucide="chevron-down" className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                <Icon name="chevron-down" className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>
             </div>
           </section>
@@ -615,61 +657,36 @@
           <main className="flex-1 p-3 space-y-3">
             {filteredItems.length === 0 ? (
               <div className="text-center py-12 px-4 bg-white rounded-2xl border border-dashed border-slate-300 my-4 space-y-2">
-                <i data-lucide="package-search" className="w-10 h-10 text-slate-300 mx-auto"></i>
+                <Icon name="package-search" className="w-10 h-10 text-slate-300 mx-auto" />
                 <p className="text-sm font-bold text-slate-600">Tidak ada item ditemukan</p>
-                <p className="text-xs text-slate-400">
-                  Tekan <span className="font-bold text-emerald-700">"Sync Sheet"</span> di kanan atas untuk memuat data dari Spreadsheet.
-                </p>
+                <p className="text-xs text-slate-400">Tekan <span className="font-bold text-emerald-700">"Sync Sheet"</span> di kanan atas untuk memuat data.</p>
                 <button 
                   onClick={importYellowSheetToSupabase}
                   className="mt-2 px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95"
                 >
-                  <i data-lucide="cloud-download" className="w-4 h-4"></i>
-                  Tarik Data Kuning (A-H) dari Spreadsheet
+                  <Icon name="cloud-download" className="w-4 h-4" />
+                  Tarik Data dari Spreadsheet
                 </button>
               </div>
             ) : (
               filteredItems.map(item => {
                 const isRevised = item.status === "Sudah Revisi";
                 return (
-                  <div 
-                    key={item.id} 
-                    className={`bg-white rounded-2xl p-4 shadow-sm border transition-all ${
-                      isRevised ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    {/* Item Card Header */}
+                  <div key={item.id} className={`bg-white rounded-2xl p-4 shadow-sm border transition-all ${isRevised ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-200'}`}>
                     <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
                       <div>
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="px-2 py-0.5 bg-slate-800 text-white rounded font-mono text-[10px] font-bold">
-                            📍 {item.rak || "RAK ?"}
-                          </span>
-                          <span className="px-2 py-0.5 bg-amber-100 text-amber-900 rounded font-mono text-[10px] font-bold border border-amber-200">
-                            {item.kodeItem}
-                          </span>
-                          {item.kodeOriginal && (
-                            <span className="text-[10px] text-slate-400 font-mono">
-                              ({item.kodeOriginal})
-                            </span>
-                          )}
+                          <span className="px-2 py-0.5 bg-slate-800 text-white rounded font-mono text-[10px] font-bold">📍 {item.rak || "RAK ?"}</span>
+                          <span className="px-2 py-0.5 bg-amber-100 text-amber-900 rounded font-mono text-[10px] font-bold border border-amber-200">{item.kodeItem}</span>
+                          {item.kodeOriginal && <span className="text-[10px] text-slate-400 font-mono">({item.kodeOriginal})</span>}
                         </div>
-                        <h2 className="font-bold text-slate-900 text-sm mt-1.5 leading-snug">
-                          {item.namaItem}
-                        </h2>
+                        <h2 className="font-bold text-slate-900 text-sm mt-1.5 leading-snug">{item.namaItem}</h2>
                       </div>
-                      
-                      {/* Status Badge */}
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold shrink-0 border ${
-                        isRevised 
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
-                          : 'bg-amber-100 text-amber-800 border-amber-300'
-                      }`}>
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold shrink-0 border ${isRevised ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300'}`}>
                         {isRevised ? "✓ Sudah Revisi" : "⏳ Belum Revisi"}
                       </span>
                     </div>
 
-                    {/* Master Data Yellow Columns Matrix (A - H) */}
                     <div className="grid grid-cols-4 gap-2 my-3 text-center text-xs">
                       <div className="bg-amber-50/60 p-1.5 rounded-xl border border-amber-200/60">
                         <span className="text-[10px] text-amber-700 block font-medium">Petugas Awal</span>
@@ -683,25 +700,20 @@
                         <span className="text-[10px] text-amber-700 block font-medium">Tim 2</span>
                         <span className="font-bold text-slate-800 text-xs">{item.tim2}</span>
                       </div>
-                      <div className={`p-1.5 rounded-xl border ${
-                        item.selisih !== 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-50 text-slate-700 border-slate-100'
-                      }`}>
+                      <div className={`p-1.5 rounded-xl border ${item.selisih !== 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-50 text-slate-700 border-slate-100'}`}>
                         <span className="text-[10px] text-slate-400 block font-medium">Selisih</span>
                         <span className="font-bold text-xs">{item.selisih}</span>
                       </div>
                     </div>
 
-                    {/* Red Columns Box (Col I, J, K, L) */}
                     {isRevised && (
                       <div className="bg-rose-50 border border-rose-200 rounded-xl p-2.5 text-xs text-rose-950 space-y-1 my-2">
                         <div className="flex items-center justify-between font-bold">
                           <span>QTY Revisi (Col I): <span className="text-sm font-black text-rose-700">{item.qtyRevisi}</span></span>
-                          <span className="text-[10px] bg-rose-200 text-rose-800 px-2 py-0.5 rounded-full border border-rose-300">
-                            Col K: {item.status}
-                          </span>
+                          <span className="text-[10px] bg-rose-200 text-rose-800 px-2 py-0.5 rounded-full border border-rose-300">Col K: {item.status}</span>
                         </div>
                         <div className="text-[11px] text-rose-800 flex items-center gap-1 font-semibold">
-                          <i data-lucide="user-check" className="w-3.5 h-3.5 text-rose-600"></i>
+                          <Icon name="user-check" className="w-3.5 h-3.5 text-rose-600" />
                           <span>Petugas Revisi (Col J): {item.petugasRevisi || "-"}</span>
                         </div>
                         {item.keterangan && (
@@ -712,17 +724,12 @@
                       </div>
                     )}
 
-                    {/* Revision Action Button */}
                     <button 
                       onClick={() => openRevisionModal(item)}
-                      className={`w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-sm ${
-                        isRevised 
-                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300' 
-                          : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
-                      }`}
+                      className={`w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-sm ${isRevised ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'}`}
                     >
-                      <i data-lucide={isRevised ? "edit-3" : "edit-2"} className="w-4 h-4"></i>
-                      {isRevised ? "Edit Hasil Revisi" : "Input QTY & Petugas Revisi"}
+                      <Icon name={isRevised ? "edit-3" : "edit-2"} className="w-4 h-4" />
+                      {isRevised ? "Edit Hasil Revisi" : "Input QTY & Keterangan"}
                     </button>
                   </div>
                 );
@@ -733,55 +740,36 @@
           {showSessionModal && (
             <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl modal-animate space-y-4">
-                
                 <div className="text-center space-y-2">
                   <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
-                    <i data-lucide="lock" className="w-7 h-7"></i>
+                    <Icon name="lock" className="w-7 h-7" />
                   </div>
                   <h2 className="text-lg font-extrabold text-slate-900">Kunci Sesi Petugas Revisi</h2>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Pilih tim dan nama Anda. Nama petugas diambil langsung dari Sheet <span className="font-bold text-slate-800">Petugas</span> di Spreadsheet.
-                  </p>
+                  <p className="text-xs text-slate-500 leading-relaxed">Pilih Tim dan Nama Anda untuk mulai melakukan input revisi.</p>
                 </div>
 
-                {/* 1. Select Team */}
                 <div className="space-y-1.5 pt-2">
-                  <label className="block text-xs font-bold text-slate-700">
-                    1. Pilih Tim Opname:
-                  </label>
+                  <label className="block text-xs font-bold text-slate-700">1. Pilih Tim Opname:</label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => handleTempTeamChange("TIM 1")}
-                      className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-2 ${
-                        tempSessionTeam === "TIM 1"
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/30'
-                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                      }`}
+                      onClick={() => { setTempSessionTeam("TIM 1"); setTempSessionOfficer(""); }}
+                      className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-2 ${tempSessionTeam === "TIM 1" ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/30' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
                     >
-                      <i data-lucide="users" className="w-4 h-4"></i>
-                      TIM 1
+                      <Icon name="users" className="w-4 h-4" /> TIM 1
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleTempTeamChange("TIM 2")}
-                      className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-2 ${
-                        tempSessionTeam === "TIM 2"
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/30'
-                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                      }`}
+                      onClick={() => { setTempSessionTeam("TIM 2"); setTempSessionOfficer(""); }}
+                      className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-2 ${tempSessionTeam === "TIM 2" ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/30' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
                     >
-                      <i data-lucide="users" className="w-4 h-4"></i>
-                      TIM 2
+                      <Icon name="users" className="w-4 h-4" /> TIM 2
                     </button>
                   </div>
                 </div>
 
-                {/* 2. Select Officer Name (Starts Empty) */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700">
-                    2. Pilih Nama Petugas ({tempSessionTeam}):
-                  </label>
+                  <label className="block text-xs font-bold text-slate-700">2. Pilih Nama Petugas ({tempSessionTeam}):</label>
                   <div className="relative">
                     <select
                       value={tempSessionOfficer}
@@ -793,32 +781,23 @@
                         <option key={idx} value={officer}>{officer}</option>
                       ))}
                     </select>
-                    <i data-lucide="chevron-down" className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                    <Icon name="chevron-down" className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="pt-3">
                   <button
                     type="button"
                     onClick={() => handleSaveSession(tempSessionTeam, tempSessionOfficer)}
                     className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-sm shadow-xl shadow-emerald-600/30 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    <i data-lucide="key-round" className="w-4 h-4"></i>
+                    <Icon name="key-round" className="w-4 h-4" />
                     Kunci Sesi & Mulai Revisi
                   </button>
-
                   {sessionOfficer && (
-                    <button
-                      type="button"
-                      onClick={() => setShowSessionModal(false)}
-                      className="w-full mt-2 py-2 text-xs font-bold text-slate-400 hover:text-slate-600"
-                    >
-                      Batal
-                    </button>
+                    <button type="button" onClick={() => setShowSessionModal(false)} className="w-full mt-2 py-2 text-xs font-bold text-slate-400">Batal</button>
                   )}
                 </div>
-
               </div>
             </div>
           )}
@@ -826,26 +805,16 @@
           {activeModalItem && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
               <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl modal-animate max-h-[90vh] overflow-y-auto">
-                
-                {/* Modal Header */}
                 <div className="flex items-start justify-between border-b border-slate-100 pb-3">
                   <div>
-                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-mono text-[10px] font-bold">
-                      Rak {activeModalItem.rak} • {activeModalItem.kodeItem}
-                    </span>
-                    <h2 className="font-bold text-slate-900 text-base mt-1 line-clamp-1">
-                      {activeModalItem.namaItem}
-                    </h2>
+                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-mono text-[10px] font-bold">Rak {activeModalItem.rak} • {activeModalItem.kodeItem}</span>
+                    <h2 className="font-bold text-slate-900 text-base mt-1 line-clamp-1">{activeModalItem.namaItem}</h2>
                   </div>
-                  <button 
-                    onClick={() => setActiveModalItem(null)}
-                    className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    <i data-lucide="x" className="w-5 h-5"></i>
+                  <button onClick={() => setActiveModalItem(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400">
+                    <Icon name="x" className="w-5 h-5" />
                   </button>
                 </div>
 
-                {/* Master Info Matrix (Yellow Columns) */}
                 <div className="grid grid-cols-3 gap-2 my-3 text-center text-xs">
                   <div className="bg-amber-50 p-2 rounded-xl border border-amber-200">
                     <span className="text-amber-700 block text-[10px]">TIM 1</span>
@@ -861,115 +830,60 @@
                   </div>
                 </div>
 
-                {/* Inputs for Red Columns (I, J, K, L) */}
                 <div className="space-y-4 my-4">
-                  
-                  {/* Locked Officer & Status Indicator (Kolom J & K) */}
                   <div className="bg-rose-50/80 border border-rose-200 rounded-2xl p-3 flex items-center justify-between shadow-inner">
                     <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">
-                        Petugas Revisi &rarr; <span className="text-rose-900 font-extrabold">Kolom J</span>
-                      </span>
+                      <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Petugas Revisi &rarr; <span className="text-rose-900 font-extrabold">Kolom J</span></span>
                       <div className="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
-                        <i data-lucide="user-check" className="w-4 h-4 text-emerald-600"></i>
+                        <Icon name="user-check" className="w-4 h-4 text-emerald-600" />
                         <span>{sessionOfficer ? sessionOfficer.name : "-"}</span>
                         <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200 ml-1">
                           {sessionOfficer ? sessionOfficer.team : "-"}
                         </span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-slate-600 bg-slate-200 px-2 py-1 rounded-lg border border-slate-300">
-                        <i data-lucide="lock" className="w-3 h-3 text-slate-600"></i>
-                        Terkunci
-                      </span>
-                      <span className="text-[9px] text-rose-700 font-bold">Col K: Sudah Revisi</span>
-                    </div>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-slate-600 bg-slate-200 px-2 py-1 rounded-lg border border-slate-300">
+                      <Icon name="lock" className="w-3 h-3" /> Terkunci
+                    </span>
                   </div>
 
-                  {/* QTY Revisi Input (Kolom I) */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      1. QTY Revisi Fix &rarr; <span className="text-rose-700 font-bold">Kolom I</span>:
-                    </label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">1. QTY Revisi Fix &rarr; <span className="text-rose-700 font-bold">Kolom I</span>:</label>
                     <div className="flex items-center gap-2">
-                      <button 
-                        type="button"
-                        onClick={() => setQtyInput(prev => Math.max(0, (parseInt(prev, 10) || 0) - 1).toString())}
-                        className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-300 flex items-center justify-center text-slate-700 font-bold active:scale-95 text-lg"
-                      >
-                        -
-                      </button>
+                      <button type="button" onClick={() => setQtyInput(prev => Math.max(0, (parseInt(prev, 10) || 0) - 1).toString())} className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-300 font-bold text-lg">-</button>
                       <input 
                         type="number"
                         min="0"
                         value={qtyInput}
                         onChange={(e) => setQtyInput(e.target.value)}
-                        className="flex-1 bg-white border-2 border-emerald-600 rounded-xl py-2 px-3 text-center text-xl font-black text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        placeholder="0"
+                        className="flex-1 bg-white border-2 border-emerald-600 rounded-xl py-2 px-3 text-center text-xl font-black text-emerald-950 focus:outline-none"
                       />
-                      <button 
-                        type="button"
-                        onClick={() => setQtyInput(prev => ((parseInt(prev, 10) || 0) + 1).toString())}
-                        className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-300 flex items-center justify-center text-slate-700 font-bold active:scale-95 text-lg"
-                      >
-                        +
-                      </button>
+                      <button type="button" onClick={() => setQtyInput(prev => ((parseInt(prev, 10) || 0) + 1).toString())} className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-300 font-bold text-lg">+</button>
                     </div>
-
                     <div className="flex gap-1.5 mt-2">
-                      <button 
-                        type="button"
-                        onClick={() => setQtyInput(activeModalItem.tim1.toString())}
-                        className="flex-1 py-1 text-[11px] bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg font-medium text-slate-600"
-                      >
-                        Ikut Tim1 ({activeModalItem.tim1})
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => setQtyInput(activeModalItem.tim2.toString())}
-                        className="flex-1 py-1 text-[11px] bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg font-medium text-slate-600"
-                      >
-                        Ikut Tim2 ({activeModalItem.tim2})
-                      </button>
+                      <button type="button" onClick={() => setQtyInput(activeModalItem.tim1.toString())} className="flex-1 py-1 text-[11px] bg-slate-100 border rounded-lg text-slate-600">Ikut Tim1 ({activeModalItem.tim1})</button>
+                      <button type="button" onClick={() => setQtyInput(activeModalItem.tim2.toString())} className="flex-1 py-1 text-[11px] bg-slate-100 border rounded-lg text-slate-600">Ikut Tim2 ({activeModalItem.tim2})</button>
                     </div>
                   </div>
 
-                  {/* Keterangan / Alasan (Kolom L) */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      2. Keterangan / Alasan Revisi &rarr; <span className="text-rose-700 font-bold">Kolom L</span>:
-                    </label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">2. Keterangan / Alasan Revisi &rarr; <span className="text-rose-700 font-bold">Kolom L</span>:</label>
                     <textarea 
                       rows="2"
                       value={notesInput}
                       onChange={(e) => setNotesInput(e.target.value)}
-                      placeholder="Contoh: salah kode dan tambahan, barang kurang di rak atas..."
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
+                      placeholder="Contoh: salah kode dan tambahan..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
                     ></textarea>
                   </div>
-
                 </div>
 
-                {/* Save & Cancel Actions */}
                 <div className="flex gap-2 pt-2">
-                  <button 
-                    type="button"
-                    onClick={() => setActiveModalItem(null)}
-                    className="flex-1 py-3 border border-slate-300 text-slate-700 rounded-xl font-bold text-xs hover:bg-slate-50 active:scale-95 transition-all"
-                  >
-                    Batal
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={saveRevision}
-                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-lg shadow-emerald-600/30 active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                  >
-                    <i data-lucide="check" className="w-4 h-4"></i>
-                    Simpan (Supabase & Sheet)
+                  <button type="button" onClick={() => setActiveModalItem(null)} className="flex-1 py-3 border border-slate-300 text-slate-700 rounded-xl font-bold text-xs">Batal</button>
+                  <button type="button" onClick={saveRevision} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-lg flex items-center justify-center gap-1.5">
+                    <Icon name="check" className="w-4 h-4" /> Simpan Revisi
                   </button>
                 </div>
-
               </div>
             </div>
           )}
@@ -977,192 +891,57 @@
           {showSettingsModal && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
               <div className="bg-white w-full max-w-md rounded-2xl p-5 shadow-2xl modal-animate space-y-4 max-h-[85vh] overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center justify-between border-b pb-3">
                   <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                    <i data-lucide="settings" className="w-5 h-5 text-emerald-600"></i>
-                    Pengaturan Integrasi
+                    <Icon name="settings" className="w-5 h-5 text-emerald-600" /> Pengaturan Integrasi
                   </h3>
-                  <button 
-                    onClick={() => setShowSettingsModal(false)}
-                    className="p-1 rounded-full text-slate-400 hover:text-slate-600"
-                  >
-                    <i data-lucide="x" className="w-5 h-5"></i>
-                  </button>
+                  <button onClick={() => setShowSettingsModal(false)}><Icon name="x" className="w-5 h-5" /></button>
                 </div>
 
                 <div className="space-y-3 text-xs">
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">Google Spreadsheet ID:</label>
-                    <input 
-                      type="text"
-                      value={spreadsheetId}
-                      onChange={(e) => setSpreadsheetId(e.target.value)}
-                      placeholder="10I100dl5URh59Y7hiwxBfW8cyWPBE1R0wDY75Q5XcqA"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono focus:ring-2 focus:ring-emerald-500"
-                    />
+                    <input type="text" value={spreadsheetId} onChange={(e) => setSpreadsheetId(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 font-mono" />
                   </div>
-
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Google Apps Script Webhook URL:</label>
-                    <input 
-                      type="url"
-                      value={appsScriptUrl}
-                      onChange={(e) => setAppsScriptUrl(e.target.value)}
-                      placeholder="https://script.google.com/macros/s/.../exec"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono focus:ring-2 focus:ring-emerald-500"
-                    />
+                    <label className="block font-bold text-slate-700 mb-1">Apps Script Webhook URL:</label>
+                    <input type="url" value={appsScriptUrl} onChange={(e) => setAppsScriptUrl(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 font-mono" />
                   </div>
-
-                  <div className="pt-2 border-t border-slate-100">
+                  <div className="pt-2 border-t">
                     <label className="block font-bold text-slate-700 mb-1">Supabase Project URL:</label>
-                    <input 
-                      type="url"
-                      value={supabaseUrl}
-                      onChange={(e) => setSupabaseUrl(e.target.value)}
-                      placeholder="https://xyz.supabase.co"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono focus:ring-2 focus:ring-emerald-500"
-                    />
+                    <input type="url" value={supabaseUrl} onChange={(e) => setSupabaseUrl(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 font-mono" />
                   </div>
-
                   <div>
                     <label className="block font-bold text-slate-700 mb-1">Supabase Anon Key:</label>
-                    <input 
-                      type="password"
-                      value={supabaseKey}
-                      onChange={(e) => setSupabaseKey(e.target.value)}
-                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono focus:ring-2 focus:ring-emerald-500"
-                    />
+                    <input type="password" value={supabaseKey} onChange={(e) => setSupabaseKey(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 font-mono" />
                   </div>
-
-                  <button 
-                    onClick={saveSettings}
-                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center justify-center gap-2"
-                  >
-                    <i data-lucide="save" className="w-4 h-4"></i>
-                    Simpan Pengaturan
-                  </button>
-
-                  <button 
-                    onClick={() => setShowSqlModal(true)}
-                    className="w-full py-2 border border-slate-300 text-slate-700 rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5"
-                  >
-                    <i data-lucide="code" className="w-3.5 h-3.5"></i>
-                    Lihat Kode SQL Supabase & Apps Script
-                  </button>
-                </div>
-
-                <div className="pt-2 border-t border-slate-100 space-y-2">
-                  <button 
-                    onClick={exportToCSV}
-                    className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2"
-                  >
-                    <i data-lucide="download" className="w-4 h-4"></i>
-                    Export Seluruh Data ke File CSV
+                  <button onClick={saveSettings} className="w-full py-2.5 bg-emerald-600 text-white rounded-xl font-bold">Simpan Pengaturan</button>
+                  <button onClick={exportToCSV} className="w-full py-2.5 bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2">
+                    <Icon name="download" className="w-4 h-4" /> Export Seluruh Data ke CSV
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {showSqlModal && (
-            <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <div className="bg-white w-full max-w-md rounded-2xl p-5 shadow-2xl modal-animate space-y-3 max-h-[85vh] overflow-y-auto text-xs">
-                <div className="flex items-center justify-between border-b pb-2">
-                  <h3 className="font-bold text-slate-900 text-sm">Panduan SQL & Apps Script</h3>
-                  <button onClick={() => setShowSqlModal(false)}><i data-lucide="x" className="w-4 h-4"></i></button>
-                </div>
-                
-                <p className="font-bold text-emerald-800">1. SQL Supabase Editor:</p>
-                <pre className="bg-slate-900 text-emerald-400 p-2.5 rounded-xl overflow-x-auto text-[9px] font-mono select-all">
-{`CREATE TABLE IF NOT EXISTS revisi_so (
-    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-    petugas_awal TEXT,
-    rak TEXT NOT NULL,
-    kode_item TEXT NOT NULL,
-    kode_original TEXT,
-    nama_item TEXT NOT NULL,
-    tim1 INT DEFAULT 0,
-    tim2 INT DEFAULT 0,
-    selisih INT DEFAULT 0,
-    qty_revisi INT,
-    petugas_revisi TEXT,
-    status_revisi TEXT DEFAULT 'Belum Revisi',
-    keterangan TEXT,
-    CONSTRAINT unique_item_rak UNIQUE (kode_item, rak)
-);
-
-ALTER TABLE revisi_so ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public Access" ON revisi_so FOR ALL USING (true) WITH CHECK (true);
-ALTER PUBLICATION supabase_realtime ADD TABLE revisi_so;`}
-                </pre>
-
-                <p className="font-bold text-emerald-800 pt-2">2. Google Apps Script (Update Col I, J, K, L):</p>
-                <pre className="bg-slate-900 text-sky-300 p-2.5 rounded-xl overflow-x-auto text-[9px] font-mono select-all">
-{`function doPost(e) {
-  var data = JSON.parse(e.postData.contents);
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Revisi SO");
-  var values = sheet.getDataRange().getValues();
-  
-  for (var i = 1; i < values.length; i++) {
-    if (String(values[i][2]).trim() === String(data.kodeItem).trim()) {
-      sheet.getRange(i + 1, 9).setValue(data.qtyRevisi);       // Col I
-      sheet.getRange(i + 1, 10).setValue(data.petugasRevisi);  // Col J
-      sheet.getRange(i + 1, 11).setValue(data.statusRevisi);   // Col K
-      sheet.getRange(i + 1, 12).setValue(data.keterangan || ""); // Col L
-      break;
-    }
-  }
-  return ContentService.createTextOutput("OK");
-}`}
-                </pre>
-
-                <button 
-                  onClick={() => setShowSqlModal(false)}
-                  className="w-full py-2 bg-slate-800 text-white rounded-xl font-bold mt-2"
-                >
-                  Tutup Panduan
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Toast Notification Alert */}
           {toastMsg && (
-            <div className="fixed bottom-16 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white text-xs px-4 py-2.5 rounded-full shadow-xl backdrop-blur-md z-50 flex items-center gap-2 border border-slate-700 font-medium animate-bounce">
+            <div className="fixed bottom-16 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white text-xs px-4 py-2.5 rounded-full shadow-xl z-50 flex items-center gap-2 border border-slate-700 font-medium animate-bounce">
               <span>{toastMsg}</span>
             </div>
           )}
 
-          {/* Bottom Bar Navigation */}
           <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-slate-200 p-2 flex items-center justify-around z-30 shadow-lg">
-            <button 
-              onClick={() => setStatusFilter("ALL")}
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${statusFilter === 'ALL' ? 'text-emerald-600' : 'text-slate-400'}`}
-            >
-              <i data-lucide="layout-grid" className="w-5 h-5"></i>
-              Semua
+            <button onClick={() => setStatusFilter("ALL")} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${statusFilter === 'ALL' ? 'text-emerald-600' : 'text-slate-400'}`}>
+              <Icon name="layout-grid" className="w-5 h-5" /> Semua
             </button>
-            <button 
-              onClick={() => setStatusFilter("Belum Revisi")}
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${statusFilter === 'Belum Revisi' ? 'text-amber-600' : 'text-slate-400'}`}
-            >
-              <i data-lucide="alert-circle" className="w-5 h-5"></i>
-              Belum ({belumRevisiCount})
+            <button onClick={() => setStatusFilter("Belum Revisi")} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${statusFilter === 'Belum Revisi' ? 'text-amber-600' : 'text-slate-400'}`}>
+              <Icon name="alert-circle" className="w-5 h-5" /> Belum ({belumRevisiCount})
             </button>
-            <button 
-              onClick={() => setStatusFilter("Sudah Revisi")}
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${statusFilter === 'Sudah Revisi' ? 'text-emerald-600' : 'text-slate-400'}`}
-            >
-              <i data-lucide="check-circle" className="w-5 h-5"></i>
-              Sudah ({sudahRevisiCount})
+            <button onClick={() => setStatusFilter("Sudah Revisi")} className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${statusFilter === 'Sudah Revisi' ? 'text-emerald-600' : 'text-slate-400'}`}>
+              <Icon name="check-circle" className="w-5 h-5" /> Sudah ({sudahRevisiCount})
             </button>
-            <button 
-              onClick={exportToCSV}
-              className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-400 hover:text-slate-700"
-            >
-              <i data-lucide="download" className="w-5 h-5"></i>
-              Export
+            <button onClick={exportToCSV} className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-400 hover:text-slate-700">
+              <Icon name="download" className="w-5 h-5" /> Export
             </button>
           </nav>
 
