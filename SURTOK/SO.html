@@ -275,7 +275,7 @@
               <div id="finish-sync-status-box" class="bg-cyan-950/60 border border-cyan-800 p-2.5 rounded-xl text-left text-xs text-cyan-200 space-y-1">
                 <p class="font-bold flex items-center gap-1.5 text-cyan-300">
                   <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                  Pemeriksaan Sinkronisasi Database...
+                  Pemeriksaan Double-Check Sync...
                 </p>
                 <p id="finish-sync-desc" class="text-[11px] text-slate-300">Memastikan semua data rak ini tersimpan di Supabase & Sheet.</p>
               </div>
@@ -286,7 +286,7 @@
                 Lanjut Scan Rak Ini
               </button>
               <button id="btn-confirm-finish" class="flex-2 bg-teal-600 hover:bg-teal-500 active:scale-95 text-white font-black py-3 px-4 rounded-xl text-xs shadow-lg shadow-teal-900/40 flex items-center justify-center gap-1.5">
-                🚀 PUSH & BUKA SESI RAK BARU
+                🚀 VERIFIKASI SYNC & BUKA SESI RAK BARU
               </button>
             </div>
           </div>
@@ -932,17 +932,22 @@
       const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
       const rakResults = state.soResults.filter(r => r.rak.toUpperCase() === currentRak);
       const totalQty = rakResults.reduce((acc, c) => acc + (Number(c.qty) || 0), 0);
-      const unsyncedCount = rakResults.filter(r => !r.syncedSupabase || !r.syncedSheet).length;
+      const unsyncedSp = rakResults.filter(r => !r.syncedSupabase).length;
+      const unsyncedSh = rakResults.filter(r => !r.syncedSheet).length;
+      const unsyncedTotal = rakResults.filter(r => !r.syncedSupabase || !r.syncedSheet).length;
 
       document.getElementById('finish-modal-rak').textContent = currentRak || 'RAK-SO';
       document.getElementById('finish-modal-count').textContent = `${rakResults.length} Entry`;
       document.getElementById('finish-modal-qty').textContent = `${totalQty.toLocaleString('id-ID')} Pcs`;
 
       const desc = document.getElementById('finish-sync-desc');
-      if (unsyncedCount > 0) {
-        desc.textContent = `Ada ${unsyncedCount} data yang belum tersinkron. Sistem akan otomatis melakukan push sync.`;
+      const box = document.getElementById('finish-sync-status-box');
+      if (unsyncedTotal > 0) {
+        box.className = "bg-amber-950/60 border border-amber-800 p-2.5 rounded-xl text-left text-xs text-amber-200 space-y-1";
+        desc.innerHTML = `<b class="text-amber-400">🔍 Double-Check:</b> Ada ${unsyncedTotal} entry di rak ini yang belum ter-sync sempurna (Supabase: ${unsyncedSp} pending, Sheet: ${unsyncedSh} pending). Klik tombol di bawah untuk menyinkronkan ulang.`;
       } else {
-        desc.textContent = `Semua data pada rak ini sudah 100% tersimpan di Supabase & Sheet!`;
+        box.className = "bg-emerald-950/60 border border-emerald-800 p-2.5 rounded-xl text-left text-xs text-emerald-200 space-y-1";
+        desc.innerHTML = `<b class="text-emerald-400">✓ Double-Check 100% OK:</b> Semua ${rakResults.length} entry pada rak ${currentRak} sudah tersimpan sempurna di Supabase & Google Spreadsheet!`;
       }
 
       const modal = document.getElementById('modal-finish-rak');
@@ -952,7 +957,7 @@
     async function confirmFinishRak() {
       const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
       
-      showBannerStatus(null, `Memverifikasi & Sync Data Rak ${currentRak}...`);
+      showBannerStatus(null, `Melakukan Double-Check & Sync Data Rak ${currentRak}...`);
       
       await handleSyncAll();
 
@@ -967,7 +972,7 @@
       const modal = document.getElementById('modal-finish-rak');
       if (modal) modal.classList.add('hidden');
 
-      showBannerStatus(true, `✓ Sesi Rak ${currentRak} telah selesai & ter-sync! Silakan masukkan Kode Rak baru.`);
+      showBannerStatus(true, `✓ Verifikasi Rak ${currentRak} Selesai & Ter-sync 100%! Silakan masukkan Kode Rak baru.`);
       triggerFeedback('success');
     }
 
