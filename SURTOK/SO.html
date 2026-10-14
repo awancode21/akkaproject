@@ -544,6 +544,7 @@
       selectedPetugas: '',
       manualRakInput: '',
       recentRaks: ['RAK-A-01', 'RAK-B-02', 'RAK-C-05'],
+      completedRaks: JSON.parse(localStorage.getItem('so_completed_raks') || '[]'),
       isSessionLocked: false,
       soResults: JSON.parse(localStorage.getItem('so_scanned_results') || '[]'),
       pendingScanItem: null,
@@ -560,6 +561,7 @@
       localStorage.setItem('so_master_items', JSON.stringify(state.masterItems));
       localStorage.setItem('so_scanned_results', JSON.stringify(state.soResults));
       localStorage.setItem('so_petugas_map', JSON.stringify(state.petugasByTeam));
+      localStorage.setItem('so_completed_raks', JSON.stringify(state.completedRaks));
     }
 
     function triggerFeedback(type = 'success') {
@@ -978,6 +980,73 @@
       
       await handleSyncAll();
 
+      // Hitung ringkasan hasil rak ini
+      const rakResults = state.soResults.filter(r => r.rak.toUpperCase() === currentRak);
+      const totalQty = rakResults.reduce((acc, c) => acc + (Number(c.qty) || 0), 0);
+
+      const statusRecord = {
+        id: `status-${currentRak}-${Date.now()}`,
+        rak: currentRak,
+        tim: state.selectedTeam,
+        petugas: state.selectedPetugas,
+        total_items: rakResults.length,
+        total_qty: totalQty,
+        status: 'SELESAI',
+        completed_at: new Date().toISOString()
+      };
+
+      // Simpan status lokal
+      const existIdx = state.completedRaks.findIndex(r => r.rak === currentRak);
+      if (existIdx !== -1) {
+        state.completedRaks[existIdx] = statusRecord;
+      } else {
+        state.completedRaks.unshift(statusRecord);
+      }
+      saveState();
+
+      // Push Status Selesai ke Supabase
+      if (state.supabaseUrl && state.supabaseKey) {
+        try {
+          await fetch(`${state.supabaseUrl}/rest/v1/status_rak?on_conflict=id`, {
+            method: 'POST',
+            headers: {
+              'apikey': state.supabaseKey,
+              'Authorization': `Bearer ${state.supabaseKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates'
+            },
+            body: JSON.stringify([{
+              id: statusRecord.id,
+              rak: statusRecord.rak,
+              tim: statusRecord.tim,
+              petugas: statusRecord.petugas,
+              total_items: statusRecord.total_items,
+              total_qty: statusRecord.total_qty,
+              status: statusRecord.status,
+              completed_at: statusRecord.completed_at
+            }])
+          });
+        } catch (err) {
+          console.warn('Gagal mencatat status_rak ke Supabase', err);
+        }
+      }
+
+      // Push Status Selesai ke Google Spreadsheet (Sheet "Status Rak")
+      if (state.gasUrl) {
+        try {
+          await fetch(state.gasUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+              action: 'syncStatusRak',
+              data: statusRecord
+            })
+          });
+        } catch (err) {
+          console.warn('Gagal mencatat status_rak ke Spreadsheet', err);
+        }
+      }
+
       lockSession(false);
       state.manualRakInput = '';
       const inputRak = document.getElementById('input-rak-manual');
@@ -989,7 +1058,8 @@
       const modal = document.getElementById('modal-finish-rak');
       if (modal) modal.classList.add('hidden');
 
-      showBannerStatus(true, `✓ Verifikasi Rak ${currentRak} Selesai & Ter-sync 100%! Silakan masukkan Kode Rak baru.`);
+      renderRecentRaks();
+      showBannerStatus(true, `✓ Rak ${currentRak} ditandai 'SELESAI' di Supabase & Sheet! Silakan masukkan Kode Rak baru.`);
       triggerFeedback('success');
     }
 
@@ -1164,15 +1234,20 @@
       const container = document.getElementById('recent-raks-container');
       if (!container) return;
 
-      container.innerHTML = state.recentRaks.map(r => `
-        <button onclick="selectRecentRak('${r}')" class="text-[10px] px-2 py-1 rounded-lg border font-mono font-bold shrink-0 transition ${
-          state.manualRakInput.toUpperCase() === r.toUpperCase() 
-            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50' 
-            : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800'
-        }">
-          ${r}
-        </button>
-      `).join('');
+      container.innerHTML = state.recentRaks.map(r => {
+        const isCompleted = state.completedRaks.some(c => c.rak.toUpperCase() === r.toUpperCase());
+        return `
+          <button onclick="selectRecentRak('${r}')" class="text-[10px] px-2 py-1 rounded-lg border font-mono font-bold shrink-0 transition flex items-center gap-1 ${
+            state.manualRakInput.toUpperCase() === r.toUpperCase() 
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50' 
+              : isCompleted 
+                ? 'bg-teal-950/80 text-teal-300 border-teal-700/60' 
+                : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800'
+          }">
+            ${isCompleted ? '✅' : ''} ${r} ${isCompleted ? '<span class="text-[8px] bg-teal-500/30 text-teal-200 px-1 rounded">SELESAI</span>' : ''}
+          </button>
+        `;
+      }).join('');
     }
 
     function selectRecentRak(rakName) {
