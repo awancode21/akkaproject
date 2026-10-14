@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Aplikasi Stok Opname Mobile</title>
+  <title>Aplikasi Stok Opname Mobile Web</title>
   
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Custom Font Inter -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 
   <style>
     body {
@@ -29,40 +29,43 @@
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
+    #reader video {
+      object-fit: cover !important;
+      border-radius: 0.75rem;
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col pb-20 md:pb-0 select-none">
 
-  <!-- APP HEADER -->
-  <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 px-4 py-3 shadow-md">
+  <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 px-4 py-2.5 shadow-lg">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       <div class="flex items-center gap-2.5">
-        <div class="bg-gradient-to-tr from-emerald-500 to-teal-400 p-2 rounded-xl text-slate-950 font-black shadow flex items-center justify-center">
+        <div class="bg-gradient-to-tr from-emerald-500 to-teal-400 p-2 rounded-xl text-slate-950 font-black shadow-md flex items-center justify-center shrink-0">
           <svg class="w-5 h-5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
         </div>
         <div>
-          <h1 class="font-extrabold text-base leading-none text-white flex items-center gap-1.5">
-            ScanOpname <span class="text-emerald-400 text-xs">Mobile Web</span>
+          <h1 class="font-black text-sm sm:text-base leading-none text-white flex items-center gap-1.5">
+            ScanOpname <span class="bg-emerald-500/20 text-emerald-400 text-[10px] px-1.5 py-0.5 rounded-md border border-emerald-500/30">Mobile</span>
           </h1>
           <p class="text-[10px] text-slate-400 mt-0.5">Supabase & Google Sheet Hybrid Sync</p>
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1.5">
         <button id="btn-toggle-sound" class="p-2 rounded-xl border text-xs flex items-center gap-1 transition bg-emerald-500/20 border-emerald-500/30 text-emerald-400" title="Suara Bip Scan">
           <svg id="icon-sound-on" class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
           <svg id="icon-sound-off" class="w-4 h-4 stroke-current fill-none stroke-2 hidden" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
         </button>
 
-        <button id="btn-sync-all" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold shadow flex items-center gap-1.5 transition">
+        <button id="btn-sync-all" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-extrabold shadow flex items-center gap-1.5 transition">
           <svg id="icon-sync-spin" class="w-3.5 h-3.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
           <span class="hidden sm:inline">Sync Data</span>
         </button>
       </div>
     </div>
 
-    <!-- DESKTOP NAV TABS -->
-    <div class="hidden md:flex max-w-7xl mx-auto gap-2 mt-3 pt-2 border-t border-slate-800">
+    <!-- DESKTOP NAVIGATION TABS -->
+    <div class="hidden md:flex max-w-7xl mx-auto gap-2 mt-2.5 pt-2 border-t border-slate-800">
       <button data-tab="scanner" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition bg-emerald-500 text-slate-950">
         <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Scan HP / Gun
       </button>
@@ -70,10 +73,7 @@
         <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Hasil SO (<span id="count-badge-results">0</span>)
       </button>
       <button data-tab="master" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800">
-        <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Master SKU (<span id="count-badge-master">0</span>)
-      </button>
-      <button data-tab="teams" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800">
-        <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Tim & Petugas
+        <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> Master SKU (<span id="count-badge-master">0</span>)
       </button>
       <button data-tab="settings" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800">
         <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Config & Credentials
@@ -81,7 +81,7 @@
     </div>
   </header>
 
-  <!-- SYNC BANNER WITH PROGRESS -->
+  <!-- SYNC BANNER NOTIFICATION -->
   <div id="sync-banner" class="hidden px-4 py-2.5 text-xs font-medium flex items-center justify-between gap-2 border-b bg-cyan-950 text-cyan-200 border-cyan-800">
     <div class="flex items-center gap-2">
       <div id="sync-spinner" class="w-3.5 h-3.5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
@@ -90,37 +90,36 @@
     <button id="btn-close-banner" class="text-slate-400 hover:text-white text-xs font-bold px-1">✕</button>
   </div>
 
-  <!-- MAIN VIEWPORT CONTAINER -->
+  <!-- MAIN CONTAINER -->
   <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5">
 
-    <!-- TAB 1: SCANNER MOBILE & HARDWARE -->
-    <section id="tab-scanner" class="space-y-4">
+    <section id="tab-scanner" class="space-y-3.5">
       
-      <!-- SESSION CONTEXT CARD -->
-      <div class="bg-slate-900 rounded-2xl p-3.5 border border-slate-800 shadow-md">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-2.5">
+      <!-- STICKY SESSION CONTEXT CARD -->
+      <div class="bg-slate-900 rounded-2xl p-3 sm:p-4 border border-slate-800 shadow-md">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2.5">
           <div class="flex items-center gap-2">
             <svg class="w-4 h-4 text-emerald-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span class="text-xs font-bold text-slate-200">Sesi Scan & Lokasi Rak SO</span>
+            <span class="text-xs font-extrabold text-slate-200">Sesi Scan & Lokasi Rak SO</span>
           </div>
           <button id="btn-toggle-session-lock" class="text-[10px] px-2.5 py-1 rounded-full font-bold border transition bg-slate-800 text-slate-300 border-slate-700">
             🔓 Ubah Sesi
           </button>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
           <!-- TIM SELECTION -->
           <div>
-            <label class="text-[10px] font-bold text-slate-400 uppercase">Pilih Tim Opname</label>
+            <label class="text-[10px] font-bold text-slate-400 uppercase">Tim Opname</label>
             <select id="select-team" class="session-input w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-white font-bold outline-none mt-1">
               <option value="TIM 1">TIM 1</option>
               <option value="TIM 2">TIM 2</option>
             </select>
           </div>
 
-          <!-- PETUGAS SELECTION -->
+          <!-- PETUGAS SELECTION (FETCHED FROM SHEET 'Petugas') -->
           <div>
-            <label class="text-[10px] font-bold text-slate-400 uppercase">Petugas Scan</label>
+            <label class="text-[10px] font-bold text-slate-400 uppercase">Nama Petugas (Sheet Petugas)</label>
             <select id="select-petugas" class="session-input w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-white font-bold outline-none mt-1">
               <!-- Populated by JS -->
             </select>
@@ -130,11 +129,11 @@
           <div>
             <label class="text-[10px] font-bold text-amber-400 uppercase flex items-center justify-between">
               <span>Nama Rak SO (Manual)</span>
-              <span class="text-[9px] text-slate-400 font-normal">Input Bebas</span>
+              <span class="text-[9px] text-slate-400 font-normal">Free Text</span>
             </label>
-            <input id="input-rak-manual" type="text" placeholder="Contoh: RAK-A-01..." value="RAK-A-01" class="session-input w-full bg-slate-950 border-2 border-emerald-500/60 rounded-xl px-2.5 py-2 text-emerald-300 font-mono font-bold outline-none uppercase mt-1">
+            <input id="input-rak-manual" type="text" placeholder="Ketik Kode Rak (mis: RAK-A-01)" value="RAK-A-01" class="session-input w-full bg-slate-950 border-2 border-emerald-500/60 rounded-xl px-2.5 py-2 text-emerald-300 font-mono font-extrabold outline-none uppercase mt-1">
             
-            <!-- Quick Select Recent Manual Raks -->
+            <!-- Recent Raks Quick Selector -->
             <div id="recent-raks-container" class="flex gap-1 mt-1 overflow-x-auto no-scrollbar">
               <!-- Populated by JS -->
             </div>
@@ -142,34 +141,29 @@
         </div>
       </div>
 
-      <!-- SCANNING WORKSPACE CARD -->
-      <div class="bg-slate-900 rounded-2xl p-4 border border-slate-800 shadow-md space-y-4">
+      <!-- SCANNING WORKSPACE -->
+      <div class="bg-slate-900 rounded-2xl p-4 border border-slate-800 shadow-md space-y-3.5">
         
         <!-- SCAN MODE TOGGLE -->
         <div class="flex items-center justify-between bg-slate-950 p-1.5 rounded-xl border border-slate-800">
-          <button id="btn-mode-gun" class="flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow">
-            <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg> USB / Bluetooth Scanner Gun
+          <button id="btn-mode-gun" class="flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow">
+            <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg> Scanner Gun / USB
           </button>
-          <button id="btn-mode-camera" class="flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-400">
+          <button id="btn-mode-camera" class="flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 text-slate-400">
             <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Kamera HP
           </button>
         </div>
 
         <!-- CAMERA VIEWPORT -->
         <div id="camera-viewport" class="hidden bg-black rounded-xl p-3 border border-emerald-500/40 text-center space-y-2">
-          <div class="relative aspect-video max-h-52 bg-slate-950 rounded-lg overflow-hidden border-2 border-emerald-500/50 flex flex-col items-center justify-center mx-auto">
-            <video id="video-preview" autoplay playsinline muted class="w-full h-full object-cover"></video>
-            <div class="absolute inset-0 border-2 border-emerald-400/80 m-6 rounded-lg pointer-events-none flex items-center justify-center">
-              <div class="w-full h-0.5 bg-emerald-400 animate-pulse shadow-[0_0_8px_#10b981]"></div>
-            </div>
-          </div>
-
+          <div id="reader" class="w-full max-w-sm mx-auto overflow-hidden rounded-xl border-2 border-emerald-500/50"></div>
+          
           <div class="flex items-center justify-center gap-2">
-            <button id="btn-flip-camera" class="bg-slate-800 border border-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1">
-              🔄 Putar Kamera
+            <button id="btn-stop-camera" class="bg-rose-900/60 border border-rose-700 text-rose-200 text-xs px-3 py-1.5 rounded-lg font-bold">
+              ⏹ Tutup Kamera
             </button>
-            <button id="btn-random-scan" class="bg-emerald-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg">
-              🎲 Tes Scan Random SKU
+            <button id="btn-random-scan" class="bg-emerald-600 text-white font-extrabold text-xs px-3 py-1.5 rounded-lg shadow">
+              🎲 Tes Scan Random
             </button>
           </div>
         </div>
@@ -177,59 +171,109 @@
         <!-- BARCODE / SKU INPUT FIELD -->
         <div class="space-y-2">
           <div class="flex items-center justify-between text-xs">
-            <span class="font-semibold text-slate-300">Scan Barcode / SKU / Original Code:</span>
-            <label class="flex items-center gap-1.5 text-[11px] text-slate-400">
+            <span class="font-extrabold text-slate-300">Scan Barcode / SKU / Original Code:</span>
+            <label class="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
               <input id="chk-auto-reset-qty" type="checkbox" checked class="rounded bg-slate-950 border-slate-700 text-emerald-500">
-              Auto Reset Qty = 1
+              Reset Qty = 1
             </label>
           </div>
 
           <div class="flex gap-2">
-            <input id="input-barcode-scan" type="text" placeholder="Arahkan scanner ke barcode..." class="flex-1 bg-slate-950 border-2 border-emerald-500/60 rounded-xl px-3.5 py-3 text-base font-mono font-bold text-emerald-300 placeholder-slate-600 outline-none focus:ring-2 focus:ring-emerald-400">
+            <input id="input-barcode-scan" type="text" placeholder="Arahkan scanner gun / ketik barcode..." class="flex-1 bg-slate-950 border-2 border-emerald-500/60 rounded-xl px-3.5 py-3 text-base font-mono font-bold text-emerald-300 placeholder-slate-600 outline-none focus:ring-2 focus:ring-emerald-400">
 
-            <!-- QUICK QUANTITY STEPPER -->
-            <div class="flex items-center bg-slate-950 border border-slate-800 rounded-xl px-1">
-              <button id="btn-qty-minus" class="w-8 h-8 font-bold text-slate-300 hover:bg-slate-800 rounded text-base">-</button>
-              <input id="input-scan-qty" type="number" min="1" value="1" class="w-10 bg-transparent text-center font-extrabold text-white text-sm outline-none">
-              <button id="btn-qty-plus" class="w-8 h-8 font-bold text-slate-300 hover:bg-slate-800 rounded text-base">+</button>
-            </div>
-
-            <button id="btn-submit-scan" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold px-4 rounded-xl text-xs shadow flex items-center justify-center">
-              Submit
+            <button id="btn-submit-scan" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black px-4 rounded-xl text-xs shadow flex items-center justify-center shrink-0">
+              Cek Item
             </button>
-          </div>
-
-          <!-- QUICK QUANTITY PRESETS -->
-          <div class="flex gap-1.5 pt-1 overflow-x-auto no-scrollbar">
-            <span class="text-[10px] text-slate-500 py-1 font-semibold">Qty Cepat:</span>
-            <button class="btn-qty-preset px-2.5 py-1 rounded-lg text-[11px] font-bold border transition bg-emerald-500 text-slate-950 border-emerald-400" data-qty="1">+1</button>
-            <button class="btn-qty-preset px-2.5 py-1 rounded-lg text-[11px] font-bold border transition bg-slate-950 text-slate-400 border-slate-800" data-qty="5">+5</button>
-            <button class="btn-qty-preset px-2.5 py-1 rounded-lg text-[11px] font-bold border transition bg-slate-950 text-slate-400 border-slate-800" data-qty="10">+10</button>
-            <button class="btn-qty-preset px-2.5 py-1 rounded-lg text-[11px] font-bold border transition bg-slate-950 text-slate-400 border-slate-800" data-qty="24">+24</button>
-            <button class="btn-qty-preset px-2.5 py-1 rounded-lg text-[11px] font-bold border transition bg-slate-950 text-slate-400 border-slate-800" data-qty="50">+50</button>
-            <button class="btn-qty-preset px-2.5 py-1 rounded-lg text-[11px] font-bold border transition bg-slate-950 text-slate-400 border-slate-800" data-qty="100">+100</button>
           </div>
         </div>
 
-        <!-- SCAN FEEDBACK NOTIFICATION -->
+        <!-- SCAN FEEDBACK NOTIFICATION BANNER -->
         <div id="scan-notification-container"></div>
+
+        <!-- MODAL POPUP: DISPLAY DESKRIPSI ITEM TERLEBIH DAHULU BARU INPUT QTY -->
+        <div id="modal-confirm-qty" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+          <div class="bg-slate-900 border-2 border-emerald-500 rounded-2xl w-full max-w-md p-4 sm:p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200 max-h-[95vh] overflow-y-auto">
+            
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <span class="bg-emerald-500/20 text-emerald-400 text-xs px-2.5 py-1 rounded-lg font-mono font-extrabold border border-emerald-500/30">
+                1. DETAIL ITEM TERDETEKSI
+              </span>
+              <button id="btn-cancel-confirm" class="text-slate-400 hover:text-white font-bold text-xs px-2 py-1">✕ Batal</button>
+            </div>
+
+            <!-- DESKRIPSI ITEM LENGKAP -->
+            <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+              <div class="flex justify-between items-center">
+                <span id="confirm-item-rak" class="text-[11px] font-mono font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 rounded-md uppercase">RAK: -</span>
+                <span id="confirm-item-family" class="text-[10px] font-bold text-slate-400 uppercase">Family: -</span>
+              </div>
+
+              <div>
+                <h3 id="confirm-item-nama" class="text-base sm:text-lg font-black text-white leading-snug">Nama Barang Produk</h3>
+                <div class="grid grid-cols-2 gap-1 mt-2 font-mono text-xs text-emerald-400 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/20">
+                  <div>
+                    <span class="text-[9px] text-slate-400 block uppercase font-sans">Kode SKU:</span>
+                    <strong id="confirm-item-sku" class="text-xs text-white">-</strong>
+                  </div>
+                  <div>
+                    <span class="text-[9px] text-slate-400 block uppercase font-sans">Original Code:</span>
+                    <strong id="confirm-item-orig" class="text-xs text-emerald-300">-</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- INPUT QUANTITY SETELAH DESKRIPSI TAMPIL -->
+            <div class="space-y-2.5">
+              <label class="block text-xs font-black text-amber-400 uppercase">2. Masukkan Qty Fisik Hasil Scan:</label>
+              
+              <div class="flex items-center gap-2">
+                <button id="btn-modal-qty-minus" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black w-12 h-12 rounded-xl text-2xl flex items-center justify-center shrink-0 border border-slate-700">-</button>
+                
+                <input id="input-confirm-qty" type="number" min="1" value="1" class="flex-1 bg-slate-950 border-2 border-emerald-500 rounded-xl py-2 text-center font-mono font-black text-2xl text-emerald-300 outline-none focus:ring-2 focus:ring-emerald-400">
+                
+                <button id="btn-modal-qty-plus" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black w-12 h-12 rounded-xl text-2xl flex items-center justify-center shrink-0 border border-slate-700">+</button>
+              </div>
+
+              <!-- PRESET QTY CEPAT MODAL -->
+              <div class="flex gap-1.5 pt-1 overflow-x-auto no-scrollbar">
+                <button class="btn-modal-preset px-3 py-1.5 rounded-lg text-xs font-extrabold border bg-emerald-500 text-slate-950 border-emerald-400" data-qty="1">+1</button>
+                <button class="btn-modal-preset px-3 py-1.5 rounded-lg text-xs font-extrabold border bg-slate-950 text-slate-300 border-slate-800" data-qty="5">+5</button>
+                <button class="btn-modal-preset px-3 py-1.5 rounded-lg text-xs font-extrabold border bg-slate-950 text-slate-300 border-slate-800" data-qty="10">+10</button>
+                <button class="btn-modal-preset px-3 py-1.5 rounded-lg text-xs font-extrabold border bg-slate-950 text-slate-300 border-slate-800" data-qty="24">+24</button>
+                <button class="btn-modal-preset px-3 py-1.5 rounded-lg text-xs font-extrabold border bg-slate-950 text-slate-300 border-slate-800" data-qty="50">+50</button>
+                <button class="btn-modal-preset px-3 py-1.5 rounded-lg text-xs font-extrabold border bg-slate-950 text-slate-300 border-slate-800" data-qty="100">+100</button>
+              </div>
+            </div>
+
+            <!-- ACTION BUTTONS -->
+            <div class="flex gap-2 pt-2">
+              <button id="btn-modal-cancel" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl text-xs">
+                Batal / Scan Lain
+              </button>
+              <button id="btn-modal-save" class="flex-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black py-3 px-4 rounded-xl text-xs shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-1.5">
+                ✓ SIMPAN HASIL (ENTER)
+              </button>
+            </div>
+          </div>
+        </div>
 
         <!-- LAST SCANNED ITEM CARD -->
         <div id="last-scanned-card" class="hidden bg-slate-950 rounded-xl p-3.5 border border-emerald-500/40 space-y-2">
           <div class="flex items-center justify-between text-[10px]">
             <span id="last-scanned-time" class="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold uppercase">Terscan (12:00:00)</span>
-            <span id="last-scanned-rak" class="text-emerald-300 font-mono font-bold">Rak: RAK-A-01</span>
+            <span id="last-scanned-rak" class="text-emerald-300 font-mono font-extrabold">Rak: RAK-A-01</span>
           </div>
 
           <div class="flex items-center justify-between">
             <div>
-              <p id="last-scanned-name" class="text-sm font-extrabold text-white leading-tight">Nama Barang</p>
+              <p id="last-scanned-name" class="text-sm font-black text-white leading-tight">Nama Barang</p>
               <p id="last-scanned-sku-orig" class="text-xs font-mono text-emerald-400 mt-0.5">SKU: - | OrigCode: -</p>
               <p id="last-scanned-family" class="text-[10px] text-slate-400 mt-0.5">Family: -</p>
             </div>
 
             <div class="bg-slate-900 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-center shrink-0">
-              <p class="text-[9px] text-slate-400 uppercase">Qty Fisik</p>
+              <p class="text-[9px] text-slate-400 uppercase font-bold">Qty Fisik</p>
               <p id="last-scanned-qty" class="text-lg font-black text-emerald-400">+1</p>
             </div>
           </div>
@@ -251,7 +295,6 @@
       </div>
     </section>
 
-    <!-- TAB 2: AUDIT HASIL SO -->
     <section id="tab-results" class="hidden space-y-4">
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800">
@@ -285,12 +328,12 @@
         </div>
 
         <div class="flex items-center gap-2 pt-1 flex-wrap">
-          <button id="btn-push-supabase" class="flex-1 bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1.5">
+          <button id="btn-push-supabase" class="flex-1 bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow">
             <svg class="w-3.5 h-3.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> Sync ke Supabase
           </button>
 
-          <button id="btn-push-sheet" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1.5">
-            <svg class="w-3.5 h-3.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Sync ke Sheet
+          <button id="btn-push-sheet" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow">
+            <svg class="w-3.5 h-3.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg> Sync ke Sheet
           </button>
 
           <button id="btn-export-csv" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5">
@@ -320,19 +363,18 @@
       </div>
     </section>
 
-    <!-- TAB 3: MASTER DATABASE SKU (70,000+ SKU) -->
     <section id="tab-master" class="hidden space-y-4">
       <div class="bg-slate-900 rounded-2xl p-4 border border-slate-800 space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 class="font-extrabold text-white text-base flex items-center gap-2">
-              <svg class="w-5 h-5 text-emerald-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Master Database SKU
+              <svg class="w-5 h-5 text-emerald-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> Master Database SKU
             </h2>
             <p id="master-count-info" class="text-xs text-slate-400 mt-0.5">0 SKU terdaftar di memori web HP.</p>
           </div>
 
           <div class="flex gap-2 flex-wrap">
-            <button id="btn-sync-sheet-to-supabase" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow" title="Tarik dari Sheet lalu Upload Stream ke Supabase">
+            <button id="btn-sync-sheet-to-supabase" class="bg-blue-600 hover:bg-blue-500 text-white font-extrabold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow" title="Pemicu Push 70.000 SKU dari Spreadsheet ke Supabase">
               <svg class="w-3.5 h-3.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> ⚡ Sheet ➔ Supabase
             </button>
 
@@ -383,28 +425,6 @@
       </div>
     </section>
 
-    <!-- TAB 4: TIM & PETUGAS -->
-    <section id="tab-teams" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="bg-slate-900 rounded-2xl p-4 border border-slate-800 space-y-3">
-        <h3 class="font-extrabold text-white text-sm flex items-center gap-2 border-b border-slate-800 pb-2">
-          <svg class="w-4 h-4 text-emerald-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg> Daftar Petugas (TIM 1)
-        </h3>
-        <div id="list-petugas-tim1" class="space-y-2">
-          <!-- Populated by JS -->
-        </div>
-      </div>
-
-      <div class="bg-slate-900 rounded-2xl p-4 border border-slate-800 space-y-3">
-        <h3 class="font-extrabold text-white text-sm flex items-center gap-2 border-b border-slate-800 pb-2">
-          <svg class="w-4 h-4 text-emerald-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg> Daftar Petugas (TIM 2)
-        </h3>
-        <div id="list-petugas-tim2" class="space-y-2">
-          <!-- Populated by JS -->
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 5: PENGATURAN & CREDENTIALS -->
     <section id="tab-settings" class="hidden space-y-4 max-w-2xl mx-auto">
       <!-- GOOGLE SHEET CONFIG -->
       <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800 space-y-4">
@@ -449,7 +469,7 @@
 
   </main>
 
-  <!-- MOBILE BOTTOM NAV BAR -->
+  <!-- MOBILE BOTTOM NAVIGATION -->
   <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-2 py-1.5 z-50 flex justify-around">
     <button data-tab="scanner" class="mobile-nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition text-emerald-400 font-bold">
       <svg class="w-5 h-5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
@@ -466,11 +486,6 @@
       <span class="text-[10px]">Master SKU</span>
     </button>
 
-    <button data-tab="teams" class="mobile-nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition text-slate-500">
-      <svg class="w-5 h-5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-      <span class="text-[10px]">Petugas</span>
-    </button>
-
     <button data-tab="settings" class="mobile-nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition text-slate-500">
       <svg class="w-5 h-5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span class="text-[10px]">Setting</span>
@@ -478,7 +493,6 @@
   </nav>
 
   <script>
-    // PRECONFIGURED USER ENDPOINTS & CREDENTIALS
     const PRESET_GAS_URL = 'https://script.google.com/macros/s/AKfycbxuEIofQ98dUo0UrYQgzOCYa4IaBstWHCGrdMd-n3dMpH0PEAsTnUX17YjGPOgFrJwhkA/exec';
     const PRESET_SUPABASE_URL = 'https://qtfyfrvrqvbgyaezorbb.supabase.co';
     const PRESET_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0ZnlmcnZycXZiZ3lhZXpvcmJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4OTkyNzIsImV4cCI6MjEwNjQ3NTI3Mn0.vL8COXCm7UrhoMSj0iBV8HwvN6VZtd8X08YbxSkLcQM';
@@ -488,7 +502,7 @@
       "TIM 2": ['Doni Hermawan', 'Eka Pratama', 'Fani Rahmawati']
     };
 
-    function generateSampleMaster(count = 100) {
+    function generateSampleMaster(count = 50) {
       const families = ['Minuman', 'Makanan', 'Perawatan', 'Pembersih', 'Elektronik', 'Alat Tulis'];
       const items = [];
       for (let i = 1; i <= count; i++) {
@@ -496,9 +510,8 @@
         const originalCode = `899${String(i).padStart(9, '0')}`;
         const family = families[i % families.length];
         items.push({
-          id: `item-${i}`,
           sku: sku,
-          namaBarang: `Produk ${family} Brand Top-Type-${i}`,
+          namaBarang: `Produk ${family} Type-${i}`,
           family: family,
           originalCode: originalCode
         });
@@ -506,7 +519,7 @@
       return items;
     }
 
-    // APPLICATION STATE
+    // STATE MANAGEMENT
     const state = {
       activeTab: 'scanner',
       soundEnabled: true,
@@ -514,7 +527,7 @@
       gasUrl: localStorage.getItem('so_gas_url') || PRESET_GAS_URL,
       supabaseUrl: localStorage.getItem('so_supabase_url') || PRESET_SUPABASE_URL,
       supabaseKey: localStorage.getItem('so_supabase_key') || PRESET_SUPABASE_KEY,
-      masterItems: JSON.parse(localStorage.getItem('so_master_items')) || generateSampleMaster(100),
+      masterItems: JSON.parse(localStorage.getItem('so_master_items')) || generateSampleMaster(50),
       petugasByTeam: JSON.parse(localStorage.getItem('so_petugas_map')) || DEFAULT_PETUGAS,
       selectedTeam: 'TIM 1',
       selectedPetugas: '',
@@ -523,19 +536,17 @@
       isSessionLocked: false,
       soResults: JSON.parse(localStorage.getItem('so_scanned_results')) || [],
       scanQty: 1,
+      pendingItem: null,
       lastScannedItem: null,
-      cameraActive: false,
-      facingMode: 'environment',
-      cameraStream: null,
+      html5QrcodeScanner: null,
       isSyncing: false,
       masterSearch: '',
       masterPage: 1,
-      masterItemsPerPage: 25,
+      masterItemsPerPage: 20,
       resultsSearch: '',
       filterTeam: 'ALL'
     };
 
-    // AUDIO & VIBRATION FEEDBACK
     function triggerFeedback(type = 'success') {
       if (navigator.vibrate) {
         type === 'success' ? navigator.vibrate([60]) : navigator.vibrate([100, 50, 100]);
@@ -569,11 +580,10 @@
           osc.stop(ctx.currentTime + 0.28);
         }
       } catch (e) {
-        console.warn('Audio warning', e);
+        console.warn('Audio synthesis warning', e);
       }
     }
 
-    // NOTIFICATION BANNER RENDERER
     function showNotification(type, message) {
       const container = document.getElementById('scan-notification-container');
       const isSuccess = type === 'success';
@@ -611,82 +621,7 @@
       text.textContent = message;
     }
 
-    // CLIENT-SIDE STREAMING SYNC (SHEET -> SUPABASE)
-    // Menarik seluruh SKU dari Google Sheet lalu mengirimnya dalam chunk/batch (500 per request) langsung dari Browser
-    async function handleSyncSheetToSupabaseDirect() {
-      if (!state.gasUrl || !state.supabaseUrl || !state.supabaseKey) {
-        alert('Pastikan Web App GAS URL, Supabase URL, dan Anon Key sudah terisi!');
-        switchTab('settings');
-        return;
-      }
-
-      showBannerStatus(null, 'Step 1/2: Menarik Master SKU dari Google Sheet...');
-
-      try {
-        const res = await fetch(`${state.gasUrl}?action=GET_MASTER`);
-        if (!res.ok) throw new Error(`Gagal mengambil dari Sheet: HTTP ${res.status}`);
-        const json = await res.json();
-
-        if (!json.masterItems || !Array.isArray(json.masterItems) || json.masterItems.length === 0) {
-          showBannerStatus(false, 'Sheet terhubung namun data Master Item kosong.');
-          return;
-        }
-
-        const items = json.masterItems;
-        state.masterItems = items;
-        if (json.petugasByTeam) state.petugasByTeam = json.petugasByTeam;
-        saveState();
-        renderMasterTable();
-        renderPetugasOptions();
-
-        const total = items.length;
-        const chunkSize = 500;
-        let uploaded = 0;
-
-        showBannerStatus(null, `Step 2/2: Mengunggah ${total.toLocaleString('id-ID')} SKU ke Supabase... (0%)`);
-
-        // Sangat Penting: Parameter query 'on_conflict=sku' wajib untuk Supabase POST upsert
-        const supabaseEndpoint = `${state.supabaseUrl}/rest/v1/master_items?on_conflict=sku`;
-
-        for (let i = 0; i < total; i += chunkSize) {
-          const chunk = items.slice(i, i + chunkSize).map(item => ({
-            sku: item.sku,
-            nama_barang: item.namaBarang || '',
-            family: item.family || '',
-            original_code: item.originalCode || ''
-          }));
-
-          const supRes = await fetch(supabaseEndpoint, {
-            method: 'POST',
-            headers: {
-              'apikey': state.supabaseKey,
-              'Authorization': `Bearer ${state.supabaseKey}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'resolution=merge-duplicates'
-            },
-            body: JSON.stringify(chunk)
-          });
-
-          if (!supRes.ok) {
-            const errText = await supRes.text();
-            throw new Error(`Error Supabase di batch ${i}: HTTP ${supRes.status} - ${errText}`);
-          }
-
-          uploaded += chunk.length;
-          const percent = Math.round((uploaded / total) * 100);
-          showBannerStatus(null, `Mengunggah ke Supabase: ${uploaded.toLocaleString('id-ID')} / ${total.toLocaleString('id-ID')} SKU (${percent}%)`);
-        }
-
-        showBannerStatus(true, `SUCCESS! ${uploaded.toLocaleString('id-ID')} SKU dari Spreadsheet berhasil disinkron penuh ke Supabase!`);
-        triggerFeedback('success');
-      } catch (err) {
-        showBannerStatus(false, `Gagal Sync Sheet ke Supabase: ${err.message}`);
-        triggerFeedback('error');
-      }
-    }
-
-    // MAIN BARCODE SUBMIT HANDLER
-    function handleBarcodeSubmit(barcodeValue) {
+    async function handleBarcodeSubmit(barcodeValue) {
       const cleanCode = barcodeValue.trim();
       if (!cleanCode) return;
 
@@ -702,79 +637,172 @@
         renderRecentRaks();
       }
 
-      const matchedItem = state.masterItems.find(
+      // 1. Cek memori lokal
+      let matchedItem = state.masterItems.find(
         item => (item.sku && item.sku.toLowerCase() === cleanCode.toLowerCase()) || 
                 (item.originalCode && item.originalCode.toLowerCase() === cleanCode.toLowerCase())
       );
 
-      if (!matchedItem) {
-        triggerFeedback('error');
-        showNotification('error', `SKU / Original Code "${cleanCode}" TIDAK DITEMUKAN di Master Database!`);
-
-        const newUnknown = {
-          id: `so-${Date.now()}`,
-          timestamp: new Date().toISOString(),
-          team: state.selectedTeam,
-          petugas: state.selectedPetugas || 'Petugas 1',
-          rak: currentRak,
-          sku: cleanCode,
-          originalCode: cleanCode,
-          namaBarang: '*** BARANG BARU / UNKNOWN ***',
-          family: 'N/A',
-          qty: state.scanQty,
-          syncedSheet: false,
-          syncedSupabase: false
-        };
-        state.soResults.unshift(newUnknown);
-        saveState();
-        renderRecentScansList();
-        renderResultsTable();
-        document.getElementById('input-barcode-scan').value = '';
-        return;
+      // 2. Fast Lookup ke Supabase Index API jika tidak ditemukan di memori HP (<15ms)
+      if (!matchedItem && state.supabaseUrl && state.supabaseKey) {
+        try {
+          const supRes = await fetch(`${state.supabaseUrl}/rest/v1/master_items?or=(sku.ilike.${encodeURIComponent(cleanCode)},original_code.ilike.${encodeURIComponent(cleanCode)})&limit=1`, {
+            headers: {
+              'apikey': state.supabaseKey,
+              'Authorization': `Bearer ${state.supabaseKey}`
+            }
+          });
+          if (supRes.ok) {
+            const supData = await supRes.json();
+            if (Array.isArray(supData) && supData.length > 0) {
+              matchedItem = {
+                sku: supData[0].sku,
+                namaBarang: supData[0].nama_barang,
+                family: supData[0].family,
+                originalCode: supData[0].original_code
+              };
+            }
+          }
+        } catch (e) {
+          console.warn('Supabase fast lookup fallback exception', e);
+        }
       }
 
-      triggerFeedback('success');
+      if (!matchedItem) {
+        triggerFeedback('error');
+        showNotification('error', `SKU / Code "${cleanCode}" TIDAK DITEMUKAN di Master!`);
+
+        matchedItem = {
+          sku: cleanCode,
+          namaBarang: '*** BARANG BARU / UNKNOWN ***',
+          family: 'N/A',
+          originalCode: cleanCode
+        };
+      } else {
+        triggerFeedback('success');
+      }
+
+      // 3. TAMPILKAN POPUP MODAL DESKRIPSI ITEM TERLEBIH DAHULU
+      state.pendingItem = {
+        sku: matchedItem.sku,
+        namaBarang: matchedItem.namaBarang,
+        originalCode: matchedItem.originalCode || '-',
+        family: matchedItem.family || '-',
+        rak: currentRak
+      };
+
+      document.getElementById('confirm-item-nama').textContent = matchedItem.namaBarang;
+      document.getElementById('confirm-item-sku').textContent = matchedItem.sku;
+      document.getElementById('confirm-item-orig').textContent = matchedItem.originalCode || '-';
+      document.getElementById('confirm-item-family').textContent = matchedItem.family || '-';
+      document.getElementById('confirm-item-rak').textContent = `RAK: ${currentRak}`;
+      
+      const defaultQty = state.scanQty || 1;
+      document.getElementById('input-confirm-qty').value = defaultQty;
+
+      document.getElementById('modal-confirm-qty').classList.remove('hidden');
+
+      setTimeout(() => {
+        const modalQtyInput = document.getElementById('input-confirm-qty');
+        modalQtyInput.select();
+        modalQtyInput.focus();
+      }, 150);
+    }
+
+    function confirmScanEntry() {
+      if (!state.pendingItem) return;
+
+      const qtyInputValue = parseInt(document.getElementById('input-confirm-qty').value) || 1;
 
       const newEntry = {
         id: `so-${Date.now()}`,
         timestamp: new Date().toISOString(),
         team: state.selectedTeam,
         petugas: state.selectedPetugas || 'Petugas 1',
-        rak: currentRak,
-        sku: matchedItem.sku,
-        originalCode: matchedItem.originalCode,
-        namaBarang: matchedItem.namaBarang,
-        family: matchedItem.family,
-        qty: state.scanQty,
+        rak: state.pendingItem.rak,
+        sku: state.pendingItem.sku,
+        originalCode: state.pendingItem.originalCode,
+        namaBarang: state.pendingItem.namaBarang,
+        family: state.pendingItem.family,
+        qty: qtyInputValue,
         syncedSheet: false,
         syncedSupabase: false
       };
 
       state.soResults.unshift(newEntry);
       state.lastScannedItem = {
-        ...matchedItem,
-        scannedQty: state.scanQty,
-        rak: currentRak,
+        ...state.pendingItem,
+        scannedQty: qtyInputValue,
         time: new Date().toLocaleTimeString('id-ID')
       };
 
       saveState();
-      showNotification('success', `Terscan: ${matchedItem.namaBarang} (+${state.scanQty})`);
+      showNotification('success', `Berhasil disimpan: ${state.pendingItem.namaBarang} (+${qtyInputValue})`);
+      
       renderLastScannedCard();
       renderRecentScansList();
       renderResultsTable();
 
+      closeConfirmModal();
       document.getElementById('input-barcode-scan').value = '';
       if (state.autoResetQty) {
         state.scanQty = 1;
-        document.getElementById('input-scan-qty').value = 1;
+      }
+      setTimeout(() => document.getElementById('input-barcode-scan').focus(), 200);
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('modal-confirm-qty').classList.add('hidden');
+      state.pendingItem = null;
+    }
+
+    async function handleSyncSheetToSupabaseDirect() {
+      if (!state.gasUrl) {
+        alert('Pastikan Web App GAS URL sudah diisi di Settings!');
+        switchTab('settings');
+        return;
+      }
+
+      showBannerStatus(null, 'Memulai Push 70.000 SKU (Google Sheet ➔ Supabase)... RAM HP hemat 0 MB.');
+
+      try {
+        const res = await fetch(`${state.gasUrl}?action=pushToSupabase`);
+        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+        const json = await res.json();
+
+        if (json.success) {
+          showBannerStatus(true, `SUCCESS! ${json.message}`);
+          triggerFeedback('success');
+        } else {
+          showBannerStatus(false, `Gagal Sync Server: ${json.message}`);
+          triggerFeedback('error');
+        }
+      } catch (err) {
+        showBannerStatus(false, `Gagal menghubungi server Apps Script: ${err.message}`);
+        triggerFeedback('error');
       }
     }
 
-    // SYNC SUPABASE - PUSH RESULTS
+    async function fetchPetugasFromSpreadsheet() {
+      if (!state.gasUrl) return;
+      try {
+        const res = await fetch(`${state.gasUrl}?action=getPetugas`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data && typeof json.data === 'object') {
+            state.petugasByTeam = json.data;
+            saveState();
+            renderPetugasOptions();
+          }
+        }
+      } catch (e) {
+        console.warn('Gagal menarik data petugas dari Spreadsheet', e);
+      }
+    }
+
     async function handlePushResultsToSupabase() {
       if (!state.supabaseUrl || !state.supabaseKey) {
-        alert('Masukkan Supabase URL dan Anon Key!');
+        alert('Masukkan Supabase URL dan Anon Key di Settings!');
         switchTab('settings');
         return;
       }
@@ -798,8 +826,7 @@
           original_code: r.originalCode,
           nama_barang: r.namaBarang,
           family: r.family,
-          qty: Number(r.qty) || 1,
-          timestamp: r.timestamp
+          qty: Number(r.qty) || 1
         }));
 
         const res = await fetch(`${state.supabaseUrl}/rest/v1/hasil_so`, {
@@ -826,10 +853,9 @@
       }
     }
 
-    // SYNC SPREADSHEET - PUSH RESULTS
     async function handlePushResultsToSpreadsheet() {
       if (!state.gasUrl) {
-        alert('Masukkan URL Apps Script Google Sheet!');
+        alert('Masukkan URL Apps Script!');
         switchTab('settings');
         return;
       }
@@ -839,7 +865,7 @@
       try {
         const unsyncedData = state.soResults.filter(r => !r.syncedSheet);
         const payload = {
-          action: 'PUSH_SO_RESULTS',
+          action: 'syncHasilSo',
           data: unsyncedData.length > 0 ? unsyncedData : state.soResults
         };
 
@@ -860,7 +886,6 @@
       }
     }
 
-    // SYNC SUPABASE - PULL MASTER
     async function handleFetchMasterFromSupabase() {
       if (!state.supabaseUrl || !state.supabaseKey) {
         alert('Masukkan Supabase URL dan Anon Key!');
@@ -868,10 +893,10 @@
         return;
       }
 
-      showBannerStatus(null, 'Menarik Master SKU dari Supabase Database...');
+      showBannerStatus(null, 'Menarik Sample Master SKU dari Supabase Database...');
 
       try {
-        const res = await fetch(`${state.supabaseUrl}/rest/v1/master_items?select=sku,nama_barang,family,original_code&limit=75000`, {
+        const res = await fetch(`${state.supabaseUrl}/rest/v1/master_items?select=sku,nama_barang,family,original_code&limit=5000`, {
           headers: {
             'apikey': state.supabaseKey,
             'Authorization': `Bearer ${state.supabaseKey}`
@@ -882,8 +907,7 @@
         const data = await res.json();
 
         if (Array.isArray(data) && data.length > 0) {
-          const formatted = data.map((item, idx) => ({
-            id: `sp-${idx}`,
+          const formatted = data.map((item) => ({
             sku: item.sku || '',
             namaBarang: item.nama_barang || '',
             family: item.family || '',
@@ -904,7 +928,6 @@
       }
     }
 
-    // SYNC SPREADSHEET - PULL MASTER
     async function handleFetchMasterFromSpreadsheet() {
       if (!state.gasUrl) {
         alert('Masukkan URL Apps Script!');
@@ -912,25 +935,27 @@
         return;
       }
 
-      showBannerStatus(null, 'Menarik Master Item & Petugas dari Google Spreadsheet...');
+      showBannerStatus(null, 'Menarik Data Master Item & Petugas dari Google Spreadsheet...');
 
       try {
-        const res = await fetch(`${state.gasUrl}?action=GET_MASTER`);
+        const res = await fetch(`${state.gasUrl}?action=getMaster`);
         if (!res.ok) throw new Error('Gagal terhubung ke Apps Script');
         const json = await res.json();
 
-        if (json.masterItems && Array.isArray(json.masterItems)) {
-          state.masterItems = json.masterItems;
-        }
-        if (json.petugasByTeam) {
-          state.petugasByTeam = json.petugasByTeam;
+        if (json.items && Array.isArray(json.items)) {
+          state.masterItems = json.items.map(item => ({
+            sku: item.sku,
+            namaBarang: item.nama_barang,
+            family: item.family,
+            originalCode: item.original_code
+          }));
         }
 
+        await fetchPetugasFromSpreadsheet();
+
         saveState();
-        renderPetugasOptions();
-        renderTeamsList();
         renderMasterTable();
-        showBannerStatus(true, `Sync Sheet Berhasil! (${json.masterItems ? json.masterItems.length : 0} SKU ter-update)`);
+        showBannerStatus(true, `Sync Sheet Berhasil! (${state.masterItems.length.toLocaleString('id-ID')} SKU ter-update)`);
         triggerFeedback('success');
       } catch (err) {
         showBannerStatus(false, 'Gagal sync dari Spreadsheet. Pastikan URL Apps Script benar.');
@@ -938,7 +963,6 @@
       }
     }
 
-    // COMBINED SYNC
     async function handleSyncAll() {
       await handlePushResultsToSupabase();
       await handlePushResultsToSpreadsheet();
@@ -956,7 +980,7 @@
     function renderRecentRaks() {
       const container = document.getElementById('recent-raks-container');
       container.innerHTML = state.recentRaks.map(r => `
-        <button class="btn-recent-rak text-[9px] px-2 py-0.5 rounded border font-mono ${
+        <button class="btn-recent-rak text-[9px] px-2 py-0.5 rounded border font-mono shrink-0 ${
           state.manualRakInput.toUpperCase() === r.toUpperCase()
             ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold'
             : 'bg-slate-950 text-slate-400 border-slate-800'
@@ -997,7 +1021,7 @@
         return;
       }
 
-      container.innerHTML = state.soResults.slice(0, 15).map(row => `
+      container.innerHTML = state.soResults.slice(0, 10).map(row => `
         <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
           <div>
             <div class="flex items-center gap-1.5">
@@ -1113,26 +1137,12 @@
       `).join('');
     }
 
-    function renderTeamsList() {
-      const t1 = document.getElementById('list-petugas-tim1');
-      const t2 = document.getElementById('list-petugas-tim2');
-
-      t1.innerHTML = (state.petugasByTeam['TIM 1'] || []).map((p) => `
-        <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs font-bold text-slate-200">
-          <span>${p}</span>
-        </div>
-      `).join('');
-
-      t2.innerHTML = (state.petugasByTeam['TIM 2'] || []).map((p) => `
-        <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs font-bold text-slate-200">
-          <span>${p}</span>
-        </div>
-      `).join('');
-    }
-
     function switchTab(tabName) {
+      if (tabName !== 'scanner') {
+        stopHtml5CameraScanner();
+      }
       state.activeTab = tabName;
-      ['scanner', 'results', 'master', 'teams', 'settings'].forEach(t => {
+      ['scanner', 'results', 'master', 'settings'].forEach(t => {
         const sec = document.getElementById(`tab-${t}`);
         if (t === tabName) {
           sec.classList.remove('hidden');
@@ -1168,38 +1178,48 @@
       localStorage.setItem('so_petugas_map', JSON.stringify(state.petugasByTeam));
     }
 
-    function toggleCameraMode(enable) {
-      state.cameraActive = enable;
-      const viewport = document.getElementById('camera-viewport');
-      const btnGun = document.getElementById('btn-mode-gun');
-      const btnCam = document.getElementById('btn-mode-camera');
+    function startHtml5CameraScanner() {
+      document.getElementById('camera-viewport').classList.remove('hidden');
+      document.getElementById('btn-mode-camera').className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow';
+      document.getElementById('btn-mode-gun').className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 text-slate-400';
 
-      if (enable) {
-        viewport.classList.remove('hidden');
-        btnCam.className = 'flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow';
-        btnGun.className = 'flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-400';
+      if (!state.html5QrcodeScanner) {
+        state.html5QrcodeScanner = new Html5Qrcode("reader");
+      }
 
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          navigator.mediaDevices.getUserMedia({ video: { facingMode: state.facingMode } })
-            .then(stream => {
-              state.cameraStream = stream;
-              document.getElementById('video-preview').srcObject = stream;
-            })
-            .catch(err => console.warn("Camera stream warning", err));
-        }
+      if (state.html5QrcodeScanner.isScanning) {
+        return;
+      }
+
+      state.html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 180 } },
+        (decodedText) => {
+          handleBarcodeSubmit(decodedText);
+        },
+        () => {}
+      ).catch(err => console.warn("Camera start exception", err));
+    }
+
+    function stopHtml5CameraScanner() {
+      const hideCameraUI = () => {
+        const viewport = document.getElementById('camera-viewport');
+        if (viewport) viewport.classList.add('hidden');
+        const btnGun = document.getElementById('btn-mode-gun');
+        if (btnGun) btnGun.className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow';
+        const btnCam = document.getElementById('btn-mode-camera');
+        if (btnCam) btnCam.className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 text-slate-400';
+      };
+
+      if (state.html5QrcodeScanner && state.html5QrcodeScanner.isScanning) {
+        state.html5QrcodeScanner.stop()
+          .then(() => hideCameraUI())
+          .catch(() => hideCameraUI());
       } else {
-        viewport.classList.add('hidden');
-        btnGun.className = 'flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow';
-        btnCam.className = 'flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-400';
-
-        if (state.cameraStream) {
-          state.cameraStream.getTracks().forEach(track => track.stop());
-          state.cameraStream = null;
-        }
+        hideCameraUI();
       }
     }
 
-    // INITIAL EVENT LISTENERS
     window.onload = function() {
       document.querySelectorAll('[data-tab]').forEach(btn => {
         btn.onclick = () => switchTab(btn.dataset.tab);
@@ -1209,16 +1229,6 @@
         state.soundEnabled = !state.soundEnabled;
         document.getElementById('icon-sound-on').classList.toggle('hidden', !state.soundEnabled);
         document.getElementById('icon-sound-off').classList.toggle('hidden', state.soundEnabled);
-      };
-
-      document.getElementById('btn-toggle-session-lock').onclick = () => {
-        state.isSessionLocked = !state.isSessionLocked;
-        const btn = document.getElementById('btn-toggle-session-lock');
-        btn.textContent = state.isSessionLocked ? '🔒 Sesi Terkunci' : '🔓 Ubah Sesi';
-        btn.className = `text-[10px] px-2.5 py-1 rounded-full font-bold border transition ${
-          state.isSessionLocked ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-slate-800 text-slate-300 border-slate-700'
-        }`;
-        document.querySelectorAll('.session-input').forEach(i => i.disabled = state.isSessionLocked);
       };
 
       document.getElementById('select-team').onchange = (e) => {
@@ -1232,38 +1242,52 @@
 
       document.getElementById('input-rak-manual').oninput = (e) => {
         state.manualRakInput = e.target.value;
+        renderRecentRaks();
       };
 
-      document.getElementById('btn-qty-minus').onclick = () => {
-        state.scanQty = Math.max(1, state.scanQty - 1);
-        document.getElementById('input-scan-qty').value = state.scanQty;
-      };
-      document.getElementById('btn-qty-plus').onclick = () => {
-        state.scanQty = state.scanQty + 1;
-        document.getElementById('input-scan-qty').value = state.scanQty;
-      };
-      document.getElementById('input-scan-qty').oninput = (e) => {
-        state.scanQty = Math.max(1, parseInt(e.target.value) || 1);
+      document.getElementById('btn-toggle-session-lock').onclick = () => {
+        state.isSessionLocked = !state.isSessionLocked;
+        document.querySelectorAll('.session-input').forEach(i => i.disabled = state.isSessionLocked);
+        document.getElementById('btn-toggle-session-lock').textContent = state.isSessionLocked ? '🔒 Sesi Terkunci' : '🔓 Ubah Sesi';
+        document.getElementById('btn-toggle-session-lock').className = state.isSessionLocked 
+          ? 'text-[10px] px-2.5 py-1 rounded-full font-bold border transition bg-amber-500/20 text-amber-300 border-amber-500/30'
+          : 'text-[10px] px-2.5 py-1 rounded-full font-bold border transition bg-slate-800 text-slate-300 border-slate-700';
       };
 
-      document.querySelectorAll('.btn-qty-preset').forEach(btn => {
+      document.getElementById('btn-modal-save').onclick = confirmScanEntry;
+      document.getElementById('btn-modal-cancel').onclick = closeConfirmModal;
+      document.getElementById('btn-cancel-confirm').onclick = closeConfirmModal;
+
+      document.getElementById('input-confirm-qty').onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          confirmScanEntry();
+        }
+      };
+
+      document.getElementById('btn-modal-qty-minus').onclick = () => {
+        const inp = document.getElementById('input-confirm-qty');
+        const val = Math.max(1, (parseInt(inp.value) || 1) - 1);
+        inp.value = val;
+      };
+
+      document.getElementById('btn-modal-qty-plus').onclick = () => {
+        const inp = document.getElementById('input-confirm-qty');
+        const val = (parseInt(inp.value) || 1) + 1;
+        inp.value = val;
+      };
+
+      document.querySelectorAll('.btn-modal-preset').forEach(btn => {
         btn.onclick = () => {
           const qty = parseInt(btn.dataset.qty);
-          state.scanQty = qty;
-          document.getElementById('input-scan-qty').value = qty;
-          document.querySelectorAll('.btn-qty-preset').forEach(b => {
-            if (b.dataset.qty === String(qty)) {
-              b.className = 'btn-qty-preset px-2.5 py-1 rounded-lg text-[11px] font-bold border transition bg-emerald-500 text-slate-950 border-emerald-400';
-            } else {
-              b.className = 'btn-qty-preset px-2.5 py-1 rounded-lg text-[11px] font-bold border transition bg-slate-950 text-slate-400 border-slate-800';
-            }
-          });
+          document.getElementById('input-confirm-qty').value = qty;
         };
       });
 
       document.getElementById('btn-submit-scan').onclick = () => {
         handleBarcodeSubmit(document.getElementById('input-barcode-scan').value);
       };
+      
       document.getElementById('input-barcode-scan').onkeydown = (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -1271,12 +1295,14 @@
         }
       };
 
-      document.getElementById('btn-mode-gun').onclick = () => toggleCameraMode(false);
-      document.getElementById('btn-mode-camera').onclick = () => toggleCameraMode(true);
-      document.getElementById('btn-flip-camera').onclick = () => {
-        state.facingMode = state.facingMode === 'user' ? 'environment' : 'user';
-        toggleCameraMode(true);
+      document.getElementById('chk-auto-reset-qty').onchange = (e) => {
+        state.autoResetQty = e.target.checked;
       };
+
+      document.getElementById('btn-mode-gun').onclick = stopHtml5CameraScanner;
+      document.getElementById('btn-mode-camera').onclick = startHtml5CameraScanner;
+      document.getElementById('btn-stop-camera').onclick = stopHtml5CameraScanner;
+      
       document.getElementById('btn-random-scan').onclick = () => {
         const rand = state.masterItems[Math.floor(Math.random() * state.masterItems.length)];
         if (rand) handleBarcodeSubmit(rand.sku);
@@ -1300,7 +1326,6 @@
         localStorage.setItem('so_supabase_key', e.target.value);
       };
 
-      // BUTTON BINDINGS
       document.getElementById('btn-sync-all').onclick = handleSyncAll;
       document.getElementById('btn-push-supabase').onclick = handlePushResultsToSupabase;
       document.getElementById('btn-push-sheet').onclick = handlePushResultsToSpreadsheet;
@@ -1327,10 +1352,12 @@
         state.masterPage = 1;
         renderMasterTable();
       };
+      
       document.getElementById('btn-master-prev').onclick = () => {
         state.masterPage = Math.max(1, state.masterPage - 1);
         renderMasterTable();
       };
+      
       document.getElementById('btn-master-next').onclick = () => {
         state.masterPage = state.masterPage + 1;
         renderMasterTable();
@@ -1340,17 +1367,20 @@
         state.resultsSearch = e.target.value;
         renderResultsTable();
       };
+      
       document.getElementById('filter-results-team').onchange = (e) => {
         state.filterTeam = e.target.value;
         renderResultsTable();
       };
+
+      // Tarik data Petugas dari Spreadsheet secara otomatis saat startup
+      fetchPetugasFromSpreadsheet();
 
       renderPetugasOptions();
       renderRecentRaks();
       renderRecentScansList();
       renderResultsTable();
       renderMasterTable();
-      renderTeamsList();
 
       setTimeout(() => document.getElementById('input-barcode-scan').focus(), 300);
     };
