@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Aplikasi Revisi SO Mobile</title>
+  <title>Aplikasi Revisi SO Mobile (Spreadsheet & Supabase Bridge)</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -17,6 +17,9 @@
 
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     body {
@@ -45,266 +48,245 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const SPREADSHEET_ID = "10I100dl5URh59Y7hiwxBfW8cyWPBE1R0wDY75Q5XcqA";
-    const GID_REVISI_SO = "1723800282";
+    const DEFAULT_SPREADSHEET_ID = "10I100dl5URh59Y7hiwxBfW8cyWPBE1R0wDY75Q5XcqA";
     const DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxk8sBWXYGZghCvlGMkzsmP4uf8LWOaL6e9tkyBg1m237nKlHS0qjKK-4QO2q1Ewxxq/exec";
 
     const DEFAULT_OFFICERS = {
-      "TIM 1": ["Budi Santoso", "Andi Wijaya", "Agus Pratama", "Rian Hidayat", "Dedi Kurniawan", "Wildan"],
-      "TIM 2": ["Eko Susilo", "Siti Aminah", "Hendra Saputra", "Maya Indah", "Rudi Hermawan", "Rillo"],
-      "TIM1": ["Budi Santoso", "Andi Wijaya", "Agus Pratama", "Rian Hidayat", "Dedi Kurniawan", "Wildan"],
-      "TIM2": ["Eko Susilo", "Siti Aminah", "Hendra Saputra", "Maya Indah", "Rudi Hermawan", "Rillo"]
+      "TIM 1": ["Wildan", "Budi Santoso", "Andi Wijaya", "Agus Pratama", "Rian Hidayat", "Dedi Kurniawan", "Asep"],
+      "TIM 2": ["Rillo", "Eko Susilo", "Siti Aminah", "Hendra Saputra", "Maya Indah", "Rudi Hermawan", "Riki"]
     };
 
-    const parseSORows = (rows) => {
-      if (!rows || rows.length < 2) return [];
-      
-      const parseNum = (val) => {
-        if (val === undefined || val === null || val === '') return 0;
-        const cleaned = val.toString().replace(/,/g, '').trim();
-        const num = parseInt(cleaned, 10);
-        return isNaN(num) ? 0 : num;
-      };
-
-      const parsedItems = [];
-      // Skip header row (index 0)
-      for (let i = 1; i < rows.length; i++) {
-        const cols = rows[i];
-        if (!cols || cols.length < 3) continue;
-        
-        // Yellow Columns (A - H)
-        const petugasAwal = cols[0] ? String(cols[0]).trim() : "";
-        const rak = cols[1] ? String(cols[1]).trim() : "";
-        const kodeItem = cols[2] ? String(cols[2]).trim() : "";
-        const kodeOriginal = cols[3] ? String(cols[3]).trim() : "";
-        const namaItem = cols[4] ? String(cols[4]).trim() : "";
-        
-        if (!kodeItem && !namaItem) continue;
-
-        const tim1 = parseNum(cols[5]);
-        const tim2 = parseNum(cols[6]);
-        const selisih = cols[7] !== undefined && cols[7] !== "" ? parseNum(cols[7]) : (tim1 - tim2);
-        
-        // Red Input Columns (I - L)
-        const rawQtyRev = cols[8] !== undefined && cols[8] !== null ? String(cols[8]).trim() : "";
-        const qtyRevisiVal = rawQtyRev !== "" && !isNaN(parseInt(rawQtyRev, 10)) ? parseInt(rawQtyRev, 10) : null;
-        
-        const petugasRevisi = cols[9] ? String(cols[9]).trim() : "";
-        const rawStatus = cols[10] ? String(cols[10]).trim() : "";
-        const statusRevisi = rawStatus !== "" ? rawStatus : (qtyRevisiVal !== null ? "Sudah Revisi" : "Belum Revisi");
-        const keterangan = cols[11] ? String(cols[11]).trim() : "";
-
-        parsedItems.push({
-          id: i,
-          petugasAwal,
-          rak,
-          kodeItem,
-          kodeOriginal,
-          namaItem,
-          tim1,
-          tim2,
-          selisih,
-          qtyRevisi: qtyRevisiVal,
-          petugasRevisi,
-          timRevisi: petugasRevisi.includes("TIM 2") ? "TIM 2" : (petugasRevisi.includes("TIM 1") ? "TIM 1" : ""),
-          status: statusRevisi,
-          keterangan: keterangan,
-          catatan: keterangan
-        });
-      }
-      return parsedItems;
-    };
-
-    const parseOfficersRows = (rows) => {
-      if (!rows || rows.length < 1) return DEFAULT_OFFICERS;
-      
-      const tim1List = [];
-      const tim2List = [];
-
-      const header0 = String(rows[0][0] || '').toUpperCase();
-      let startRow = 0;
-      if (header0.includes("TIM") || header0.includes("PETUGAS")) {
-        startRow = 1;
-      }
-
-      for (let i = startRow; i < rows.length; i++) {
-        const col0 = rows[i][0] ? String(rows[i][0]).trim() : '';
-        const col1 = rows[i][1] ? String(rows[i][1]).trim() : '';
-
-        if (col0) tim1List.push(col0);
-        if (col1) tim2List.push(col1);
-      }
-
-      const resTim1 = tim1List.length > 0 ? tim1List : DEFAULT_OFFICERS["TIM 1"];
-      const resTim2 = tim2List.length > 0 ? tim2List : DEFAULT_OFFICERS["TIM 2"];
-
-      return {
-        "TIM 1": resTim1,
-        "TIM 2": resTim2,
-        "TIM1": resTim1,
-        "TIM2": resTim2
-      };
-    };
-
-    const parseCSVTextToRows = (csvText) => {
-      const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
-      const parseLine = (line) => {
-        const result = [];
-        let cur = '';
-        let inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-          const c = line[i];
-          if (c === '"') {
-            if (inQuotes && line[i+1] === '"') { cur += '"'; i++; }
-            else { inQuotes = !inQuotes; }
-          } else if (c === ',' && !inQuotes) {
-            result.push(cur.trim());
-            cur = '';
-          } else {
-            cur += c;
-          }
-        }
-        result.push(cur.trim());
-        return result;
-      };
-      return lines.map(l => parseLine(l).map(c => c.replace(/^"|"$/g, '')));
-    };
+    const INITIAL_DEMO_ITEMS = [
+      { id: 1, petugasAwal: "Wildan", rak: "RAK-1", kodeItem: "10401019", kodeOriginal: "8992771010024", namaItem: "PIGEON UV PROTECT REF+PUFF", tim1: 15, tim2: 12, selisih: 3, qtyRevisi: 11, petugasRevisi: "Asep (TIM 1)", status: "Sudah Revisi", keterangan: "salah kode dan tambahan" },
+      { id: 2, petugasAwal: "Wildan", rak: "RAK-1", kodeItem: "102041076", kodeOriginal: "8710103838630", namaItem: "AVENT BTL NAT 260ML", tim1: 10, tim2: 8, selisih: 2, qtyRevisi: 8, petugasRevisi: "Riki (TIM 1)", status: "Sudah Revisi", keterangan: "" }
+    ];
 
     function App() {
-      const [items, setItems] = React.useState([]);
+      // Config States
+      const [spreadsheetId, setSpreadsheetId] = React.useState(() => localStorage.getItem("so_sheet_id") || DEFAULT_SPREADSHEET_ID);
+      const [appsScriptUrl, setAppsScriptUrl] = React.useState(() => localStorage.getItem("so_script_url") || DEFAULT_APPS_SCRIPT_URL);
+      const [supabaseUrl, setSupabaseUrl] = React.useState(() => localStorage.getItem("so_supabase_url") || "");
+      const [supabaseKey, setSupabaseKey] = React.useState(() => localStorage.getItem("so_supabase_key") || "");
+      const [supabaseClient, setSupabaseClient] = React.useState(null);
+
+      // Data States
+      const [items, setItems] = React.useState(INITIAL_DEMO_ITEMS);
       const [officers, setOfficers] = React.useState(DEFAULT_OFFICERS);
       const [searchQuery, setSearchQuery] = React.useState("");
       const [selectedRak, setSelectedRak] = React.useState("ALL");
       const [statusFilter, setStatusFilter] = React.useState("ALL");
-      
+
+      // UI Control States
       const [isLoading, setIsLoading] = React.useState(false);
+      const [isSyncingSheet, setIsSyncingSheet] = React.useState(false);
+      const [isConnectedToSupabase, setIsConnectedToSupabase] = React.useState(false);
       const [activeModalItem, setActiveModalItem] = React.useState(null);
       const [showSettingsModal, setShowSettingsModal] = React.useState(false);
-      const [showScriptModal, setShowScriptModal] = React.useState(false);
-      const [appsScriptUrl, setAppsScriptUrl] = React.useState(DEFAULT_APPS_SCRIPT_URL);
+      const [showSqlModal, setShowSqlModal] = React.useState(false);
       const [toastMsg, setToastMsg] = React.useState("");
 
-      // State Session Officer Lock
+      // Locked Session Officer State (Defaults to empty)
       const [sessionOfficer, setSessionOfficer] = React.useState(() => {
         try {
           const saved = localStorage.getItem("so_session_officer");
           return saved ? JSON.parse(saved) : null;
-        } catch (e) {
-          return null;
-        }
+        } catch (e) { return null; }
       });
 
       const [showSessionModal, setShowSessionModal] = React.useState(() => {
-        try {
-          return !localStorage.getItem("so_session_officer");
-        } catch (e) {
-          return true;
-        }
+        try { return !localStorage.getItem("so_session_officer"); } catch (e) { return true; }
       });
 
-      // Default Session State starts empty
+      // Temporary inputs for Session Lock (Team & Officer start EMPTY)
       const [tempSessionTeam, setTempSessionTeam] = React.useState("TIM 1");
       const [tempSessionOfficer, setTempSessionOfficer] = React.useState("");
 
-      // Revision Form Inputs
+      // Modal Inputs (Col I, J, K, L)
       const [qtyInput, setQtyInput] = React.useState("");
       const [notesInput, setNotesInput] = React.useState("");
 
-      const fetchFromGoogleSheet = React.useCallback(async () => {
-        setIsLoading(true);
-        let fetchedSuccess = false;
-
-        if (appsScriptUrl) {
-          try {
-            const apiRes = await fetch(appsScriptUrl);
-            if (apiRes.ok) {
-              const resJson = await apiRes.json();
-              if (resJson && resJson.status === "Success") {
-                if (resJson.dataSO && resJson.dataSO.length > 0) {
-                  const parsedSO = parseSORows(resJson.dataSO);
-                  setItems(parsedSO);
-                  fetchedSuccess = true;
-                }
-                if (resJson.dataPetugas && resJson.dataPetugas.length > 0) {
-                  const parsedOff = parseOfficersRows(resJson.dataPetugas);
-                  setOfficers(parsedOff);
-                }
-                triggerToast("✅ Data Live Google Sheets berhasil dimuat!");
-              }
-            }
-          } catch (apiErr) {
-            console.warn("Fetch dari Apps Script GET gagal, mencoba CSV fallback:", apiErr);
-          }
-        }
-
-        if (!fetchedSuccess) {
-          try {
-            const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID_REVISI_SO}`;
-            const response = await fetch(csvUrl);
-            if (response.ok) {
-              const csvText = await response.text();
-              const rows = parseCSVTextToRows(csvText);
-              const parsedData = parseSORows(rows);
-
-              if (parsedData && parsedData.length > 0) {
-                setItems(parsedData);
-                fetchedSuccess = true;
-                triggerToast("✅ Data dimuat dari Spreadsheet CSV!");
-              }
-            }
-
-            try {
-              const officersUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Petugas`;
-              const offRes = await fetch(officersUrl);
-              if (offRes.ok) {
-                const offCsvText = await offRes.text();
-                const offRows = parseCSVTextToRows(offCsvText);
-                const parsedOfficers = parseOfficersRows(offRows);
-                if (parsedOfficers) setOfficers(parsedOfficers);
-              }
-            } catch (offErr) {
-              console.warn("Gagal membaca sheet Petugas CSV:", offErr);
-            }
-
-          } catch (csvErr) {
-            console.error("Fetch CSV Error:", csvErr);
-          }
-        }
-
-        if (!fetchedSuccess) {
-          triggerToast("⚠️ Gagal memuat data online. Memakai data lokal.");
-        }
-        setIsLoading(false);
-      }, [appsScriptUrl]);
-
-      React.useEffect(() => {
-        fetchFromGoogleSheet();
-      }, [fetchFromGoogleSheet]);
-
-      React.useEffect(() => {
-        if (window.lucide) {
-          window.lucide.createIcons();
-        }
-      }, [items, activeModalItem, showSettingsModal, showScriptModal, showSessionModal, toastMsg, statusFilter, selectedRak, officers]);
-
-      React.useEffect(() => {
-        if (showSessionModal) {
-          if (sessionOfficer) {
-            setTempSessionTeam(sessionOfficer.team || "TIM 1");
-            setTempSessionOfficer(sessionOfficer.name || "");
-          } else {
-            setTempSessionTeam("TIM 1");
-            setTempSessionOfficer("");
-          }
-        }
-      }, [showSessionModal, sessionOfficer]);
-
       const triggerToast = React.useCallback((msg) => {
         setToastMsg(msg);
-        setTimeout(() => {
-          setToastMsg("");
-        }, 3000);
+        setTimeout(() => { setToastMsg(""); }, 3500);
       }, []);
+
+      React.useEffect(() => {
+        if (supabaseUrl && supabaseKey && window.supabase) {
+          try {
+            const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+            setSupabaseClient(client);
+            setIsConnectedToSupabase(true);
+          } catch (e) {
+            console.error("Gagal konek Supabase:", e);
+            setIsConnectedToSupabase(false);
+          }
+        } else {
+          setIsConnectedToSupabase(false);
+        }
+      }, [supabaseUrl, supabaseKey]);
+
+      const fetchOfficersFromSheet = React.useCallback(async () => {
+        try {
+          const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=Petugas`;
+          const res = await fetch(url);
+          if (res.ok) {
+            const csvText = await res.text();
+            const lines = csvText.split("\n").map(l => l.split(",").map(c => c.replace(/^"|"$/g, '').trim()));
+            if (lines.length > 1) {
+              const tim1List = [];
+              const tim2List = [];
+              
+              lines.forEach((row, idx) => {
+                if (idx === 0) return; // Header
+                if (row[0]) tim1List.push(row[0]);
+                if (row[1]) tim2List.push(row[1]);
+              });
+
+              setOfficers({
+                "TIM 1": tim1List.filter(Boolean).length > 0 ? tim1List.filter(Boolean) : DEFAULT_OFFICERS["TIM 1"],
+                "TIM 2": tim2List.filter(Boolean).length > 0 ? tim2List.filter(Boolean) : DEFAULT_OFFICERS["TIM 2"]
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("Gagal load petugas dari Spreadsheet, pakai fallback:", e);
+        }
+      }, [spreadsheetId]);
+
+      const fetchFromSupabase = React.useCallback(async () => {
+        if (!supabaseClient) return;
+        setIsLoading(true);
+
+        try {
+          const { data: soData, error: soErr } = await supabaseClient.from('revisi_so').select('*').order('id', { ascending: true });
+          if (!soErr && soData && soData.length > 0) {
+            const mapped = soData.map(d => ({
+              id: d.id,
+              petugasAwal: d.petugas_awal || "",
+              rak: d.rak || "",
+              kodeItem: d.kode_item || "",
+              kodeOriginal: d.kode_original || "",
+              namaItem: d.nama_item || "",
+              tim1: d.tim1 || 0,
+              tim2: d.tim2 || 0,
+              selisih: d.selisih !== undefined ? d.selisih : ((d.tim1 || 0) - (d.tim2 || 0)),
+              qtyRevisi: d.qty_revisi !== undefined && d.qty_revisi !== null ? d.qty_revisi : null,
+              petugasRevisi: d.petugas_revisi || "",
+              status: d.status_revisi || (d.qty_revisi !== null ? "Sudah Revisi" : "Belum Revisi"),
+              keterangan: d.keterangan || ""
+            }));
+            setItems(mapped);
+          }
+        } catch (err) {
+          console.error("Supabase Fetch Error:", err);
+        } finally {
+          setIsLoading(false);
+        }
+      }, [supabaseClient]);
+
+      const importYellowSheetToSupabase = async () => {
+        setIsSyncingSheet(true);
+        triggerToast("⏳ Membaca Data Kuning (A-H) dari Spreadsheet...");
+
+        try {
+          const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=Revisi%20SO`;
+          const res = await fetch(csvUrl);
+          if (!res.ok) throw new Error("Gagal akses Spreadsheet");
+          
+          const csvText = await res.text();
+          const rows = csvText.split("\n").map(line => {
+            const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+            return line.split(",").map(c => c.replace(/^"|"$/g, '').trim());
+          });
+
+          if (rows.length <= 1) {
+            triggerToast("⚠️ Sheet 'Revisi SO' kosong atau format salah!");
+            setIsSyncingSheet(false);
+            return;
+          }
+
+          // Parse Data Kuning (Col A - H) & Data Merah (Col I - L) jika ada
+          const parsedData = [];
+          for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row || row.length < 3 || !row[2]) continue; // butuh kode item
+
+            const tim1Val = parseInt(row[5], 10) || 0;
+            const tim2Val = parseInt(row[6], 10) || 0;
+            const selisihVal = row[7] !== "" ? parseInt(row[7], 10) : (tim1Val - tim2Val);
+            const qtyRevVal = row[8] !== "" && row[8] !== undefined && !isNaN(parseInt(row[8], 10)) ? parseInt(row[8], 10) : null;
+
+            parsedData.push({
+              petugas_awal: row[0] || "",
+              rak: row[1] || "",
+              kode_item: String(row[2] || ""),
+              kode_original: String(row[3] || ""),
+              nama_item: row[4] || "",
+              tim1: tim1Val,
+              tim2: tim2Val,
+              selisih: selisihVal,
+              qty_revisi: qtyRevVal,
+              petugas_revisi: row[9] || "",
+              status_revisi: row[10] || (qtyRevVal !== null ? "Sudah Revisi" : "Belum Revisi"),
+              keterangan: row[11] || ""
+            });
+          }
+
+          if (supabaseClient && parsedData.length > 0) {
+            // Upsert / Refresh Data di Supabase
+            const { error } = await supabaseClient.from('revisi_so').upsert(parsedData, { onConflict: 'kode_item,rak' });
+            if (error) {
+              console.warn("Upsert error, mencoba insert standard:", error);
+              await supabaseClient.from('revisi_so').insert(parsedData);
+            }
+            triggerToast("⚡ Data Kuning dari Sheet Berhasil Disinkronkan ke Supabase!");
+            fetchFromSupabase();
+          } else {
+            // Fallback Local
+            setItems(parsedData.map((d, idx) => ({
+              id: idx + 1,
+              petugasAwal: d.petugas_awal,
+              rak: d.rak,
+              kodeItem: d.kode_item,
+              kodeOriginal: d.kode_original,
+              namaItem: d.nama_item,
+              tim1: d.tim1,
+              tim2: d.tim2,
+              selisih: d.selisih,
+              qtyRevisi: d.qty_revisi,
+              petugasRevisi: d.petugas_revisi,
+              status: d.status_revisi,
+              keterangan: d.keterangan
+            })));
+            triggerToast("💾 Data Kuning Dimuat ke Memori HP");
+          }
+        } catch (e) {
+          console.error("Gagal Sync Sheet:", e);
+          triggerToast("⚠️ Gagal membaca data dari Google Spreadsheet.");
+        } finally {
+          setIsSyncingSheet(false);
+        }
+      };
+
+      React.useEffect(() => {
+        fetchOfficersFromSheet();
+        
+        if (supabaseClient) {
+          fetchFromSupabase();
+          const channel = supabaseClient
+            .channel('schema-db-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'revisi_so' }, () => {
+              fetchFromSupabase();
+            })
+            .subscribe();
+
+          return () => { supabaseClient.removeChannel(channel); };
+        }
+      }, [supabaseClient, fetchOfficersFromSheet, fetchFromSupabase]);
+
+      React.useEffect(() => {
+        if (window.lucide) window.lucide.createIcons();
+      }, [items, activeModalItem, showSettingsModal, showSqlModal, showSessionModal, toastMsg, statusFilter, selectedRak, isConnectedToSupabase]);
 
       const handleSaveSession = (team, officerName) => {
         if (!team) {
@@ -319,16 +301,14 @@
         setSessionOfficer(sessionData);
         try {
           localStorage.setItem("so_session_officer", JSON.stringify(sessionData));
-        } catch (e) {
-          console.warn("Gagal simpan session", e);
-        }
+        } catch (e) { console.warn("Error save session", e); }
         setShowSessionModal(false);
         triggerToast(`🔒 Sesi dikunci: ${officerName} (${team})`);
       };
 
       const handleTempTeamChange = (team) => {
         setTempSessionTeam(team);
-        setTempSessionOfficer("");
+        setTempSessionOfficer(""); // Reset nama petugas ke kosong
       };
 
       const openRevisionModal = (item) => {
@@ -340,7 +320,7 @@
 
         setActiveModalItem(item);
         setQtyInput(item.qtyRevisi !== null && item.qtyRevisi !== undefined ? String(item.qtyRevisi) : String(item.tim1 !== undefined ? item.tim1 : 0));
-        setNotesInput(item.keterangan || item.catatan || "");
+        setNotesInput(item.keterangan || "");
       };
 
       const saveRevision = async () => {
@@ -356,52 +336,80 @@
         }
 
         const updatedOfficerName = `${finalOfficer} (${selectedTeam})`;
+        const statusText = "Sudah Revisi";
 
+        // 1. Local State Update
         const updatedItems = items.map(item => {
           if (item.id === activeModalItem.id) {
             return {
               ...item,
               qtyRevisi: parsedQty,
               petugasRevisi: updatedOfficerName,
-              timRevisi: selectedTeam,
-              status: "Sudah Revisi",
-              keterangan: notesInput,
-              catatan: notesInput
+              status: statusText,
+              keterangan: notesInput
             };
           }
           return item;
         });
-
         setItems(updatedItems);
 
-        // Send POST payload to Apps Script updating Columns I, J, K, L
+        // 2. Save to Supabase (Realtime across all mobile devices)
+        if (supabaseClient) {
+          try {
+            await supabaseClient
+              .from('revisi_so')
+              .update({
+                qty_revisi: parsedQty,
+                petugas_revisi: updatedOfficerName,
+                status_revisi: statusText,
+                keterangan: notesInput,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', activeModalItem.id);
+          } catch (e) {
+            console.error("Supabase Update Error:", e);
+          }
+        }
+
+        // 3. Push Red Columns (I, J, K, L) to Google Spreadsheet via Apps Script Webhook
         if (appsScriptUrl) {
           try {
             fetch(appsScriptUrl, {
-              method: "POST",
-              mode: "no-cors",
-              headers: { "Content-Type": "application/json" },
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                action: "updateRevision",
-                kodeItem: activeModalItem.kodeItem,
                 rak: activeModalItem.rak,
-                qtyRevisi: parsedQty,
-                petugasRevisi: updatedOfficerName,
-                statusRevisi: "Sudah Revisi",
-                keterangan: notesInput,
-                catatan: notesInput
+                kodeItem: activeModalItem.kodeItem,
+                qtyRevisi: parsedQty,             // Kolom I
+                petugasRevisi: updatedOfficerName,// Kolom J
+                statusRevisi: statusText,         // Kolom K
+                keterangan: notesInput            // Kolom L
               })
-            });
-            triggerToast("💾 Ter-sync ke Kolom I, J, K, & L Google Sheets!");
+            }).catch(err => console.warn("Apps Script Push warning:", err));
+
+            triggerToast("⚡ Ter-update di Supabase & dikirim ke Spreadsheet!");
           } catch (e) {
-            console.error("Apps Script Sync Error:", e);
-            triggerToast("⚠️ Tersimpan di HP (Gagal sync Apps Script)");
+            triggerToast("⚡ Tersimpan di Supabase!");
           }
         } else {
-          triggerToast("💾 Status diperbarui ke SUDAH REVISI");
+          triggerToast("⚡ Tersimpan di Supabase Realtime!");
         }
 
         setActiveModalItem(null);
+      };
+
+      const saveSettings = () => {
+        try {
+          localStorage.setItem("so_sheet_id", spreadsheetId.trim());
+          localStorage.setItem("so_script_url", appsScriptUrl.trim());
+          localStorage.setItem("so_supabase_url", supabaseUrl.trim());
+          localStorage.setItem("so_supabase_key", supabaseKey.trim());
+          setShowSettingsModal(false);
+          triggerToast("💾 Pengaturan Tersimpan!");
+        } catch (e) {
+          triggerToast("⚠️ Gagal menyimpan konfigurasi");
+        }
       };
 
       const rakList = React.useMemo(() => {
@@ -443,7 +451,7 @@
             i.qtyRevisi !== null && i.qtyRevisi !== undefined ? i.qtyRevisi : "",
             `"${i.petugasRevisi || ''}"`,
             `"${i.status || ''}"`,
-            `"${i.keterangan || i.catatan || ''}"`
+            `"${i.keterangan || ''}"`
           ].join(",");
           csvContent += row + "\n";
         });
@@ -451,56 +459,66 @@
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `Revisi_SO_Updated_${new Date().toISOString().slice(0,10)}.csv`);
+        link.setAttribute("download", `Revisi_SO_Full_${new Date().toISOString().slice(0,10)}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        triggerToast("📥 Unduh CSV Berhasil");
+        triggerToast("📥 Unduh File CSV Berhasil");
       };
 
       return (
         <div className="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col shadow-xl relative pb-20">
           
-          {/* Top Header */}
+          {/* Main Header */}
           <header className="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-md">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center font-bold text-lg shadow-lg shadow-red-500/30">
+                <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-lg shadow-lg shadow-emerald-500/30">
                   SO
                 </div>
                 <div>
-                  <h1 className="font-bold text-base leading-tight">Revisi Stock Opname</h1>
-                  <p className="text-xs text-slate-400">Tim 1 & Tim 2 Opname</p>
+                  <h1 className="font-bold text-base leading-tight flex items-center gap-1.5">
+                    <span>Revisi SO Mobile</span>
+                    <span className="text-[9px] bg-emerald-950 text-emerald-400 font-mono px-1.5 py-0.5 rounded border border-emerald-800">
+                      Hybrid Bridge
+                    </span>
+                  </h1>
+                  <p className="text-[11px] text-slate-400">Spreadsheet ↔️ Supabase Live</p>
                 </div>
               </div>
+              
               <div className="flex items-center gap-1.5">
                 <button 
-                  onClick={fetchFromGoogleSheet}
-                  disabled={isLoading}
-                  className="p-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg transition-all border border-slate-700"
-                  title="Reload dari Spreadsheet"
+                  onClick={importYellowSheetToSupabase}
+                  disabled={isSyncingSheet}
+                  className="p-2 bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-emerald-100 rounded-lg transition-all border border-emerald-600 flex items-center gap-1 text-xs font-bold"
+                  title="Tarik Data Kuning (A-H) dari Spreadsheet"
                 >
-                  <i data-lucide="refresh-cw" className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-400' : ''}`}></i>
+                  <i data-lucide="cloud-download" className={`w-4 h-4 ${isSyncingSheet ? 'animate-bounce text-amber-300' : ''}`}></i>
+                  <span>Sync Sheet</span>
                 </button>
                 <button 
                   onClick={() => setShowSettingsModal(true)}
-                  className="p-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg transition-all border border-slate-700"
-                  title="Pengaturan Integrasi"
+                  className="p-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg transition-all border border-slate-700 relative"
+                  title="Pengaturan Koneksi"
                 >
                   <i data-lucide="settings" className="w-4 h-4"></i>
+                  {isConnectedToSupabase && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 absolute -top-0.5 -right-0.5 animate-ping"></span>
+                  )}
                 </button>
               </div>
             </div>
 
-            {/* Active Session Lock Bar */}
+            {/* Active Locked Officer Bar */}
             <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className={`w-2 h-2 rounded-full ${isConnectedToSupabase ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
                 <span className="text-xs font-semibold text-slate-300">
                   Sesi Petugas:
                 </span>
                 {sessionOfficer ? (
-                  <span className="text-xs font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-800/60">
+                  <span className="text-xs font-bold text-emerald-300 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-800/80">
                     👤 {sessionOfficer.name} ({sessionOfficer.team})
                   </span>
                 ) : (
@@ -511,14 +529,14 @@
               </div>
               <button 
                 onClick={() => setShowSessionModal(true)}
-                className="text-[11px] font-bold text-red-400 hover:text-red-300 bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded-lg border border-slate-700 flex items-center gap-1 active:scale-95 transition-all"
+                className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-lg border border-slate-700 flex items-center gap-1 active:scale-95 transition-all"
               >
                 <i data-lucide="user-check" className="w-3.5 h-3.5"></i>
                 {sessionOfficer ? "Ganti" : "Kunci Sesi"}
               </button>
             </div>
 
-            {/* Quick Summary Cards */}
+            {/* Quick Metrics Bar */}
             <div className="grid grid-cols-3 gap-2 mt-3 text-center">
               <div className="bg-slate-800/80 rounded-lg p-2 border border-slate-700/50">
                 <span className="text-[10px] uppercase tracking-wider text-slate-400 block font-medium">Total Item</span>
@@ -535,7 +553,7 @@
             </div>
           </header>
 
-          {}
+          {/* Search & Filter Section */}
           <section className="p-3 bg-white border-b border-slate-200 sticky top-[125px] z-20 shadow-sm space-y-2.5">
             <div className="relative">
               <i data-lucide="search" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
@@ -544,7 +562,7 @@
                 placeholder="Cari Rak, Nama, atau Kode Item..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 bg-slate-100 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-200 text-slate-800 placeholder-slate-400"
+                className="w-full pl-9 pr-8 py-2 bg-slate-100 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 border border-slate-200 text-slate-800 placeholder-slate-400"
               />
               {searchQuery && (
                 <button 
@@ -582,7 +600,7 @@
                 <select 
                   value={selectedRak}
                   onChange={(e) => setSelectedRak(e.target.value)}
-                  className="bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-6 appearance-none cursor-pointer"
+                  className="bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-6 appearance-none cursor-pointer"
                 >
                   <option value="ALL">📍 Semua Rak</option>
                   {rakList.filter(r => r !== "ALL").map(rak => (
@@ -596,10 +614,19 @@
 
           <main className="flex-1 p-3 space-y-3">
             {filteredItems.length === 0 ? (
-              <div className="text-center py-12 px-4 bg-white rounded-2xl border border-dashed border-slate-300 my-4">
-                <i data-lucide="package-search" className="w-10 h-10 text-slate-300 mx-auto mb-2"></i>
+              <div className="text-center py-12 px-4 bg-white rounded-2xl border border-dashed border-slate-300 my-4 space-y-2">
+                <i data-lucide="package-search" className="w-10 h-10 text-slate-300 mx-auto"></i>
                 <p className="text-sm font-bold text-slate-600">Tidak ada item ditemukan</p>
-                <p className="text-xs text-slate-400 mt-1">Coba sesuaikan pencarian atau tekan tombol reload di atas.</p>
+                <p className="text-xs text-slate-400">
+                  Tekan <span className="font-bold text-emerald-700">"Sync Sheet"</span> di kanan atas untuk memuat data dari Spreadsheet.
+                </p>
+                <button 
+                  onClick={importYellowSheetToSupabase}
+                  className="mt-2 px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95"
+                >
+                  <i data-lucide="cloud-download" className="w-4 h-4"></i>
+                  Tarik Data Kuning (A-H) dari Spreadsheet
+                </button>
               </div>
             ) : (
               filteredItems.map(item => {
@@ -618,7 +645,7 @@
                           <span className="px-2 py-0.5 bg-slate-800 text-white rounded font-mono text-[10px] font-bold">
                             📍 {item.rak || "RAK ?"}
                           </span>
-                          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded font-mono text-[10px] font-medium">
+                          <span className="px-2 py-0.5 bg-amber-100 text-amber-900 rounded font-mono text-[10px] font-bold border border-amber-200">
                             {item.kodeItem}
                           </span>
                           {item.kodeOriginal && (
@@ -642,18 +669,18 @@
                       </span>
                     </div>
 
-                    {/* Details Matrix */}
+                    {/* Master Data Yellow Columns Matrix (A - H) */}
                     <div className="grid grid-cols-4 gap-2 my-3 text-center text-xs">
-                      <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-100">
-                        <span className="text-[10px] text-slate-400 block font-medium">Petugas Awal</span>
+                      <div className="bg-amber-50/60 p-1.5 rounded-xl border border-amber-200/60">
+                        <span className="text-[10px] text-amber-700 block font-medium">Petugas Awal</span>
                         <span className="font-bold text-slate-700 text-xs truncate block">{item.petugasAwal || "-"}</span>
                       </div>
-                      <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-100">
-                        <span className="text-[10px] text-slate-400 block font-medium">Tim 1</span>
+                      <div className="bg-amber-50/60 p-1.5 rounded-xl border border-amber-200/60">
+                        <span className="text-[10px] text-amber-700 block font-medium">Tim 1</span>
                         <span className="font-bold text-slate-800 text-xs">{item.tim1}</span>
                       </div>
-                      <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-100">
-                        <span className="text-[10px] text-slate-400 block font-medium">Tim 2</span>
+                      <div className="bg-amber-50/60 p-1.5 rounded-xl border border-amber-200/60">
+                        <span className="text-[10px] text-amber-700 block font-medium">Tim 2</span>
                         <span className="font-bold text-slate-800 text-xs">{item.tim2}</span>
                       </div>
                       <div className={`p-1.5 rounded-xl border ${
@@ -664,34 +691,34 @@
                       </div>
                     </div>
 
-                    {/* Revision Result Box if Revised */}
+                    {/* Red Columns Box (Col I, J, K, L) */}
                     {isRevised && (
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 text-xs text-emerald-900 space-y-1 my-2">
+                      <div className="bg-rose-50 border border-rose-200 rounded-xl p-2.5 text-xs text-rose-950 space-y-1 my-2">
                         <div className="flex items-center justify-between font-bold">
-                          <span>QTY Hasil Revisi (Col I): <span className="text-sm text-emerald-700">{item.qtyRevisi}</span></span>
-                          <span className="text-[10px] bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full">
-                            {item.timRevisi || "Revisi"}
+                          <span>QTY Revisi (Col I): <span className="text-sm font-black text-rose-700">{item.qtyRevisi}</span></span>
+                          <span className="text-[10px] bg-rose-200 text-rose-800 px-2 py-0.5 rounded-full border border-rose-300">
+                            Col K: {item.status}
                           </span>
                         </div>
-                        <div className="text-[11px] text-emerald-700 flex items-center gap-1">
-                          <i data-lucide="user" className="w-3 h-3"></i>
-                          <span>Petugas (Col J): {item.petugasRevisi || "-"}</span>
+                        <div className="text-[11px] text-rose-800 flex items-center gap-1 font-semibold">
+                          <i data-lucide="user-check" className="w-3.5 h-3.5 text-rose-600"></i>
+                          <span>Petugas Revisi (Col J): {item.petugasRevisi || "-"}</span>
                         </div>
-                        {(item.keterangan || item.catatan) && (
-                          <div className="text-[11px] text-slate-600 italic border-t border-emerald-200/60 pt-1 mt-1">
-                            💬 Keterangan (Col L): "{item.keterangan || item.catatan}"
+                        {item.keterangan && (
+                          <div className="text-[11px] text-slate-700 italic border-t border-rose-200/80 pt-1 mt-1">
+                            💬 Keterangan (Col L): "{item.keterangan}"
                           </div>
                         )}
                       </div>
                     )}
 
-                    {/* Action Button */}
+                    {/* Revision Action Button */}
                     <button 
                       onClick={() => openRevisionModal(item)}
                       className={`w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-sm ${
                         isRevised 
                           ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300' 
-                          : 'bg-red-600 hover:bg-red-700 text-white shadow-red-500/20'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
                       }`}
                     >
                       <i data-lucide={isRevised ? "edit-3" : "edit-2"} className="w-4 h-4"></i>
@@ -708,16 +735,16 @@
               <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl modal-animate space-y-4">
                 
                 <div className="text-center space-y-2">
-                  <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto shadow-inner">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
                     <i data-lucide="lock" className="w-7 h-7"></i>
                   </div>
                   <h2 className="text-lg font-extrabold text-slate-900">Kunci Sesi Petugas Revisi</h2>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    Pilih tim dan nama Anda sebelum mulai revisi. Nama ini akan otomatis terisi pada Kolom J (Petugas Revisi).
+                    Pilih tim dan nama Anda. Nama petugas diambil langsung dari Sheet <span className="font-bold text-slate-800">Petugas</span> di Spreadsheet.
                   </p>
                 </div>
 
-                {/* Pilih Tim */}
+                {/* 1. Select Team */}
                 <div className="space-y-1.5 pt-2">
                   <label className="block text-xs font-bold text-slate-700">
                     1. Pilih Tim Opname:
@@ -728,7 +755,7 @@
                       onClick={() => handleTempTeamChange("TIM 1")}
                       className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-2 ${
                         tempSessionTeam === "TIM 1"
-                          ? 'bg-red-600 text-white border-red-600 shadow-md shadow-red-500/30'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/30'
                           : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
@@ -740,7 +767,7 @@
                       onClick={() => handleTempTeamChange("TIM 2")}
                       className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-2 ${
                         tempSessionTeam === "TIM 2"
-                          ? 'bg-red-600 text-white border-red-600 shadow-md shadow-red-500/30'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/30'
                           : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
@@ -750,7 +777,7 @@
                   </div>
                 </div>
 
-                {/* Pilih Nama Petugas (Default Empty) */}
+                {/* 2. Select Officer Name (Starts Empty) */}
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-slate-700">
                     2. Pilih Nama Petugas ({tempSessionTeam}):
@@ -759,7 +786,7 @@
                     <select
                       value={tempSessionOfficer}
                       onChange={(e) => setTempSessionOfficer(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl p-3 pr-8 focus:outline-none focus:ring-2 focus:ring-red-500 font-semibold appearance-none"
+                      className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl p-3 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold appearance-none"
                     >
                       <option value="">-- Pilih Nama Petugas --</option>
                       {((officers[tempSessionTeam] || officers[tempSessionTeam.replace(" ", "")]) || []).map((officer, idx) => (
@@ -770,7 +797,7 @@
                   </div>
                 </div>
 
-                {/* Submit Button */}
+                {/* Action Buttons */}
                 <div className="pt-3">
                   <button
                     type="button"
@@ -803,7 +830,7 @@
                 {/* Modal Header */}
                 <div className="flex items-start justify-between border-b border-slate-100 pb-3">
                   <div>
-                    <span className="px-2 py-0.5 bg-red-100 text-red-800 rounded font-mono text-[10px] font-bold">
+                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-mono text-[10px] font-bold">
                       Rak {activeModalItem.rak} • {activeModalItem.kodeItem}
                     </span>
                     <h2 className="font-bold text-slate-900 text-base mt-1 line-clamp-1">
@@ -818,14 +845,14 @@
                   </button>
                 </div>
 
-                {/* Info Matrix */}
+                {/* Master Info Matrix (Yellow Columns) */}
                 <div className="grid grid-cols-3 gap-2 my-3 text-center text-xs">
-                  <div className="bg-slate-50 p-2 rounded-xl border border-slate-200">
-                    <span className="text-slate-400 block text-[10px]">TIM 1</span>
+                  <div className="bg-amber-50 p-2 rounded-xl border border-amber-200">
+                    <span className="text-amber-700 block text-[10px]">TIM 1</span>
                     <span className="font-bold text-slate-800 text-sm">{activeModalItem.tim1}</span>
                   </div>
-                  <div className="bg-slate-50 p-2 rounded-xl border border-slate-200">
-                    <span className="text-slate-400 block text-[10px]">TIM 2</span>
+                  <div className="bg-amber-50 p-2 rounded-xl border border-amber-200">
+                    <span className="text-amber-700 block text-[10px]">TIM 2</span>
                     <span className="font-bold text-slate-800 text-sm">{activeModalItem.tim2}</span>
                   </div>
                   <div className="bg-red-50 p-2 rounded-xl border border-red-200 text-red-700">
@@ -834,36 +861,36 @@
                   </div>
                 </div>
 
-                {/* Form Fields for Red Columns I, J, K, L */}
+                {/* Inputs for Red Columns (I, J, K, L) */}
                 <div className="space-y-4 my-4">
                   
-                  {/* Petugas Revisi (Kolom J) & Status (Kolom K) */}
-                  <div className="bg-slate-100/80 border border-slate-200 rounded-2xl p-3 flex items-center justify-between shadow-inner">
+                  {/* Locked Officer & Status Indicator (Kolom J & K) */}
+                  <div className="bg-rose-50/80 border border-rose-200 rounded-2xl p-3 flex items-center justify-between shadow-inner">
                     <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Petugas Revisi &rarr; <span className="text-red-600 font-bold">Kolom J</span>
+                      <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">
+                        Petugas Revisi &rarr; <span className="text-rose-900 font-extrabold">Kolom J</span>
                       </span>
                       <div className="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
                         <i data-lucide="user-check" className="w-4 h-4 text-emerald-600"></i>
                         <span>{sessionOfficer ? sessionOfficer.name : "-"}</span>
-                        <span className="text-[11px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-md border border-red-200 ml-1">
+                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200 ml-1">
                           {sessionOfficer ? sessionOfficer.team : "-"}
                         </span>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-slate-500 bg-slate-200 px-2 py-1 rounded-lg border border-slate-300/80">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-slate-600 bg-slate-200 px-2 py-1 rounded-lg border border-slate-300">
                         <i data-lucide="lock" className="w-3 h-3 text-slate-600"></i>
                         Terkunci
                       </span>
-                      <span className="text-[9px] text-emerald-600 font-bold">Col K: Auto Revisi</span>
+                      <span className="text-[9px] text-rose-700 font-bold">Col K: Sudah Revisi</span>
                     </div>
                   </div>
 
-                  {/* Input QTY Revisi (Kolom I) */}
+                  {/* QTY Revisi Input (Kolom I) */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      1. QTY Revisi Fix &rarr; <span className="text-red-600 font-bold">Kolom I</span>:
+                      1. QTY Revisi Fix &rarr; <span className="text-rose-700 font-bold">Kolom I</span>:
                     </label>
                     <div className="flex items-center gap-2">
                       <button 
@@ -878,7 +905,7 @@
                         min="0"
                         value={qtyInput}
                         onChange={(e) => setQtyInput(e.target.value)}
-                        className="flex-1 bg-white border-2 border-red-600 rounded-xl py-2 px-3 text-center text-xl font-black text-red-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+                        className="flex-1 bg-white border-2 border-emerald-600 rounded-xl py-2 px-3 text-center text-xl font-black text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         placeholder="0"
                       />
                       <button 
@@ -908,23 +935,23 @@
                     </div>
                   </div>
 
-                  {/* Keterangan / Alasan Revisi (Kolom L) */}
+                  {/* Keterangan / Alasan (Kolom L) */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      2. Keterangan / Alasan Revisi &rarr; <span className="text-red-600 font-bold">Kolom L</span>:
+                      2. Keterangan / Alasan Revisi &rarr; <span className="text-rose-700 font-bold">Kolom L</span>:
                     </label>
                     <textarea 
                       rows="2"
                       value={notesInput}
                       onChange={(e) => setNotesInput(e.target.value)}
-                      placeholder="Contoh: Barang kurang di rak atas, telah disesuaikan..."
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-800"
+                      placeholder="Contoh: salah kode dan tambahan, barang kurang di rak atas..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
                     ></textarea>
                   </div>
 
                 </div>
 
-                {/* Actions */}
+                {/* Save & Cancel Actions */}
                 <div className="flex gap-2 pt-2">
                   <button 
                     type="button"
@@ -939,7 +966,7 @@
                     className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-lg shadow-emerald-600/30 active:scale-95 transition-all flex items-center justify-center gap-1.5"
                   >
                     <i data-lucide="check" className="w-4 h-4"></i>
-                    Simpan Revisi
+                    Simpan (Supabase & Sheet)
                   </button>
                 </div>
 
@@ -952,7 +979,7 @@
               <div className="bg-white w-full max-w-md rounded-2xl p-5 shadow-2xl modal-animate space-y-4 max-h-[85vh] overflow-y-auto">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                    <i data-lucide="settings" className="w-5 h-5 text-red-600"></i>
+                    <i data-lucide="settings" className="w-5 h-5 text-emerald-600"></i>
                     Pengaturan Integrasi
                   </h3>
                   <button 
@@ -963,134 +990,135 @@
                   </button>
                 </div>
 
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1">
-                  <span className="font-bold text-slate-700 block">Link Spreadsheet Terhubung:</span>
-                  <a 
-                    href={`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit#gid=${GID_REVISI_SO}`} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="text-blue-600 font-mono underline break-all block text-[11px]"
-                  >
-                    ID: {SPREADSHEET_ID}
-                  </a>
-                </div>
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Google Spreadsheet ID:</label>
+                    <input 
+                      type="text"
+                      value={spreadsheetId}
+                      onChange={(e) => setSpreadsheetId(e.target.value)}
+                      placeholder="10I100dl5URh59Y7hiwxBfW8cyWPBE1R0wDY75Q5XcqA"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Google Apps Script Web App URL:
-                  </label>
-                  <input 
-                    type="url"
-                    value={appsScriptUrl}
-                    onChange={(e) => setAppsScriptUrl(e.target.value)}
-                    placeholder="https://script.google.com/macros/s/.../exec"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-red-500 font-mono"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    URL posting otomatis ke Kolom Merah (I, J, K, & L) Google Sheets.
-                  </p>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Google Apps Script Webhook URL:</label>
+                    <input 
+                      type="url"
+                      value={appsScriptUrl}
+                      onChange={(e) => setAppsScriptUrl(e.target.value)}
+                      placeholder="https://script.google.com/macros/s/.../exec"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100">
+                    <label className="block font-bold text-slate-700 mb-1">Supabase Project URL:</label>
+                    <input 
+                      type="url"
+                      value={supabaseUrl}
+                      onChange={(e) => setSupabaseUrl(e.target.value)}
+                      placeholder="https://xyz.supabase.co"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Supabase Anon Key:</label>
+                    <input 
+                      type="password"
+                      value={supabaseKey}
+                      onChange={(e) => setSupabaseKey(e.target.value)}
+                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
                   <button 
-                    onClick={() => setShowScriptModal(true)}
-                    className="mt-1.5 text-xs text-blue-600 font-bold hover:underline flex items-center gap-1"
+                    onClick={saveSettings}
+                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center justify-center gap-2"
+                  >
+                    <i data-lucide="save" className="w-4 h-4"></i>
+                    Simpan Pengaturan
+                  </button>
+
+                  <button 
+                    onClick={() => setShowSqlModal(true)}
+                    className="w-full py-2 border border-slate-300 text-slate-700 rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5"
                   >
                     <i data-lucide="code" className="w-3.5 h-3.5"></i>
-                    Lihat Kode Apps Script (Col I, J, K, & L)
+                    Lihat Kode SQL Supabase & Apps Script
                   </button>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100">
-                  <label className="block text-xs font-bold text-slate-700 mb-2">
-                    Backup / Unduh Data Terbaru:
-                  </label>
+                <div className="pt-2 border-t border-slate-100 space-y-2">
                   <button 
                     onClick={exportToCSV}
                     className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2"
                   >
                     <i data-lucide="download" className="w-4 h-4"></i>
-                    Export Data Revisi ke File CSV
-                  </button>
-                </div>
-
-                <div className="pt-2">
-                  <button 
-                    onClick={() => setShowSettingsModal(false)}
-                    className="w-full py-2.5 bg-red-600 text-white rounded-xl font-bold text-xs"
-                  >
-                    Tutup Pengaturan
+                    Export Seluruh Data ke File CSV
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Apps Script Guide Modal */}
-          {showScriptModal && (
+          {showSqlModal && (
             <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
               <div className="bg-white w-full max-w-md rounded-2xl p-5 shadow-2xl modal-animate space-y-3 max-h-[85vh] overflow-y-auto text-xs">
                 <div className="flex items-center justify-between border-b pb-2">
-                  <h3 className="font-bold text-slate-900 text-sm">Kode Apps Script (Update Col I, J, K, L)</h3>
-                  <button onClick={() => setShowScriptModal(false)}><i data-lucide="x" className="w-4 h-4"></i></button>
+                  <h3 className="font-bold text-slate-900 text-sm">Panduan SQL & Apps Script</h3>
+                  <button onClick={() => setShowSqlModal(false)}><i data-lucide="x" className="w-4 h-4"></i></button>
                 </div>
-                <p className="text-slate-600">
-                  Salin dan tempel kode ini di editor <b>Google Apps Script</b> (Ekstensi &rarr; Apps Script) lalu Deploy ulang sebagai <b>Web App</b> agar HP dapat meng-update kolom I, J, K, dan L secara langsung:
-                </p>
-                <pre className="bg-slate-900 text-emerald-400 p-3 rounded-xl overflow-x-auto text-[10px] font-mono select-all">
-{`function doGet(e) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    
-    // 1. Ambil Data Sheet "Revisi SO"
-    var sheetSO = ss.getSheetByName("Revisi SO");
-    var dataSO = sheetSO ? sheetSO.getDataRange().getValues() : [];
-    
-    // 2. Ambil Data Sheet "Petugas"
-    var sheetPetugas = ss.getSheetByName("Petugas");
-    var dataPetugas = sheetPetugas ? sheetPetugas.getDataRange().getValues() : [];
-    
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "Success",
-      dataSO: dataSO,
-      dataPetugas: dataPetugas
-    })).setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "Error",
-      error: err.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
-}
+                
+                <p className="font-bold text-emerald-800">1. SQL Supabase Editor:</p>
+                <pre className="bg-slate-900 text-emerald-400 p-2.5 rounded-xl overflow-x-auto text-[9px] font-mono select-all">
+{`CREATE TABLE IF NOT EXISTS revisi_so (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    petugas_awal TEXT,
+    rak TEXT NOT NULL,
+    kode_item TEXT NOT NULL,
+    kode_original TEXT,
+    nama_item TEXT NOT NULL,
+    tim1 INT DEFAULT 0,
+    tim2 INT DEFAULT 0,
+    selisih INT DEFAULT 0,
+    qty_revisi INT,
+    petugas_revisi TEXT,
+    status_revisi TEXT DEFAULT 'Belum Revisi',
+    keterangan TEXT,
+    CONSTRAINT unique_item_rak UNIQUE (kode_item, rak)
+);
 
-function doPost(e) {
-  try {
-    var data = JSON.parse(e.postData.contents);
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Revisi SO");
-    var values = sheet.getDataRange().getValues();
-    
-    for (var i = 1; i < values.length; i++) {
-      var rak = String(values[i][1] || "").trim().toUpperCase();
-      var kodeItem = String(values[i][2] || "").trim();
-      
-      var targetRak = String(data.rak || "").trim().toUpperCase();
-      var targetKode = String(data.kodeItem || "").trim();
-      
-      if (kodeItem === targetKode && (rak === targetRak || !data.rak)) { 
-        sheet.getRange(i + 1, 9).setValue(data.qtyRevisi);                  // Col I (9): QTY Revisi
-        sheet.getRange(i + 1, 10).setValue(data.petugasRevisi);             // Col J (10): Petugas Revisi
-        sheet.getRange(i + 1, 11).setValue(data.statusRevisi);              // Col K (11): Status Revisi
-        sheet.getRange(i + 1, 12).setValue(data.keterangan || data.catatan || ""); // Col L (12): Keterangan
-        break;
-      }
+ALTER TABLE revisi_so ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public Access" ON revisi_so FOR ALL USING (true) WITH CHECK (true);
+ALTER PUBLICATION supabase_realtime ADD TABLE revisi_so;`}
+                </pre>
+
+                <p className="font-bold text-emerald-800 pt-2">2. Google Apps Script (Update Col I, J, K, L):</p>
+                <pre className="bg-slate-900 text-sky-300 p-2.5 rounded-xl overflow-x-auto text-[9px] font-mono select-all">
+{`function doPost(e) {
+  var data = JSON.parse(e.postData.contents);
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Revisi SO");
+  var values = sheet.getDataRange().getValues();
+  
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][2]).trim() === String(data.kodeItem).trim()) {
+      sheet.getRange(i + 1, 9).setValue(data.qtyRevisi);       // Col I
+      sheet.getRange(i + 1, 10).setValue(data.petugasRevisi);  // Col J
+      sheet.getRange(i + 1, 11).setValue(data.statusRevisi);   // Col K
+      sheet.getRange(i + 1, 12).setValue(data.keterangan || ""); // Col L
+      break;
     }
-    return ContentService.createTextOutput(JSON.stringify({status: "Success"}))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({status: "Error", error: err.toString()}))
-      .setMimeType(ContentService.MimeType.JSON);
   }
+  return ContentService.createTextOutput("OK");
 }`}
                 </pre>
+
                 <button 
-                  onClick={() => setShowScriptModal(false)}
+                  onClick={() => setShowSqlModal(false)}
                   className="w-full py-2 bg-slate-800 text-white rounded-xl font-bold mt-2"
                 >
                   Tutup Panduan
@@ -1099,18 +1127,18 @@ function doPost(e) {
             </div>
           )}
 
-          {/* Toast Notification */}
+          {/* Toast Notification Alert */}
           {toastMsg && (
             <div className="fixed bottom-16 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white text-xs px-4 py-2.5 rounded-full shadow-xl backdrop-blur-md z-50 flex items-center gap-2 border border-slate-700 font-medium animate-bounce">
               <span>{toastMsg}</span>
             </div>
           )}
 
-          {}
+          {/* Bottom Bar Navigation */}
           <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-slate-200 p-2 flex items-center justify-around z-30 shadow-lg">
             <button 
               onClick={() => setStatusFilter("ALL")}
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${statusFilter === 'ALL' ? 'text-red-600' : 'text-slate-400'}`}
+              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${statusFilter === 'ALL' ? 'text-emerald-600' : 'text-slate-400'}`}
             >
               <i data-lucide="layout-grid" className="w-5 h-5"></i>
               Semua
@@ -1144,7 +1172,6 @@ function doPost(e) {
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
-
   </script>
 </body>
 </html>
