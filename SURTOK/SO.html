@@ -766,6 +766,10 @@
 
       triggerFeedback('success');
 
+      // Bersihkan input barcode agar tidak menumpuk saat scan berikutnya
+      const scanInputEl = document.getElementById('input-barcode-scan');
+      if (scanInputEl) scanInputEl.value = '';
+
       document.getElementById('confirm-item-rak').textContent = `RAK: ${currentRak}`;
       document.getElementById('confirm-item-family').textContent = `Family: ${state.pendingScanItem.family}`;
       document.getElementById('confirm-item-nama').textContent = state.pendingScanItem.namaBarang;
@@ -781,7 +785,7 @@
       setTimeout(() => {
         qtyInput.focus();
         qtyInput.select();
-      }, 100);
+      }, 50);
     }
 
     function confirmScanEntry() {
@@ -1479,12 +1483,30 @@
         handleBarcodeSubmit(document.getElementById('input-barcode-scan').value);
       };
       
-      document.getElementById('input-barcode-scan').onkeydown = (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          handleBarcodeSubmit(e.target.value);
-        }
-      };
+      // Auto-submit saat Enter, Tab, atau deteksi scan otomatis dari Barcode Gun
+      let scanTimer = null;
+      const scanInput = document.getElementById('input-barcode-scan');
+      if (scanInput) {
+        scanInput.onkeydown = (e) => {
+          if (e.key === 'Enter' || e.key === 'Tab') {
+            e.preventDefault();
+            if (scanTimer) clearTimeout(scanTimer);
+            handleBarcodeSubmit(e.target.value);
+          }
+        };
+
+        scanInput.oninput = (e) => {
+          const val = e.target.value.trim();
+          if (!val) return;
+          
+          if (scanTimer) clearTimeout(scanTimer);
+          scanTimer = setTimeout(() => {
+            if (val.length >= 3) {
+              handleBarcodeSubmit(val);
+            }
+          }, 120);
+        };
+      }
 
       document.getElementById('chk-auto-reset-qty').onchange = (e) => {
         state.autoResetQty = e.target.checked;
