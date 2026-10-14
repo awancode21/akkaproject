@@ -104,7 +104,7 @@
             <svg class="w-4 h-4 text-emerald-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
             <span class="text-xs font-extrabold text-slate-200">Sesi Scan & Lokasi Rak SO</span>
           </div>
-          <button id="btn-toggle-session-lock" class="text-[11px] px-3 py-1.5 rounded-xl font-black border transition bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30">
+          <button id="btn-toggle-session-lock" class="text-[11px] px-3 py-1.5 rounded-xl font-black border transition bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700">
             🔒 Kunci Sesi & Mulai Scan
           </button>
         </div>
@@ -113,6 +113,7 @@
           <div>
             <label class="text-[10px] font-bold text-slate-400 uppercase">Tim Opname</label>
             <select id="select-team" class="session-input w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-white font-bold outline-none mt-1">
+              <option value="">-- Pilih Tim --</option>
               <option value="TIM 1">TIM 1</option>
               <option value="TIM 2">TIM 2</option>
             </select>
@@ -121,6 +122,7 @@
           <div>
             <label class="text-[10px] font-bold text-slate-400 uppercase">Nama Petugas (Sheet Petugas)</label>
             <select id="select-petugas" class="session-input w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-white font-bold outline-none mt-1">
+              <option value="">-- Pilih Tim Terlebih Dahulu --</option>
             </select>
           </div>
 
@@ -521,6 +523,7 @@
     </button>
   </nav>
 
+  <!-- JAVASCRIPT LOGIC -->
   <script>
     const PRESET_GAS_URL = 'https://script.google.com/macros/s/AKfycbxuEIofQ98dUo0UrYQgzOCYa4IaBstWHCGrdMd-n3dMpH0PEAsTnUX17YjGPOgFrJwhkA/exec';
     const PRESET_SUPABASE_URL = 'https://qtfyfrvrqvbgyaezorbb.supabase.co';
@@ -623,74 +626,124 @@
       }
     }
 
-    function getPetugasForTeam(teamName) {
-      if (!state.petugasByTeam) return ['Petugas 1'];
-      
-      if (state.petugasByTeam[teamName] && state.petugasByTeam[teamName].length > 0) {
-        return state.petugasByTeam[teamName];
-      }
+    function lockSession(locked) {
+      state.isSessionLocked = locked;
+      const btn = document.getElementById('btn-toggle-session-lock');
+      const inputs = document.querySelectorAll('.session-input');
 
-      const targetClean = String(teamName).toUpperCase().replace(/\s+/g, '');
-      for (const key of Object.keys(state.petugasByTeam)) {
-        if (key.toUpperCase().replace(/\s+/g, '') === targetClean) {
-          return state.petugasByTeam[key];
-        }
-      }
+      inputs.forEach(inp => inp.disabled = locked);
 
-      const firstKey = Object.keys(state.petugasByTeam)[0];
-      return state.petugasByTeam[firstKey] || ['Petugas 1'];
+      if (locked) {
+        btn.textContent = '🔓 Selesaikan Rak & Buka Sesi Baru';
+        btn.className = 'text-[11px] px-3 py-1.5 rounded-xl font-black border transition bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30';
+      } else {
+        btn.textContent = '🔒 Kunci Sesi & Mulai Scan';
+        btn.className = 'text-[11px] px-3 py-1.5 rounded-xl font-black border transition bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700';
+      }
     }
 
-    function renderTeamOptions() {
-      const selectTeam = document.getElementById('select-team');
-      if (!selectTeam) return;
-
-      const availableTeams = Object.keys(state.petugasByTeam);
-      let html = '<option value="">-- Pilih Tim --</option>';
-      if (availableTeams.length > 0) {
-        html += availableTeams.map(t => `<option value="${t}">${t}</option>`).join('');
-      }
-      selectTeam.innerHTML = html;
-      selectTeam.value = state.selectedTeam || '';
-    }
-
-    function renderPetugasOptions() {
-      renderTeamOptions();
-      const selectPetugas = document.getElementById('select-petugas');
-      if (!selectPetugas) return;
-
-      if (!state.selectedTeam) {
-        selectPetugas.innerHTML = '<option value="">-- Pilih Tim Terlebih Dahulu --</option>';
-        state.selectedPetugas = '';
-        selectPetugas.value = '';
+    function openFinishRakModal() {
+      const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
+      if (!currentRak) {
+        showBannerStatus(false, 'Kode Rak masih kosong.');
         return;
       }
 
-      const list = getPetugasForTeam(state.selectedTeam);
-      selectPetugas.innerHTML = '<option value="">-- Pilih Petugas --</option>' + 
-        list.map(p => `<option value="${p}">${p}</option>`).join('');
-      
-      if (!list.includes(state.selectedPetugas)) {
-        state.selectedPetugas = '';
-      }
-      selectPetugas.value = state.selectedPetugas || '';
+      const rakResults = state.soResults.filter(r => r.rak.toUpperCase() === currentRak);
+      const totalQty = rakResults.reduce((acc, c) => acc + (Number(c.qty) || 0), 0);
+
+      document.getElementById('finish-modal-rak').textContent = currentRak;
+      document.getElementById('finish-modal-count').textContent = `${rakResults.length} Entry`;
+      document.getElementById('finish-modal-qty').textContent = `${totalQty} Pcs`;
+
+      const modal = document.getElementById('modal-finish-rak');
+      if (modal) modal.classList.remove('hidden');
     }
 
-    async function fetchPetugasFromSpreadsheet() {
-      if (!state.gasUrl) return;
-      try {
-        const res = await fetch(`${state.gasUrl}?action=getPetugas`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.data && typeof json.data === 'object' && Object.keys(json.data).length > 0) {
-            state.petugasByTeam = json.data;
-            saveState();
-            renderPetugasOptions();
-          }
-        }
-      } catch (e) {
-        console.warn('Gagal menarik data petugas dari Spreadsheet', e);
+    async function confirmFinishRak() {
+      const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
+
+      showBannerStatus(null, `Melakukan Double-Check & Sync Status Rak ${currentRak}...`);
+      
+      await handleSyncAll();
+
+      const rakResults = state.soResults.filter(r => r.rak.toUpperCase() === currentRak);
+      const totalQty = rakResults.reduce((acc, c) => acc + (Number(c.qty) || 0), 0);
+
+      const statusRecord = {
+        id: `status-${currentRak}`,
+        rak: currentRak,
+        tim: state.selectedTeam,
+        petugas: state.selectedPetugas,
+        total_items: rakResults.length,
+        total_qty: totalQty,
+        status: 'SELESAI',
+        completed_at: new Date().toISOString()
+      };
+
+      const existIdx = state.completedRaks.findIndex(r => r.rak.toUpperCase() === currentRak);
+      if (existIdx !== -1) {
+        state.completedRaks[existIdx] = statusRecord;
+      } else {
+        state.completedRaks.unshift(statusRecord);
       }
+      saveState();
+
+      if (state.supabaseUrl && state.supabaseKey) {
+        try {
+          await fetch(`${state.supabaseUrl}/rest/v1/status_rak?on_conflict=rak`, {
+            method: 'POST',
+            headers: {
+              'apikey': state.supabaseKey,
+              'Authorization': `Bearer ${state.supabaseKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates'
+            },
+            body: JSON.stringify([{
+              id: statusRecord.id,
+              rak: statusRecord.rak,
+              tim: statusRecord.tim,
+              petugas: statusRecord.petugas,
+              total_items: statusRecord.total_items,
+              total_qty: statusRecord.total_qty,
+              status: statusRecord.status,
+              completed_at: statusRecord.completed_at
+            }])
+          });
+        } catch (err) {
+          console.warn('Gagal mencatat status_rak ke Supabase', err);
+        }
+      }
+
+      if (state.gasUrl) {
+        try {
+          await fetch(state.gasUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+              action: 'syncStatusRak',
+              data: statusRecord
+            })
+          });
+        } catch (err) {
+          console.warn('Gagal mencatat status_rak ke Spreadsheet', err);
+        }
+      }
+
+      lockSession(false);
+      state.manualRakInput = '';
+      const inputRak = document.getElementById('input-rak-manual');
+      if (inputRak) {
+        inputRak.value = '';
+        inputRak.focus();
+      }
+
+      const modal = document.getElementById('modal-finish-rak');
+      if (modal) modal.classList.add('hidden');
+
+      renderRecentRaks();
+      showBannerStatus(true, `✓ Rak ${currentRak} ditandai 'SELESAI'! Sesi rak ini telah ditutup & disinkronkan.`);
+      triggerFeedback('success');
     }
 
     async function handleBarcodeSubmit(barcodeValue) {
@@ -759,7 +812,6 @@
         }
       }
 
-      // JIKA BARCODE / SKU TIDAK DITEMUKAN DI MASTER DATA:
       if (!matchedItem) {
         triggerFeedback('error');
         showBannerStatus(false, `❌ SALAH KODE / UNKNOWN! Barcode / SKU "${cleanCode}" tidak terdaftar di Master Data.`);
@@ -769,7 +821,7 @@
           scanInputEl.value = '';
           scanInputEl.focus();
         }
-        return; // Hentikan proses, jangan buka modal Qty, dan jangan simpan ke Spreadsheet/Supabase!
+        return;
       }
 
       state.pendingScanItem = {
@@ -781,7 +833,6 @@
 
       triggerFeedback('success');
 
-      // Bersihkan input barcode agar tidak menumpuk saat scan berikutnya
       const scanInputEl = document.getElementById('input-barcode-scan');
       if (scanInputEl) scanInputEl.value = '';
 
@@ -806,66 +857,84 @@
     function confirmScanEntry() {
       if (!state.pendingScanItem) return;
 
-      const qtyInput = document.getElementById('input-confirm-qty');
-      const qtyVal = Math.max(1, parseInt(qtyInput.value) || 1);
       const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
+      const qtyVal = Math.max(1, parseInt(document.getElementById('input-confirm-qty').value) || 1);
+      const entryId = `so-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
       const newEntry = {
-        id: `so-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        id: entryId,
         timestamp: new Date().toISOString(),
-        rak: currentRak,
         team: state.selectedTeam,
-        petugas: state.selectedPetugas || 'Petugas 1',
+        petugas: state.selectedPetugas,
+        rak: currentRak,
         sku: state.pendingScanItem.sku,
         originalCode: state.pendingScanItem.originalCode,
         namaBarang: state.pendingScanItem.namaBarang,
         family: state.pendingScanItem.family,
         qty: qtyVal,
-        syncedSupabase: false,
-        syncedSheet: false
+        syncedSheet: false,
+        syncedSupabase: false
       };
 
       state.soResults.unshift(newEntry);
       
       state.lastScannedItem = {
         ...state.pendingScanItem,
-        qty: qtyVal,
+        scannedQty: qtyVal,
         rak: currentRak,
         time: new Date().toLocaleTimeString('id-ID')
       };
 
       saveState();
-
-      closeConfirmModal();
-
       renderRecentScansList();
       renderResultsTable();
-      updateLastScannedCard();
+
+      document.getElementById('last-scanned-time').textContent = `Terscan (${state.lastScannedItem.time})`;
+      document.getElementById('last-scanned-rak').textContent = `Rak: ${currentRak}`;
+      document.getElementById('last-scanned-name').textContent = state.lastScannedItem.namaBarang;
+      document.getElementById('last-scanned-sku-orig').textContent = `SKU: ${state.lastScannedItem.sku} | OrigCode: ${state.lastScannedItem.originalCode}`;
+      document.getElementById('last-scanned-family').textContent = `Family: ${state.lastScannedItem.family}`;
+      document.getElementById('last-scanned-qty').textContent = `+${qtyVal}`;
+      document.getElementById('last-scanned-card').classList.remove('hidden');
+
+      closeConfirmModal();
+      showBannerStatus(true, `✓ Tersimpan: ${newEntry.namaBarang} (+${qtyVal}) ke Rak ${currentRak}`);
 
       autoSyncSingleEntry(newEntry);
     }
 
     function closeConfirmModal() {
-      const modal = document.getElementById('modal-confirm-qty');
-      if (modal) modal.classList.add('hidden');
       state.pendingScanItem = null;
-
-      const scanInput = document.getElementById('input-barcode-scan');
-      if (scanInput) {
-        scanInput.value = '';
-        scanInput.focus();
-      }
+      document.getElementById('modal-confirm-qty').classList.add('hidden');
+      
+      setTimeout(() => {
+        const inp = document.getElementById('input-barcode-scan');
+        if (inp) {
+          inp.value = '';
+          inp.focus();
+        }
+      }, 100);
     }
 
-    async function autoSyncSingleEntry(entry) {
-      showBannerStatus(null, `Auto-Sync: ${entry.namaBarang} (+${entry.qty})...`);
-
-      let syncedSp = false;
-      let syncedSh = false;
+    async function autoSyncSingleEntry(entryItem) {
+      if (!entryItem) return;
 
       if (state.supabaseUrl && state.supabaseKey) {
         try {
-          const resSp = await fetch(`${state.supabaseUrl}/rest/v1/hasil_so?on_conflict=id`, {
+          const payload = [{
+            id: entryItem.id,
+            rak: entryItem.rak,
+            tim: entryItem.team,
+            petugas: entryItem.petugas,
+            sku: entryItem.sku,
+            original_code: entryItem.originalCode,
+            nama_barang: entryItem.namaBarang,
+            family: entryItem.family,
+            qty: Number(entryItem.qty) || 1,
+            timestamp: entryItem.timestamp
+          }];
+
+          const res = await fetch(`${state.supabaseUrl}/rest/v1/hasil_so?on_conflict=id`, {
             method: 'POST',
             headers: {
               'apikey': state.supabaseKey,
@@ -873,225 +942,345 @@
               'Content-Type': 'application/json',
               'Prefer': 'resolution=merge-duplicates'
             },
-            body: JSON.stringify([{
-              id: entry.id,
-              timestamp: entry.timestamp,
-              rak: entry.rak,
-              tim: entry.team,
-              petugas: entry.petugas,
-              sku: entry.sku,
-              original_code: entry.originalCode,
-              nama_barang: entry.namaBarang,
-              family: entry.family,
-              qty: Number(entry.qty) || 1
-            }])
+            body: JSON.stringify(payload)
           });
 
-          if (resSp.ok) {
-            syncedSp = true;
-            entry.syncedSupabase = true;
+          if (res.ok) {
+            entryItem.syncedSupabase = true;
           }
-        } catch (err) {
-          console.warn('Auto sync Supabase error', err);
+        } catch (e) {
+          console.warn('Auto-sync Supabase failed', e);
         }
       }
 
       if (state.gasUrl) {
         try {
-          const resGas = await fetch(state.gasUrl, {
+          const res = await fetch(state.gasUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({
               action: 'syncHasilSo',
-              data: [entry]
+              data: [entryItem]
             })
           });
-
-          if (resGas.ok) {
-            syncedSh = true;
-            entry.syncedSheet = true;
+          if (res.ok) {
+            entryItem.syncedSheet = true;
           }
-        } catch (err) {
-          console.warn('Auto sync Spreadsheet error', err);
+        } catch (e) {
+          console.warn('Auto-sync Sheet failed', e);
         }
       }
 
       saveState();
       renderRecentScansList();
       renderResultsTable();
-
-      if (syncedSp && syncedSh) {
-        showBannerStatus(true, `✓ Tersimpan & Ter-sync 100% (Supabase & Sheet)`);
-      } else if (syncedSp) {
-        showBannerStatus(true, `✓ Tersimpan di Supabase (Sheet Pending)`);
-      } else if (syncedSh) {
-        showBannerStatus(true, `✓ Tersimpan di Google Sheet (Supabase Pending)`);
-      } else {
-        showBannerStatus(false, `⚠️ Tersimpan di HP (Koneksi offline, sync otomatis nanti)`);
-      }
     }
 
-    function lockSession(locked) {
-      state.isSessionLocked = locked;
-      document.querySelectorAll('.session-input').forEach(i => i.disabled = state.isSessionLocked);
-      
-      const lockBtn = document.getElementById('btn-toggle-session-lock');
-      if (lockBtn) {
-        if (state.isSessionLocked) {
-          lockBtn.textContent = '✅ Selesaikan Rak & Buka Sesi Baru';
-          lockBtn.className = 'text-[11px] px-3 py-1.5 rounded-xl font-black border transition bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30';
-        } else {
-          lockBtn.textContent = '🔒 Kunci Sesi & Mulai Scan';
-          lockBtn.className = 'text-[11px] px-3 py-1.5 rounded-xl font-black border transition bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30';
+    async function handleSyncAll() {
+      await handlePushResultsToSupabase();
+      await handlePushResultsToSpreadsheet();
+    }
+
+    async function handlePushResultsToSupabase() {
+      if (!state.supabaseUrl || !state.supabaseKey) return;
+      showBannerStatus(null, 'Syncing ke Supabase...');
+
+      try {
+        const unsynced = state.soResults.filter(r => !r.syncedSupabase);
+        const target = unsynced.length > 0 ? unsynced : state.soResults;
+
+        if (target.length === 0) {
+          showBannerStatus(true, 'Semua data sudah tersinkron ke Supabase.');
+          return;
         }
+
+        const payload = target.map(r => ({
+          id: r.id,
+          rak: r.rak,
+          tim: r.team,
+          petugas: r.petugas,
+          sku: r.sku,
+          original_code: r.originalCode,
+          nama_barang: r.namaBarang,
+          family: r.family,
+          qty: Number(r.qty) || 1,
+          timestamp: r.timestamp
+        }));
+
+        const res = await fetch(`${state.supabaseUrl}/rest/v1/hasil_so?on_conflict=id`, {
+          method: 'POST',
+          headers: {
+            'apikey': state.supabaseKey,
+            'Authorization': `Bearer ${state.supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        state.soResults.forEach(r => r.syncedSupabase = true);
+        saveState();
+        renderRecentScansList();
+        renderResultsTable();
+
+        showBannerStatus(true, `✓ Berhasil mengirim ${payload.length} data ke Supabase!`);
+      } catch (err) {
+        showBannerStatus(false, `Gagal sync Supabase: ${err.message}`);
       }
     }
 
-    function openFinishRakModal() {
-      const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
-      const rakResults = state.soResults.filter(r => r.rak.toUpperCase() === currentRak);
-      const totalQty = rakResults.reduce((acc, c) => acc + (Number(c.qty) || 0), 0);
-      const unsyncedSp = rakResults.filter(r => !r.syncedSupabase).length;
-      const unsyncedSh = rakResults.filter(r => !r.syncedSheet).length;
-      const unsyncedTotal = rakResults.filter(r => !r.syncedSupabase || !r.syncedSheet).length;
+    async function handlePushResultsToSpreadsheet() {
+      if (!state.gasUrl) return;
+      showBannerStatus(null, 'Syncing ke Google Sheet...');
 
-      document.getElementById('finish-modal-rak').textContent = currentRak || 'RAK-SO';
-      document.getElementById('finish-modal-count').textContent = `${rakResults.length} Entry`;
-      document.getElementById('finish-modal-qty').textContent = `${totalQty.toLocaleString('id-ID')} Pcs`;
+      try {
+        const unsynced = state.soResults.filter(r => !r.syncedSheet);
+        const target = unsynced.length > 0 ? unsynced : state.soResults;
 
-      const desc = document.getElementById('finish-sync-desc');
-      const box = document.getElementById('finish-sync-status-box');
-      if (unsyncedTotal > 0) {
-        box.className = "bg-amber-950/60 border border-amber-800 p-2.5 rounded-xl text-left text-xs text-amber-200 space-y-1";
-        desc.innerHTML = `<b class="text-amber-400">🔍 Double-Check:</b> Ada ${unsyncedTotal} entry di rak ini yang belum ter-sync sempurna (Supabase: ${unsyncedSp} pending, Sheet: ${unsyncedSh} pending). Klik tombol di bawah untuk menyinkronkan ulang.`;
-      } else {
-        box.className = "bg-emerald-950/60 border border-emerald-800 p-2.5 rounded-xl text-left text-xs text-emerald-200 space-y-1";
-        desc.innerHTML = `<b class="text-emerald-400">✓ Double-Check 100% OK:</b> Semua ${rakResults.length} entry pada rak ${currentRak} sudah tersimpan sempurna di Supabase & Google Spreadsheet!`;
-      }
-
-      const modal = document.getElementById('modal-finish-rak');
-      if (modal) modal.classList.remove('hidden');
-    }
-
-    async function confirmFinishRak() {
-      const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
-      
-      showBannerStatus(null, `Melakukan Double-Check & Sync Data Rak ${currentRak}...`);
-      
-      await handleSyncAll();
-
-      // Hitung ringkasan hasil rak ini
-      const rakResults = state.soResults.filter(r => r.rak.toUpperCase() === currentRak);
-      const totalQty = rakResults.reduce((acc, c) => acc + (Number(c.qty) || 0), 0);
-
-      const statusRecord = {
-        id: `status-${currentRak}-${Date.now()}`,
-        rak: currentRak,
-        tim: state.selectedTeam,
-        petugas: state.selectedPetugas,
-        total_items: rakResults.length,
-        total_qty: totalQty,
-        status: 'SELESAI',
-        completed_at: new Date().toISOString()
-      };
-
-      // Simpan status lokal
-      const existIdx = state.completedRaks.findIndex(r => r.rak === currentRak);
-      if (existIdx !== -1) {
-        state.completedRaks[existIdx] = statusRecord;
-      } else {
-        state.completedRaks.unshift(statusRecord);
-      }
-      saveState();
-
-      // Push Status Selesai ke Supabase
-      if (state.supabaseUrl && state.supabaseKey) {
-        try {
-          await fetch(`${state.supabaseUrl}/rest/v1/status_rak?on_conflict=id`, {
-            method: 'POST',
-            headers: {
-              'apikey': state.supabaseKey,
-              'Authorization': `Bearer ${state.supabaseKey}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'resolution=merge-duplicates'
-            },
-            body: JSON.stringify([{
-              id: statusRecord.id,
-              rak: statusRecord.rak,
-              tim: statusRecord.tim,
-              petugas: statusRecord.petugas,
-              total_items: statusRecord.total_items,
-              total_qty: statusRecord.total_qty,
-              status: statusRecord.status,
-              completed_at: statusRecord.completed_at
-            }])
-          });
-        } catch (err) {
-          console.warn('Gagal mencatat status_rak ke Supabase', err);
+        if (target.length === 0) {
+          showBannerStatus(true, 'Semua data sudah tersinkron ke Sheet.');
+          return;
         }
+
+        await fetch(state.gasUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'syncHasilSo',
+            data: target
+          })
+        });
+
+        state.soResults.forEach(r => r.syncedSheet = true);
+        saveState();
+        renderRecentScansList();
+        renderResultsTable();
+
+        showBannerStatus(true, `✓ Berhasil mengirim ${target.length} data ke Spreadsheet!`);
+      } catch (err) {
+        showBannerStatus(false, `Gagal sync Sheet: ${err.message}`);
       }
-
-      // Push Status Selesai ke Google Spreadsheet (Sheet "Status Rak")
-      if (state.gasUrl) {
-        try {
-          await fetch(state.gasUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-              action: 'syncStatusRak',
-              data: statusRecord
-            })
-          });
-        } catch (err) {
-          console.warn('Gagal mencatat status_rak ke Spreadsheet', err);
-        }
-      }
-
-      lockSession(false);
-      state.manualRakInput = '';
-      const inputRak = document.getElementById('input-rak-manual');
-      if (inputRak) {
-        inputRak.value = '';
-        inputRak.focus();
-      }
-
-      const modal = document.getElementById('modal-finish-rak');
-      if (modal) modal.classList.add('hidden');
-
-      renderRecentRaks();
-      showBannerStatus(true, `✓ Rak ${currentRak} ditandai 'SELESAI' di Supabase & Sheet! Silakan masukkan Kode Rak baru.`);
-      triggerFeedback('success');
     }
 
-    function updateLastScannedCard() {
-      const card = document.getElementById('last-scanned-card');
-      if (!card || !state.lastScannedItem) return;
-
-      card.classList.remove('hidden');
-      document.getElementById('last-scanned-time').textContent = `Terscan (${state.lastScannedItem.time})`;
-      document.getElementById('last-scanned-rak').textContent = `Rak: ${state.lastScannedItem.rak}`;
-      document.getElementById('last-scanned-name').textContent = state.lastScannedItem.namaBarang;
-      document.getElementById('last-scanned-sku-orig').textContent = `SKU: ${state.lastScannedItem.sku} | OrigCode: ${state.lastScannedItem.originalCode}`;
-      document.getElementById('last-scanned-family').textContent = `Family: ${state.lastScannedItem.family}`;
-      document.getElementById('last-scanned-qty').textContent = `+${state.lastScannedItem.qty}`;
-    }
-
-    function renderRecentScansList() {
-      const container = document.getElementById('recent-scans-list');
-      const countText = document.getElementById('recent-count-text');
-      if (!container) return;
-
-      const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
-      const currentSessionList = state.soResults.filter(r => r.rak.toUpperCase() === currentRak);
-
-      if (countText) countText.textContent = `${currentSessionList.length} Entry`;
-
-      if (currentSessionList.length === 0) {
-        container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">Belum ada item yang di-scan pada rak ${currentRak || 'ini'}.</div>`;
+    async function handleSyncSheetToSupabaseDirect() {
+      if (!state.gasUrl) {
+        showBannerStatus(false, 'Web App Endpoint URL Apps Script belum dikonfigurasi!');
         return;
       }
 
-      container.innerHTML = currentSessionList.slice(0, 15).map(row => `
+      showBannerStatus(null, 'Memicu Push 70.000 SKU Server-to-Server dari Spreadsheet ke Supabase...');
+
+      try {
+        const res = await fetch(`${state.gasUrl}?action=pushToSupabase`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+
+        if (json.success) {
+          showBannerStatus(true, `⚡ ${json.message}`);
+          triggerFeedback('success');
+        } else {
+          showBannerStatus(false, `Gagal Push Server: ${json.message}`);
+          triggerFeedback('error');
+        }
+      } catch (err) {
+        showBannerStatus(false, `Error Push Direct: ${err.message}`);
+        triggerFeedback('error');
+      }
+    }
+
+    async function handleFetchMasterFromSupabase() {
+      if (!state.supabaseUrl || !state.supabaseKey) return;
+      showBannerStatus(null, 'Menarik Master SKU dari Supabase...');
+
+      try {
+        const res = await fetch(`${state.supabaseUrl}/rest/v1/master_items?select=sku,nama_barang,family,original_code&limit=75000`, {
+          headers: {
+            'apikey': state.supabaseKey,
+            'Authorization': `Bearer ${state.supabaseKey}`
+          }
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (Array.isArray(data) && data.length > 0) {
+          state.masterItems = data.map((i) => ({
+            sku: i.sku || '',
+            namaBarang: i.nama_barang || '',
+            family: i.family || '',
+            originalCode: i.original_code || ''
+          }));
+          saveState();
+          renderMasterTable();
+          showBannerStatus(true, `✓ Berhasil mengunduh ${data.length.toLocaleString('id-ID')} SKU dari Supabase.`);
+        } else {
+          showBannerStatus(false, 'Master items di Supabase masih kosong.');
+        }
+      } catch (err) {
+        showBannerStatus(false, `Gagal narik Supabase: ${err.message}`);
+      }
+    }
+
+    async function handleFetchMasterFromSpreadsheet() {
+      if (!state.gasUrl) return;
+      showBannerStatus(null, 'Menarik Master SKU dari Google Sheet...');
+
+      try {
+        const res = await fetch(`${state.gasUrl}?action=getMaster`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+
+        if (json.items && Array.isArray(json.items)) {
+          state.masterItems = json.items.map(i => ({
+            sku: i.sku || '',
+            namaBarang: i.nama_barang || '',
+            family: i.family || '',
+            originalCode: i.original_code || ''
+          }));
+          saveState();
+          renderMasterTable();
+          showBannerStatus(true, `✓ Berhasil mengunduh ${json.items.length.toLocaleString('id-ID')} SKU dari Spreadsheet.`);
+        }
+      } catch (err) {
+        showBannerStatus(false, `Gagal narik Sheet: ${err.message}`);
+      }
+    }
+
+    async function fetchPetugasFromSpreadsheet() {
+      if (!state.gasUrl) return;
+      try {
+        const res = await fetch(`${state.gasUrl}?action=getPetugas`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            state.petugasByTeam = json.data;
+            saveState();
+            renderPetugasOptions();
+          }
+        }
+      } catch (e) {
+        console.warn('Fetch petugas failed', e);
+      }
+    }
+
+    function startHtml5CameraScanner() {
+      document.getElementById('camera-viewport').classList.remove('hidden');
+      document.getElementById('btn-mode-camera').className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow';
+      document.getElementById('btn-mode-gun').className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 text-slate-400';
+
+      if (!state.html5QrcodeScanner) {
+        state.html5QrcodeScanner = new Html5Qrcode("reader");
+      }
+
+      state.html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 180 } },
+        (decodedText) => {
+          handleBarcodeSubmit(decodedText);
+        },
+        () => {}
+      ).catch(err => {
+        console.warn("Camera start error", err);
+      });
+    }
+
+    function stopHtml5CameraScanner() {
+      document.getElementById('camera-viewport').classList.add('hidden');
+      document.getElementById('btn-mode-gun').className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow';
+      document.getElementById('btn-mode-camera').className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 text-slate-400';
+
+      if (state.html5QrcodeScanner && state.html5QrcodeScanner.isScanning) {
+        state.html5QrcodeScanner.stop().then(() => {
+          state.html5QrcodeScanner.clear();
+        }).catch(err => console.warn(err));
+      }
+    }
+
+    function renderPetugasOptions() {
+      const selectTeam = document.getElementById('select-team');
+      const selectPetugas = document.getElementById('select-petugas');
+      if (!selectTeam || !selectPetugas) return;
+
+      const teamKeys = Object.keys(state.petugasByTeam || {});
+      if (teamKeys.length > 0) {
+        let optionsHtml = '<option value="">-- Pilih Tim --</option>';
+        teamKeys.forEach(t => {
+          optionsHtml += `<option value="${t}" ${state.selectedTeam === t ? 'selected' : ''}>${t}</option>`;
+        });
+        selectTeam.innerHTML = optionsHtml;
+      }
+
+      const teamVal = selectTeam.value || state.selectedTeam;
+      let matchingList = [];
+
+      if (teamVal) {
+        const cleanTeamVal = teamVal.replace(/\s+/g, '').toUpperCase();
+        for (const k in state.petugasByTeam) {
+          if (k.replace(/\s+/g, '').toUpperCase() === cleanTeamVal) {
+            matchingList = state.petugasByTeam[k];
+            break;
+          }
+        }
+      }
+
+      if (matchingList && matchingList.length > 0) {
+        let pOptions = '<option value="">-- Pilih Petugas --</option>';
+        matchingList.forEach(p => {
+          pOptions += `<option value="${p}" ${state.selectedPetugas === p ? 'selected' : ''}>${p}</option>`;
+        });
+        selectPetugas.innerHTML = pOptions;
+      } else if (!teamVal) {
+        selectPetugas.innerHTML = '<option value="">-- Pilih Tim Terlebih Dahulu --</option>';
+      } else {
+        selectPetugas.innerHTML = '<option value="">-- Tidak Ada Petugas --</option>';
+      }
+    }
+
+    function renderRecentRaks() {
+      const container = document.getElementById('recent-raks-container');
+      if (!container) return;
+
+      const currentInput = String(state.manualRakInput || '').trim().toUpperCase();
+      container.innerHTML = state.recentRaks.map(r => {
+        const isCompleted = state.completedRaks.some(c => c.rak.toUpperCase() === r.toUpperCase());
+        return `
+          <button type="button" class="btn-recent-rak text-[9px] px-2 py-0.5 rounded border font-mono whitespace-nowrap ${
+            currentInput === r.toUpperCase() 
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 font-black' 
+              : isCompleted 
+                ? 'bg-teal-950 text-teal-300 border-teal-700/60' 
+                : 'bg-slate-950 text-slate-400 border-slate-800'
+          }" data-rak="${r}">
+            ${isCompleted ? '✅ ' : ''}${r}
+          </button>
+        `;
+      }).join('');
+
+      container.querySelectorAll('.btn-recent-rak').forEach(btn => {
+        btn.onclick = () => {
+          if (state.isSessionLocked) return;
+          state.manualRakInput = btn.dataset.rak;
+          document.getElementById('input-rak-manual').value = btn.dataset.rak;
+          renderRecentRaks();
+        };
+      });
+    }
+
+    function renderRecentScansList() {
+      const listEl = document.getElementById('recent-scans-list');
+      const countEl = document.getElementById('recent-count-text');
+      if (!listEl) return;
+
+      if (countEl) countEl.textContent = `${state.soResults.length} Entry`;
+
+      if (state.soResults.length === 0) {
+        listEl.innerHTML = '<div class="text-center py-8 text-slate-500 text-xs">Belum ada item yang di-scan pada sesi ini.</div>';
+        return;
+      }
+
+      listEl.innerHTML = state.soResults.slice(0, 15).map(row => `
         <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
           <div>
             <div class="flex items-center gap-1.5">
@@ -1123,34 +1312,28 @@
       const tbody = document.getElementById('table-results-body');
       if (!tbody) return;
 
+      const totalEntries = state.soResults.length;
+      const totalQty = state.soResults.reduce((a, c) => a + (Number(c.qty) || 0), 0);
+      const syncedCount = state.soResults.filter(r => r.syncedSupabase && r.syncedSheet).length;
+
+      document.getElementById('stat-total-entries').textContent = totalEntries;
+      document.getElementById('stat-total-qty').textContent = totalQty.toLocaleString('id-ID');
+      document.getElementById('stat-synced-count').textContent = `${syncedCount}/${totalEntries}`;
+      document.getElementById('count-badge-results').textContent = totalEntries;
+      document.getElementById('mobile-badge-results').textContent = totalEntries;
+
       const filtered = state.soResults.filter(item => {
         const matchSearch = !state.resultsSearch || 
           item.sku.toLowerCase().includes(state.resultsSearch.toLowerCase()) ||
           item.namaBarang.toLowerCase().includes(state.resultsSearch.toLowerCase()) ||
           item.rak.toLowerCase().includes(state.resultsSearch.toLowerCase()) ||
           item.petugas.toLowerCase().includes(state.resultsSearch.toLowerCase());
-        
         const matchTeam = state.filterTeam === 'ALL' || item.team === state.filterTeam;
         return matchSearch && matchTeam;
       });
 
-      const totalEntriesEl = document.getElementById('stat-total-entries');
-      const totalQtyEl = document.getElementById('stat-total-qty');
-      const syncedCountEl = document.getElementById('stat-synced-count');
-      const badgeResults = document.getElementById('count-badge-results');
-      const mobileBadgeResults = document.getElementById('mobile-badge-results');
-
-      const totalQty = state.soResults.reduce((a, b) => a + (Number(b.qty) || 0), 0);
-      const syncedCount = state.soResults.filter(r => r.syncedSupabase && r.syncedSheet).length;
-
-      if (totalEntriesEl) totalEntriesEl.textContent = state.soResults.length;
-      if (totalQtyEl) totalQtyEl.textContent = totalQty.toLocaleString('id-ID');
-      if (syncedCountEl) syncedCountEl.textContent = `${syncedCount}/${state.soResults.length}`;
-      if (badgeResults) badgeResults.textContent = state.soResults.length;
-      if (mobileBadgeResults) mobileBadgeResults.textContent = state.soResults.length;
-
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colSpan="5" class="p-6 text-center text-slate-500">Tidak ada data SO.</td></tr>`;
+        tbody.innerHTML = '<tr><td colSpan="5" class="p-6 text-center text-slate-500">Tidak ada data SO.</td></tr>';
         return;
       }
 
@@ -1167,16 +1350,14 @@
             <p class="text-[10px] text-slate-500">${row.team}</p>
           </td>
           <td class="p-3 text-center">
-            <button onclick="deleteEntry('${row.id}')" class="text-slate-500 hover:text-rose-400 p-1">
-              🗑
-            </button>
+            <button onclick="deleteResultRow('${row.id}')" class="text-slate-500 hover:text-rose-400 p-1">✕</button>
           </td>
         </tr>
       `).join('');
     }
 
-    function deleteEntry(id) {
-      state.soResults = state.soResults.filter(i => i.id !== id);
+    function deleteResultRow(id) {
+      state.soResults = state.soResults.filter(r => r.id !== id);
       saveState();
       renderRecentScansList();
       renderResultsTable();
@@ -1184,294 +1365,66 @@
 
     function renderMasterTable() {
       const tbody = document.getElementById('table-master-body');
-      const countInfo = document.getElementById('master-count-info');
-      const badgeMaster = document.getElementById('count-badge-master');
-      const pageInfo = document.getElementById('master-page-info');
       if (!tbody) return;
 
-      if (countInfo) countInfo.textContent = `${state.masterItems.length.toLocaleString('id-ID')} SKU terdaftar di memori web HP.`;
-      if (badgeMaster) badgeMaster.textContent = state.masterItems.length.toLocaleString('id-ID');
+      document.getElementById('count-badge-master').textContent = state.masterItems.length.toLocaleString('id-ID');
+      document.getElementById('master-count-info').textContent = `${state.masterItems.length.toLocaleString('id-ID')} SKU terdaftar di memori web HP.`;
 
       const filtered = state.masterItems.filter(item => {
         if (!state.masterSearch) return true;
         const q = state.masterSearch.toLowerCase();
         return (item.sku && item.sku.toLowerCase().includes(q)) ||
                (item.originalCode && item.originalCode.toLowerCase().includes(q)) ||
-               (item.original_code && item.original_code.toLowerCase().includes(q)) ||
                (item.namaBarang && item.namaBarang.toLowerCase().includes(q)) ||
-               (item.nama_barang && item.nama_barang.toLowerCase().includes(q));
+               (item.family && item.family.toLowerCase().includes(q));
       });
 
-      const totalPages = Math.ceil(filtered.length / state.masterItemsPerPage) || 1;
+      const totalPages = Math.max(1, Math.ceil(filtered.length / state.masterItemsPerPage));
       state.masterPage = Math.min(state.masterPage, totalPages);
+
+      document.getElementById('master-page-info').textContent = `Hal ${state.masterPage} dari ${totalPages}`;
+      document.getElementById('btn-master-prev').disabled = state.masterPage <= 1;
+      document.getElementById('btn-master-next').disabled = state.masterPage >= totalPages;
 
       const start = (state.masterPage - 1) * state.masterItemsPerPage;
       const pageItems = filtered.slice(start, start + state.masterItemsPerPage);
 
-      if (pageInfo) pageInfo.textContent = `Hal ${state.masterPage} dari ${totalPages}`;
-
-      const btnPrev = document.getElementById('btn-master-prev');
-      const btnNext = document.getElementById('btn-master-next');
-      if (btnPrev) btnPrev.disabled = state.masterPage <= 1;
-      if (btnNext) btnNext.disabled = state.masterPage >= totalPages;
-
       if (pageItems.length === 0) {
-        tbody.innerHTML = `<tr><td colSpan="4" class="p-6 text-center text-slate-500">Tidak ada SKU terdaftar.</td></tr>`;
+        tbody.innerHTML = '<tr><td colSpan="4" class="p-6 text-center text-slate-500">Master SKU kosong. Pull dari Supabase / Sheet.</td></tr>';
         return;
       }
 
       tbody.innerHTML = pageItems.map(item => `
         <tr class="hover:bg-slate-800/40">
           <td class="p-3 font-mono font-bold text-emerald-400 whitespace-nowrap">${item.sku}</td>
-          <td class="p-3 font-mono text-slate-300 whitespace-nowrap">${item.originalCode || item.original_code || '-'}</td>
-          <td class="p-3 font-bold text-white">${item.namaBarang || item.nama_barang || '-'}</td>
+          <td class="p-3 font-mono text-slate-300 whitespace-nowrap">${item.originalCode || '-'}</td>
+          <td class="p-3 font-bold text-white">${item.namaBarang}</td>
           <td class="p-3 text-slate-300">${item.family || '-'}</td>
         </tr>
       `).join('');
     }
 
-    function renderRecentRaks() {
-      const container = document.getElementById('recent-raks-container');
-      if (!container) return;
-
-      container.innerHTML = state.recentRaks.map(r => {
-        const isCompleted = state.completedRaks.some(c => c.rak.toUpperCase() === r.toUpperCase());
-        return `
-          <button onclick="selectRecentRak('${r}')" class="text-[10px] px-2 py-1 rounded-lg border font-mono font-bold shrink-0 transition flex items-center gap-1 ${
-            state.manualRakInput.toUpperCase() === r.toUpperCase() 
-              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50' 
-              : isCompleted 
-                ? 'bg-teal-950/80 text-teal-300 border-teal-700/60' 
-                : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800'
-          }">
-            ${isCompleted ? '✅' : ''} ${r} ${isCompleted ? '<span class="text-[8px] bg-teal-500/30 text-teal-200 px-1 rounded">SELESAI</span>' : ''}
-          </button>
-        `;
-      }).join('');
-    }
-
-    function selectRecentRak(rakName) {
-      if (state.isSessionLocked) return;
-      state.manualRakInput = rakName;
-      const input = document.getElementById('input-rak-manual');
-      if (input) input.value = rakName;
-      renderRecentRaks();
-      renderRecentScansList();
-    }
-
     function switchTab(tabName) {
       state.activeTab = tabName;
       document.querySelectorAll('section[id^="tab-"]').forEach(sec => sec.classList.add('hidden'));
-      const activeSec = document.getElementById(`tab-${tabName}`);
-      if (activeSec) activeSec.classList.remove('hidden');
+      document.getElementById(`tab-${tabName}`)?.classList.remove('hidden');
 
       document.querySelectorAll('.nav-tab-btn, .mobile-nav-btn').forEach(btn => {
         if (btn.dataset.tab === tabName) {
-          btn.className = btn.className.replace('text-slate-400', 'text-slate-950').replace('text-slate-500', 'text-emerald-400 font-bold');
-          if (btn.classList.contains('nav-tab-btn')) {
-            btn.classList.add('bg-emerald-500', 'text-slate-950');
-          }
+          btn.className = btn.classList.contains('mobile-nav-btn')
+            ? 'mobile-nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition text-emerald-400 font-bold'
+            : 'nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition bg-emerald-500 text-slate-950';
         } else {
-          if (btn.classList.contains('nav-tab-btn')) {
-            btn.classList.remove('bg-emerald-500', 'text-slate-950');
-            btn.classList.add('text-slate-400');
-          } else {
-            btn.classList.remove('text-emerald-400', 'font-bold');
-            btn.classList.add('text-slate-500');
-          }
+          btn.className = btn.classList.contains('mobile-nav-btn')
+            ? 'mobile-nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition text-slate-500'
+            : 'nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800';
         }
       });
 
       if (tabName !== 'scanner') {
         stopHtml5CameraScanner();
       } else {
-        setTimeout(() => document.getElementById('input-barcode-scan')?.focus(), 300);
-      }
-    }
-
-    function startHtml5CameraScanner() {
-      const viewport = document.getElementById('camera-viewport');
-      viewport?.classList.remove('hidden');
-
-      if (!state.html5QrcodeScanner) {
-        state.html5QrcodeScanner = new Html5Qrcode("reader");
-      }
-
-      state.html5QrcodeScanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 150 } },
-        (decodedText) => {
-          handleBarcodeSubmit(decodedText);
-        },
-        (errorMessage) => {}
-      ).catch(err => {
-        console.warn("Camera start error", err);
-      });
-    }
-
-    function stopHtml5CameraScanner() {
-      const viewport = document.getElementById('camera-viewport');
-      viewport?.classList.add('hidden');
-
-      if (state.html5QrcodeScanner && state.html5QrcodeScanner.isScanning) {
-        state.html5QrcodeScanner.stop().then(() => {
-          state.html5QrcodeScanner.clear();
-        }).catch(err => console.warn(err));
-      }
-    }
-
-    async function handleSyncAll() {
-      showBannerStatus(null, 'Memulai sinkronisasi seluruh data...');
-      await handlePushResultsToSupabase();
-      await handlePushResultsToSpreadsheet();
-    }
-
-    async function handlePushResultsToSupabase() {
-      if (!state.supabaseUrl || !state.supabaseKey) return;
-      showBannerStatus(null, 'Sync data SO ke Supabase...');
-
-      try {
-        const unsynced = state.soResults.filter(r => !r.syncedSupabase);
-        const payload = (unsynced.length > 0 ? unsynced : state.soResults).map(r => ({
-          id: r.id,
-          timestamp: r.timestamp,
-          rak: r.rak,
-          tim: r.team,
-          petugas: r.petugas,
-          sku: r.sku,
-          original_code: r.originalCode,
-          nama_barang: r.namaBarang,
-          family: r.family,
-          qty: Number(r.qty) || 1
-        }));
-
-        const res = await fetch(`${state.supabaseUrl}/rest/v1/hasil_so?on_conflict=id`, {
-          method: 'POST',
-          headers: {
-            'apikey': state.supabaseKey,
-            'Authorization': `Bearer ${state.supabaseKey}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-          state.soResults.forEach(r => r.syncedSupabase = true);
-          saveState();
-          renderRecentScansList();
-          renderResultsTable();
-          showBannerStatus(true, `✓ Berhasil Sync ${payload.length} data ke Supabase!`);
-        }
-      } catch (e) {
-        showBannerStatus(false, `Gagal Sync Supabase: ${e.message}`);
-      }
-    }
-
-    async function handlePushResultsToSpreadsheet() {
-      if (!state.gasUrl) return;
-      showBannerStatus(null, 'Sync data SO ke Google Spreadsheet...');
-
-      try {
-        const unsynced = state.soResults.filter(r => !r.syncedSheet);
-        const target = unsynced.length > 0 ? unsynced : state.soResults;
-
-        const res = await fetch(state.gasUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'syncHasilSo',
-            data: target
-          })
-        });
-
-        if (res.ok) {
-          state.soResults.forEach(r => r.syncedSheet = true);
-          saveState();
-          renderRecentScansList();
-          renderResultsTable();
-          showBannerStatus(true, `✓ Berhasil Sync ${target.length} data ke Google Spreadsheet!`);
-        }
-      } catch (e) {
-        showBannerStatus(false, `Gagal Sync Sheet: ${e.message}`);
-      }
-    }
-
-    async function handleSyncSheetToSupabaseDirect() {
-      if (!state.gasUrl) return;
-      showBannerStatus(null, 'Server Google Apps Script sedang mengirim 70.000 SKU ke Supabase...');
-
-      try {
-        const res = await fetch(`${state.gasUrl}?action=pushToSupabase`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success) {
-            showBannerStatus(true, `✓ ${json.message}`);
-            triggerFeedback('success');
-          } else {
-            showBannerStatus(false, `Gagal Sync Server: ${json.message}`);
-            triggerFeedback('error');
-          }
-        }
-      } catch (e) {
-        showBannerStatus(false, `Gagal memanggil pemicu Sync Server: ${e.message}`);
-        triggerFeedback('error');
-      }
-    }
-
-    async function handleFetchMasterFromSupabase() {
-      if (!state.supabaseUrl || !state.supabaseKey) return;
-      showBannerStatus(null, 'Menarik Master SKU dari Supabase...');
-
-      try {
-        const res = await fetch(`${state.supabaseUrl}/rest/v1/master_items?select=sku,nama_barang,family,original_code&limit=75000`, {
-          headers: {
-            'apikey': state.supabaseKey,
-            'Authorization': `Bearer ${state.supabaseKey}`
-          }
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            state.masterItems = data.map(i => ({
-              sku: i.sku || '',
-              namaBarang: i.nama_barang || '',
-              family: i.family || '',
-              originalCode: i.original_code || ''
-            }));
-            saveState();
-            renderMasterTable();
-            showBannerStatus(true, `✓ Berhasil menarik ${state.masterItems.length.toLocaleString('id-ID')} SKU dari Supabase!`);
-          }
-        }
-      } catch (e) {
-        showBannerStatus(false, `Gagal tarik dari Supabase: ${e.message}`);
-      }
-    }
-
-    async function handleFetchMasterFromSpreadsheet() {
-      if (!state.gasUrl) return;
-      showBannerStatus(null, 'Menarik Master SKU dari Google Sheet...');
-
-      try {
-        const res = await fetch(`${state.gasUrl}?action=getMaster`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.items && Array.isArray(json.items)) {
-            state.masterItems = json.items.map(i => ({
-              sku: i.sku || '',
-              namaBarang: i.nama_barang || '',
-              family: i.family || '',
-              originalCode: i.original_code || ''
-            }));
-            saveState();
-            renderMasterTable();
-            showBannerStatus(true, `✓ Berhasil menarik ${state.masterItems.length.toLocaleString('id-ID')} SKU dari Spreadsheet!`);
-          }
-        }
-      } catch (e) {
-        showBannerStatus(false, `Gagal tarik dari Sheet: ${e.message}`);
+        setTimeout(() => document.getElementById('input-barcode-scan')?.focus(), 200);
       }
     }
 
@@ -1503,26 +1456,27 @@
       document.getElementById('btn-toggle-session-lock').onclick = () => {
         if (!state.isSessionLocked) {
           if (!state.selectedTeam) {
-            showBannerStatus(false, 'Pilih TIM OPNAME terlebih dahulu sebelum mengunci sesi!');
+            showBannerStatus(false, 'Pilih TIM OPNAME terlebih dahulu!');
             triggerFeedback('error');
             document.getElementById('select-team')?.focus();
             return;
           }
           if (!state.selectedPetugas) {
-            showBannerStatus(false, 'Pilih NAMA PETUGAS terlebih dahulu sebelum mengunci sesi!');
+            showBannerStatus(false, 'Pilih NAMA PETUGAS terlebih dahulu!');
             triggerFeedback('error');
             document.getElementById('select-petugas')?.focus();
             return;
           }
-          const rak = String(state.manualRakInput || '').trim();
+          const rak = String(state.manualRakInput || '').trim().toUpperCase();
           if (!rak) {
-            showBannerStatus(false, 'Masukkan Kode Rak SO terlebih dahulu sebelum mengunci sesi!');
+            showBannerStatus(false, 'Masukkan Kode Rak SO terlebih dahulu!');
             triggerFeedback('error');
             document.getElementById('input-rak-manual')?.focus();
             return;
           }
+
           lockSession(true);
-          showBannerStatus(true, `🔒 Sesi terkunci untuk Rak: ${rak.toUpperCase()}`);
+          showBannerStatus(true, `🔒 Sesi terkunci untuk Rak: ${rak}`);
           triggerFeedback('success');
         } else {
           openFinishRakModal();
@@ -1571,7 +1525,6 @@
         handleBarcodeSubmit(document.getElementById('input-barcode-scan').value);
       };
       
-      // Auto-submit saat Enter, Tab, atau deteksi scan otomatis dari Barcode Gun
       let scanTimer = null;
       const scanInput = document.getElementById('input-barcode-scan');
       if (scanInput) {
