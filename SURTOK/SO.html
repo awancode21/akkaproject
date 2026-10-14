@@ -81,7 +81,6 @@
     </div>
   </header>
 
-  <!-- SYNC BANNER NOTIFICATION -->
   <div id="sync-banner" class="hidden px-4 py-2.5 text-xs font-medium flex items-center justify-between gap-2 border-b bg-cyan-950 text-cyan-200 border-cyan-800">
     <div class="flex items-center gap-2">
       <div id="sync-spinner" class="w-3.5 h-3.5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
@@ -117,7 +116,7 @@
             </select>
           </div>
 
-          <!-- PETUGAS SELECTION (FETCHED FROM SHEET 'Petugas') -->
+          <!-- PETUGAS SELECTION -->
           <div>
             <label class="text-[10px] font-bold text-slate-400 uppercase">Nama Petugas (Sheet Petugas)</label>
             <select id="select-petugas" class="session-input w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-white font-bold outline-none mt-1">
@@ -502,50 +501,36 @@
       "TIM 2": ['Doni Hermawan', 'Eka Pratama', 'Fani Rahmawati']
     };
 
-    function generateSampleMaster(count = 50) {
-      const families = ['Minuman', 'Makanan', 'Perawatan', 'Pembersih', 'Elektronik', 'Alat Tulis'];
-      const items = [];
-      for (let i = 1; i <= count; i++) {
-        const sku = `SKU-${100000 + i}`;
-        const originalCode = `899${String(i).padStart(9, '0')}`;
-        const family = families[i % families.length];
-        items.push({
-          sku: sku,
-          namaBarang: `Produk ${family} Type-${i}`,
-          family: family,
-          originalCode: originalCode
-        });
-      }
-      return items;
-    }
-
-    // STATE MANAGEMENT
     const state = {
       activeTab: 'scanner',
-      soundEnabled: true,
-      autoResetQty: true,
       gasUrl: localStorage.getItem('so_gas_url') || PRESET_GAS_URL,
       supabaseUrl: localStorage.getItem('so_supabase_url') || PRESET_SUPABASE_URL,
       supabaseKey: localStorage.getItem('so_supabase_key') || PRESET_SUPABASE_KEY,
-      masterItems: JSON.parse(localStorage.getItem('so_master_items')) || generateSampleMaster(50),
-      petugasByTeam: JSON.parse(localStorage.getItem('so_petugas_map')) || DEFAULT_PETUGAS,
+      soundEnabled: true,
+      autoResetQty: true,
+      masterItems: JSON.parse(localStorage.getItem('so_master_items') || '[]'),
+      petugasByTeam: JSON.parse(localStorage.getItem('so_petugas_map') || 'null') || DEFAULT_PETUGAS,
       selectedTeam: 'TIM 1',
       selectedPetugas: '',
       manualRakInput: 'RAK-A-01',
       recentRaks: ['RAK-A-01', 'RAK-B-02', 'RAK-C-05'],
       isSessionLocked: false,
-      soResults: JSON.parse(localStorage.getItem('so_scanned_results')) || [],
-      scanQty: 1,
-      pendingItem: null,
+      soResults: JSON.parse(localStorage.getItem('so_scanned_results') || '[]'),
+      pendingScanItem: null,
       lastScannedItem: null,
       html5QrcodeScanner: null,
-      isSyncing: false,
       masterSearch: '',
       masterPage: 1,
-      masterItemsPerPage: 20,
+      masterItemsPerPage: 25,
       resultsSearch: '',
       filterTeam: 'ALL'
     };
+
+    function saveState() {
+      localStorage.setItem('so_master_items', JSON.stringify(state.masterItems));
+      localStorage.setItem('so_scanned_results', JSON.stringify(state.soResults));
+      localStorage.setItem('so_petugas_map', JSON.stringify(state.petugasByTeam));
+    }
 
     function triggerFeedback(type = 'success') {
       if (navigator.vibrate) {
@@ -559,9 +544,10 @@
         const ctx = new AudioContext();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
+        
         osc.connect(gain);
         gain.connect(ctx.destination);
-
+        
         if (type === 'success') {
           osc.type = 'sine';
           osc.frequency.setValueAtTime(1300, ctx.currentTime);
@@ -584,202 +570,76 @@
       }
     }
 
-    function showNotification(type, message) {
-      const container = document.getElementById('scan-notification-container');
-      const isSuccess = type === 'success';
-      container.innerHTML = `
-        <div class="p-3 rounded-xl border text-xs font-bold flex items-center gap-2 ${
-          isSuccess ? 'bg-emerald-950 border-emerald-700 text-emerald-200' : 'bg-rose-950 border-rose-700 text-rose-200'
-        }">
-          <span>${isSuccess ? '✅' : '⚠️'}</span>
-          <p>${message}</p>
-        </div>
-      `;
-      setTimeout(() => {
-        container.innerHTML = '';
-      }, 3500);
-    }
-
-    function showBannerStatus(success, message, isSpinning = true) {
+    function showBannerStatus(success, message) {
       const banner = document.getElementById('sync-banner');
       const text = document.getElementById('sync-banner-text');
       const spinner = document.getElementById('sync-spinner');
+      if (!banner || !text) return;
 
-      banner.classList.remove('hidden', 'bg-emerald-950', 'text-emerald-200', 'border-emerald-800', 'bg-rose-950', 'text-rose-200', 'border-rose-800', 'bg-cyan-950', 'text-cyan-200', 'border-cyan-800');
-
-      if (success === true) {
-        banner.classList.add('bg-emerald-950', 'text-emerald-200', 'border-emerald-800');
-        spinner.classList.add('hidden');
-      } else if (success === false) {
-        banner.classList.add('bg-rose-950', 'text-rose-200', 'border-rose-800');
-        spinner.classList.add('hidden');
-      } else {
-        banner.classList.add('bg-cyan-950', 'text-cyan-200', 'border-cyan-800');
-        if (isSpinning) spinner.classList.remove('hidden'); else spinner.classList.add('hidden');
-      }
-
+      banner.classList.remove('hidden');
       text.textContent = message;
-    }
 
-    async function handleBarcodeSubmit(barcodeValue) {
-      const cleanCode = barcodeValue.trim();
-      if (!cleanCode) return;
-
-      const currentRak = state.manualRakInput.trim().toUpperCase();
-      if (!currentRak) {
-        triggerFeedback('error');
-        showNotification('error', 'Wajib isi/ketik KODE RAK SO terlebih dahulu!');
-        return;
-      }
-
-      if (!state.recentRaks.includes(currentRak)) {
-        state.recentRaks = [currentRak, ...state.recentRaks.slice(0, 4)];
-        renderRecentRaks();
-      }
-
-      // 1. Cek memori lokal
-      let matchedItem = state.masterItems.find(
-        item => (item.sku && item.sku.toLowerCase() === cleanCode.toLowerCase()) || 
-                (item.originalCode && item.originalCode.toLowerCase() === cleanCode.toLowerCase())
-      );
-
-      // 2. Fast Lookup ke Supabase Index API jika tidak ditemukan di memori HP (<15ms)
-      if (!matchedItem && state.supabaseUrl && state.supabaseKey) {
-        try {
-          const supRes = await fetch(`${state.supabaseUrl}/rest/v1/master_items?or=(sku.ilike.${encodeURIComponent(cleanCode)},original_code.ilike.${encodeURIComponent(cleanCode)})&limit=1`, {
-            headers: {
-              'apikey': state.supabaseKey,
-              'Authorization': `Bearer ${state.supabaseKey}`
-            }
-          });
-          if (supRes.ok) {
-            const supData = await supRes.json();
-            if (Array.isArray(supData) && supData.length > 0) {
-              matchedItem = {
-                sku: supData[0].sku,
-                namaBarang: supData[0].nama_barang,
-                family: supData[0].family,
-                originalCode: supData[0].original_code
-              };
-            }
-          }
-        } catch (e) {
-          console.warn('Supabase fast lookup fallback exception', e);
-        }
-      }
-
-      if (!matchedItem) {
-        triggerFeedback('error');
-        showNotification('error', `SKU / Code "${cleanCode}" TIDAK DITEMUKAN di Master!`);
-
-        matchedItem = {
-          sku: cleanCode,
-          namaBarang: '*** BARANG BARU / UNKNOWN ***',
-          family: 'N/A',
-          originalCode: cleanCode
-        };
+      if (success === null) {
+        spinner?.classList.remove('hidden');
+        banner.className = 'px-4 py-2.5 text-xs font-medium flex items-center justify-between gap-2 border-b bg-cyan-950 text-cyan-200 border-cyan-800';
+      } else if (success === true) {
+        spinner?.classList.add('hidden');
+        banner.className = 'px-4 py-2.5 text-xs font-medium flex items-center justify-between gap-2 border-b bg-emerald-950 text-emerald-200 border-emerald-800';
       } else {
-        triggerFeedback('success');
+        spinner?.classList.add('hidden');
+        banner.className = 'px-4 py-2.5 text-xs font-medium flex items-center justify-between gap-2 border-b bg-rose-950 text-rose-200 border-rose-800';
       }
+    }
 
-      // 3. TAMPILKAN POPUP MODAL DESKRIPSI ITEM TERLEBIH DAHULU
-      state.pendingItem = {
-        sku: matchedItem.sku,
-        namaBarang: matchedItem.namaBarang,
-        originalCode: matchedItem.originalCode || '-',
-        family: matchedItem.family || '-',
-        rak: currentRak
-      };
-
-      document.getElementById('confirm-item-nama').textContent = matchedItem.namaBarang;
-      document.getElementById('confirm-item-sku').textContent = matchedItem.sku;
-      document.getElementById('confirm-item-orig').textContent = matchedItem.originalCode || '-';
-      document.getElementById('confirm-item-family').textContent = matchedItem.family || '-';
-      document.getElementById('confirm-item-rak').textContent = `RAK: ${currentRak}`;
+    function getPetugasForTeam(teamName) {
+      if (!state.petugasByTeam) return ['Petugas 1'];
       
-      const defaultQty = state.scanQty || 1;
-      document.getElementById('input-confirm-qty').value = defaultQty;
-
-      document.getElementById('modal-confirm-qty').classList.remove('hidden');
-
-      setTimeout(() => {
-        const modalQtyInput = document.getElementById('input-confirm-qty');
-        modalQtyInput.select();
-        modalQtyInput.focus();
-      }, 150);
-    }
-
-    function confirmScanEntry() {
-      if (!state.pendingItem) return;
-
-      const qtyInputValue = parseInt(document.getElementById('input-confirm-qty').value) || 1;
-
-      const newEntry = {
-        id: `so-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        team: state.selectedTeam,
-        petugas: state.selectedPetugas || 'Petugas 1',
-        rak: state.pendingItem.rak,
-        sku: state.pendingItem.sku,
-        originalCode: state.pendingItem.originalCode,
-        namaBarang: state.pendingItem.namaBarang,
-        family: state.pendingItem.family,
-        qty: qtyInputValue,
-        syncedSheet: false,
-        syncedSupabase: false
-      };
-
-      state.soResults.unshift(newEntry);
-      state.lastScannedItem = {
-        ...state.pendingItem,
-        scannedQty: qtyInputValue,
-        time: new Date().toLocaleTimeString('id-ID')
-      };
-
-      saveState();
-      showNotification('success', `Berhasil disimpan: ${state.pendingItem.namaBarang} (+${qtyInputValue})`);
-      
-      renderLastScannedCard();
-      renderRecentScansList();
-      renderResultsTable();
-
-      closeConfirmModal();
-      document.getElementById('input-barcode-scan').value = '';
-      if (state.autoResetQty) {
-        state.scanQty = 1;
-      }
-      setTimeout(() => document.getElementById('input-barcode-scan').focus(), 200);
-    }
-
-    function closeConfirmModal() {
-      document.getElementById('modal-confirm-qty').classList.add('hidden');
-      state.pendingItem = null;
-    }
-
-    async function handleSyncSheetToSupabaseDirect() {
-      if (!state.gasUrl) {
-        alert('Pastikan Web App GAS URL sudah diisi di Settings!');
-        switchTab('settings');
-        return;
+      if (state.petugasByTeam[teamName] && state.petugasByTeam[teamName].length > 0) {
+        return state.petugasByTeam[teamName];
       }
 
-      showBannerStatus(null, 'Memulai Push 70.000 SKU (Google Sheet ➔ Supabase)... RAM HP hemat 0 MB.');
-
-      try {
-        const res = await fetch(`${state.gasUrl}?action=pushToSupabase`);
-        if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-        const json = await res.json();
-
-        if (json.success) {
-          showBannerStatus(true, `SUCCESS! ${json.message}`);
-          triggerFeedback('success');
-        } else {
-          showBannerStatus(false, `Gagal Sync Server: ${json.message}`);
-          triggerFeedback('error');
+      const targetClean = String(teamName).toUpperCase().replace(/\s+/g, '');
+      for (const key of Object.keys(state.petugasByTeam)) {
+        if (key.toUpperCase().replace(/\s+/g, '') === targetClean) {
+          return state.petugasByTeam[key];
         }
-      } catch (err) {
-        showBannerStatus(false, `Gagal menghubungi server Apps Script: ${err.message}`);
-        triggerFeedback('error');
+      }
+
+      for (const key of Object.keys(state.petugasByTeam)) {
+        if (key.includes('1') && teamName.includes('1')) return state.petugasByTeam[key];
+        if ((key.includes('2') || key.includes('21')) && (teamName.includes('2') || teamName.includes('21'))) {
+          return state.petugasByTeam[key];
+        }
+      }
+
+      const firstKey = Object.keys(state.petugasByTeam)[0];
+      return state.petugasByTeam[firstKey] || ['Petugas 1'];
+    }
+
+    function renderTeamOptions() {
+      const selectTeam = document.getElementById('select-team');
+      if (!selectTeam) return;
+
+      const availableTeams = Object.keys(state.petugasByTeam);
+      if (availableTeams.length > 0) {
+        selectTeam.innerHTML = availableTeams.map(t => `<option value="${t}">${t}</option>`).join('');
+        if (!availableTeams.includes(state.selectedTeam)) {
+          state.selectedTeam = availableTeams[0];
+        }
+        selectTeam.value = state.selectedTeam;
+      }
+    }
+
+    function renderPetugasOptions() {
+      renderTeamOptions();
+      const selectPetugas = document.getElementById('select-petugas');
+      if (!selectPetugas) return;
+
+      const list = getPetugasForTeam(state.selectedTeam);
+      selectPetugas.innerHTML = list.map(p => `<option value="${p}">${p}</option>`).join('');
+      if (list.length > 0) {
+        state.selectedPetugas = list[0];
+        selectPetugas.value = state.selectedPetugas;
       }
     }
 
@@ -789,7 +649,7 @@
         const res = await fetch(`${state.gasUrl}?action=getPetugas`);
         if (res.ok) {
           const json = await res.json();
-          if (json.data && typeof json.data === 'object') {
+          if (json.data && typeof json.data === 'object' && Object.keys(json.data).length > 0) {
             state.petugasByTeam = json.data;
             saveState();
             renderPetugasOptions();
@@ -800,9 +660,181 @@
       }
     }
 
+    async function handleBarcodeSubmit(barcodeValue) {
+      const cleanCode = String(barcodeValue || '').trim();
+      if (!cleanCode) return;
+
+      const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
+      if (!currentRak) {
+        triggerFeedback('error');
+        showBannerStatus(false, 'Wajib isi KODE RAK SO terlebih dahulu!');
+        return;
+      }
+
+      if (currentRak && !state.recentRaks.includes(currentRak)) {
+        state.recentRaks.unshift(currentRak);
+        if (state.recentRaks.length > 5) state.recentRaks.pop();
+        renderRecentRaks();
+      }
+
+      // Local search
+      let matchedItem = state.masterItems.find(
+        item => (item.sku && item.sku.toLowerCase() === cleanCode.toLowerCase()) || 
+                (item.originalCode && item.originalCode.toLowerCase() === cleanCode.toLowerCase()) ||
+                (item.original_code && item.original_code.toLowerCase() === cleanCode.toLowerCase())
+      );
+
+      // Online Supabase fallback
+      if (!matchedItem && state.supabaseUrl && state.supabaseKey) {
+        try {
+          const res = await fetch(`${state.supabaseUrl}/rest/v1/master_items?or=(sku.eq.${encodeURIComponent(cleanCode)},original_code.eq.${encodeURIComponent(cleanCode)})&limit=1`, {
+            headers: {
+              'apikey': state.supabaseKey,
+              'Authorization': `Bearer ${state.supabaseKey}`
+            }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+              matchedItem = {
+                sku: data[0].sku || cleanCode,
+                namaBarang: data[0].nama_barang || 'Barang Supabase',
+                family: data[0].family || '-',
+                originalCode: data[0].original_code || '-'
+              };
+            }
+          }
+        } catch (e) {
+          console.warn('Online barcode lookup failed', e);
+        }
+      }
+
+      if (!matchedItem) {
+        matchedItem = {
+          sku: cleanCode,
+          namaBarang: '*** ITEM TIDAK TERDAFTAR ***',
+          family: 'N/A',
+          originalCode: cleanCode
+        };
+      }
+
+      state.pendingScanItem = { matchedItem, rak: currentRak };
+
+      document.getElementById('confirm-item-rak').textContent = `RAK: ${currentRak}`;
+      document.getElementById('confirm-item-family').textContent = `Family: ${matchedItem.family || '-'}`;
+      document.getElementById('confirm-item-nama').textContent = matchedItem.namaBarang || matchedItem.nama_barang || 'Item Barcode';
+      document.getElementById('confirm-item-sku').textContent = matchedItem.sku || cleanCode;
+      document.getElementById('confirm-item-orig').textContent = matchedItem.originalCode || matchedItem.original_code || '-';
+      
+      const qtyInput = document.getElementById('input-confirm-qty');
+      if (qtyInput) qtyInput.value = 1;
+
+      const modal = document.getElementById('modal-confirm-qty');
+      if (modal) modal.classList.remove('hidden');
+
+      triggerFeedback('success');
+
+      setTimeout(() => {
+        if (qtyInput) {
+          qtyInput.focus();
+          qtyInput.select();
+        }
+      }, 150);
+    }
+
+    function confirmScanEntry() {
+      if (!state.pendingScanItem) {
+        closeConfirmModal();
+        return;
+      }
+      const qtyInput = document.getElementById('input-confirm-qty');
+      const qty = Math.max(1, parseInt(qtyInput ? qtyInput.value : 1) || 1);
+      const item = state.pendingScanItem.matchedItem;
+      const rak = state.pendingScanItem.rak;
+
+      const newEntry = {
+        id: 'so-' + Date.now(),
+        timestamp: new Date().toISOString(),
+        team: state.selectedTeam,
+        petugas: state.selectedPetugas || 'Petugas 1',
+        rak: rak,
+        sku: item.sku,
+        originalCode: item.originalCode || item.original_code || '-',
+        namaBarang: item.namaBarang || item.nama_barang || 'Unknown Item',
+        family: item.family || '-',
+        qty: qty,
+        syncedSheet: false,
+        syncedSupabase: false
+      };
+
+      state.soResults.unshift(newEntry);
+      state.lastScannedItem = {
+        ...item,
+        sku: item.sku,
+        originalCode: item.originalCode || item.original_code || '-',
+        namaBarang: item.namaBarang || item.nama_barang || 'Unknown Item',
+        scannedQty: qty,
+        rak: rak,
+        time: new Date().toLocaleTimeString('id-ID')
+      };
+
+      saveState();
+      renderLastScannedCard();
+      renderRecentScansList();
+      renderResultsTable();
+      closeConfirmModal();
+      
+      triggerFeedback('success');
+      
+      const scanInput = document.getElementById('input-barcode-scan');
+      if (scanInput) {
+        scanInput.value = '';
+        setTimeout(() => scanInput.focus(), 150);
+      }
+    }
+
+    function closeConfirmModal() {
+      const modal = document.getElementById('modal-confirm-qty');
+      if (modal) modal.classList.add('hidden');
+      state.pendingScanItem = null;
+      const scanInput = document.getElementById('input-barcode-scan');
+      if (scanInput) {
+        scanInput.value = '';
+        setTimeout(() => scanInput.focus(), 150);
+      }
+    }
+
+    async function handleSyncSheetToSupabaseDirect() {
+      if (!state.gasUrl) {
+        showBannerStatus(false, 'URL Apps Script belum diisi di Setting!');
+        switchTab('settings');
+        return;
+      }
+
+      showBannerStatus(null, 'Memulai Push 70.000 SKU dari Spreadsheet ke Supabase via Server...');
+
+      try {
+        const res = await fetch(`${state.gasUrl}?action=pushToSupabase`);
+        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+        const json = await res.json();
+
+        if (json.success) {
+          showBannerStatus(true, json.message || 'Berhasil mengunggah master SKU dari Sheet ke Supabase!');
+          triggerFeedback('success');
+          handleFetchMasterFromSupabase();
+        } else {
+          showBannerStatus(false, `Gagal Sync Server: ${json.message}`);
+          triggerFeedback('error');
+        }
+      } catch (err) {
+        showBannerStatus(false, `Gagal memanggil Apps Script: ${err.message}`);
+        triggerFeedback('error');
+      }
+    }
+
     async function handlePushResultsToSupabase() {
       if (!state.supabaseUrl || !state.supabaseKey) {
-        alert('Masukkan Supabase URL dan Anon Key di Settings!');
+        showBannerStatus(false, 'Masukkan Supabase URL dan Anon Key di Settings!');
         switchTab('settings');
         return;
       }
@@ -855,7 +887,7 @@
 
     async function handlePushResultsToSpreadsheet() {
       if (!state.gasUrl) {
-        alert('Masukkan URL Apps Script!');
+        showBannerStatus(false, 'Masukkan URL Apps Script!');
         switchTab('settings');
         return;
       }
@@ -888,7 +920,7 @@
 
     async function handleFetchMasterFromSupabase() {
       if (!state.supabaseUrl || !state.supabaseKey) {
-        alert('Masukkan Supabase URL dan Anon Key!');
+        showBannerStatus(false, 'Masukkan Supabase URL dan Anon Key!');
         switchTab('settings');
         return;
       }
@@ -930,7 +962,7 @@
 
     async function handleFetchMasterFromSpreadsheet() {
       if (!state.gasUrl) {
-        alert('Masukkan URL Apps Script!');
+        showBannerStatus(false, 'Masukkan URL Apps Script!');
         switchTab('settings');
         return;
       }
@@ -968,17 +1000,9 @@
       await handlePushResultsToSpreadsheet();
     }
 
-    function renderPetugasOptions() {
-      const selectPetugas = document.getElementById('select-petugas');
-      const list = state.petugasByTeam[state.selectedTeam] || [];
-      selectPetugas.innerHTML = list.map(p => `<option value="${p}">${p}</option>`).join('');
-      if (list.length > 0) {
-        state.selectedPetugas = list[0];
-      }
-    }
-
     function renderRecentRaks() {
       const container = document.getElementById('recent-raks-container');
+      if (!container) return;
       container.innerHTML = state.recentRaks.map(r => `
         <button class="btn-recent-rak text-[9px] px-2 py-0.5 rounded border font-mono shrink-0 ${
           state.manualRakInput.toUpperCase() === r.toUpperCase()
@@ -999,6 +1023,7 @@
 
     function renderLastScannedCard() {
       const card = document.getElementById('last-scanned-card');
+      if (!card) return;
       if (!state.lastScannedItem) {
         card.classList.add('hidden');
         return;
@@ -1014,6 +1039,7 @@
 
     function renderRecentScansList() {
       const container = document.getElementById('recent-scans-list');
+      if (!container) return;
       document.getElementById('recent-count-text').textContent = `${state.soResults.length} Entry`;
 
       if (state.soResults.length === 0) {
@@ -1045,6 +1071,7 @@
 
     function renderResultsTable() {
       const tbody = document.getElementById('table-results-body');
+      if (!tbody) return;
       
       const filtered = state.soResults.filter(item => {
         const q = state.resultsSearch.toLowerCase();
@@ -1101,6 +1128,7 @@
 
     function renderMasterTable() {
       const tbody = document.getElementById('table-master-body');
+      if (!tbody) return;
       document.getElementById('count-badge-master').textContent = state.masterItems.length.toLocaleString('id-ID');
       document.getElementById('master-count-info').textContent = `${state.masterItems.length.toLocaleString('id-ID')} SKU terdaftar di memori web HP.`;
 
@@ -1144,10 +1172,9 @@
       state.activeTab = tabName;
       ['scanner', 'results', 'master', 'settings'].forEach(t => {
         const sec = document.getElementById(`tab-${t}`);
-        if (t === tabName) {
-          sec.classList.remove('hidden');
-        } else {
-          sec.classList.add('hidden');
+        if (sec) {
+          if (t === tabName) sec.classList.remove('hidden');
+          else sec.classList.add('hidden');
         }
       });
 
@@ -1168,14 +1195,8 @@
       });
 
       if (tabName === 'scanner') {
-        setTimeout(() => document.getElementById('input-barcode-scan').focus(), 200);
+        setTimeout(() => document.getElementById('input-barcode-scan')?.focus(), 200);
       }
-    }
-
-    function saveState() {
-      localStorage.setItem('so_master_items', JSON.stringify(state.masterItems));
-      localStorage.setItem('so_scanned_results', JSON.stringify(state.soResults));
-      localStorage.setItem('so_petugas_map', JSON.stringify(state.petugasByTeam));
     }
 
     function startHtml5CameraScanner() {
@@ -1187,9 +1208,7 @@
         state.html5QrcodeScanner = new Html5Qrcode("reader");
       }
 
-      if (state.html5QrcodeScanner.isScanning) {
-        return;
-      }
+      if (state.html5QrcodeScanner.isScanning) return;
 
       state.html5QrcodeScanner.start(
         { facingMode: "environment" },
@@ -1373,16 +1392,14 @@
         renderResultsTable();
       };
 
-      // Tarik data Petugas dari Spreadsheet secara otomatis saat startup
       fetchPetugasFromSpreadsheet();
-
       renderPetugasOptions();
       renderRecentRaks();
       renderRecentScansList();
       renderResultsTable();
       renderMasterTable();
 
-      setTimeout(() => document.getElementById('input-barcode-scan').focus(), 300);
+      setTimeout(() => document.getElementById('input-barcode-scan')?.focus(), 300);
     };
   </script>
 </body>
