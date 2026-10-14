@@ -174,7 +174,9 @@
       React.useEffect(() => {
         if (supabaseUrl && supabaseKey && window.supabase) {
           try {
-            const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+            const client = window.supabase.createClient(supabaseUrl, supabaseKey, {
+              realtime: { enabled: false }
+            });
             setSupabaseClient(client);
             setIsConnectedToSupabase(true);
           } catch (e) {
@@ -358,22 +360,6 @@
         fetchOfficersFromSheet();
         if (supabaseClient) {
           fetchFromSupabase();
-          // Safe WebSocket fallback: try subscription, catch sandbox WS errors safely
-          try {
-            const channel = supabaseClient
-              .channel('schema-db-changes')
-              .on('postgres_changes', { event: '*', schema: 'public', table: 'revisi_so' }, () => {
-                fetchFromSupabase();
-              })
-              .subscribe((status, err) => {
-                if (err) console.warn("Realtime channel notice:", err);
-              });
-            return () => { 
-              if (channel) supabaseClient.removeChannel(channel); 
-            };
-          } catch (wsErr) {
-            console.warn("WebSocket Realtime restricted in sandbox environment:", wsErr);
-          }
         }
       }, [supabaseClient, fetchOfficersFromSheet, fetchFromSupabase]);
 
