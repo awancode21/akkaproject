@@ -22,14 +22,12 @@
     .font-mono {
       font-family: 'JetBrains Mono', monospace;
     }
-    /* Hide scrollbar for Chrome, Safari and Opera */
     .no-scrollbar::-webkit-scrollbar {
       display: none;
     }
-    /* Hide scrollbar for IE, Edge and Firefox */
     .no-scrollbar {
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
   </style>
 </head>
@@ -75,7 +73,7 @@
         <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Master SKU (<span id="count-badge-master">0</span>)
       </button>
       <button data-tab="teams" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800">
-        <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Tim & Petugas
+        <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Tim & Petugas
       </button>
       <button data-tab="settings" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800">
         <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Config & Credentials
@@ -83,12 +81,13 @@
     </div>
   </header>
 
-  <!-- SYNC BANNER -->
-  <div id="sync-banner" class="hidden px-4 py-2 text-xs font-medium flex items-center justify-between gap-2 border-b bg-cyan-950 text-cyan-200 border-cyan-800">
+  <!-- SYNC BANNER WITH PROGRESS -->
+  <div id="sync-banner" class="hidden px-4 py-2.5 text-xs font-medium flex items-center justify-between gap-2 border-b bg-cyan-950 text-cyan-200 border-cyan-800">
     <div class="flex items-center gap-2">
+      <div id="sync-spinner" class="w-3.5 h-3.5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
       <span id="sync-banner-text">Menyinkronkan data...</span>
     </div>
-    <button id="btn-close-banner" class="text-slate-400 text-xs font-bold">✕</button>
+    <button id="btn-close-banner" class="text-slate-400 hover:text-white text-xs font-bold px-1">✕</button>
   </div>
 
   <!-- MAIN VIEWPORT CONTAINER -->
@@ -156,7 +155,7 @@
           </button>
         </div>
 
-        <!-- CAMERA VIEWPORT (CONDITIONAL) -->
+        <!-- CAMERA VIEWPORT -->
         <div id="camera-viewport" class="hidden bg-black rounded-xl p-3 border border-emerald-500/40 text-center space-y-2">
           <div class="relative aspect-video max-h-52 bg-slate-950 rounded-lg overflow-hidden border-2 border-emerald-500/50 flex flex-col items-center justify-center mx-auto">
             <video id="video-preview" autoplay playsinline muted class="w-full h-full object-cover"></video>
@@ -212,7 +211,7 @@
           </div>
         </div>
 
-        <!-- SCAN FEEDBACK NOTIFICATION CONTAINER -->
+        <!-- SCAN FEEDBACK NOTIFICATION -->
         <div id="scan-notification-container"></div>
 
         <!-- LAST SCANNED ITEM CARD -->
@@ -333,12 +332,16 @@
           </div>
 
           <div class="flex gap-2 flex-wrap">
+            <button id="btn-sync-sheet-to-supabase" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow" title="Tarik dari Sheet lalu Upload Stream ke Supabase">
+              <svg class="w-3.5 h-3.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> ⚡ Sheet ➔ Supabase
+            </button>
+
             <button id="btn-pull-master-supabase" class="bg-teal-600 hover:bg-teal-500 text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5">
-              <svg class="w-3.5 h-3.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Pull dari Supabase
+              <svg class="w-3.5 h-3.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Pull Supabase
             </button>
 
             <button id="btn-pull-master-sheet" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5">
-              <svg class="w-3.5 h-3.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Pull dari Sheet
+              <svg class="w-3.5 h-3.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Pull Sheet
             </button>
           </div>
         </div>
@@ -401,7 +404,7 @@
       </div>
     </section>
 
-    <!-- TAB 5: PENGATURAN & SCRIPT SPREADSHEET / SUPABASE -->
+    <!-- TAB 5: PENGATURAN & CREDENTIALS -->
     <section id="tab-settings" class="hidden space-y-4 max-w-2xl mx-auto">
       <!-- GOOGLE SHEET CONFIG -->
       <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800 space-y-4">
@@ -485,7 +488,6 @@
       "TIM 2": ['Doni Hermawan', 'Eka Pratama', 'Fani Rahmawati']
     };
 
-    // GENERATE INITIAL MOCK MASTER IF EMPTY
     function generateSampleMaster(count = 100) {
       const families = ['Minuman', 'Makanan', 'Perawatan', 'Pembersih', 'Elektronik', 'Alat Tulis'];
       const items = [];
@@ -588,20 +590,99 @@
       }, 3500);
     }
 
-    function showBannerStatus(success, message) {
+    function showBannerStatus(success, message, isSpinning = true) {
       const banner = document.getElementById('sync-banner');
       const text = document.getElementById('sync-banner-text');
+      const spinner = document.getElementById('sync-spinner');
+
       banner.classList.remove('hidden', 'bg-emerald-950', 'text-emerald-200', 'border-emerald-800', 'bg-rose-950', 'text-rose-200', 'border-rose-800', 'bg-cyan-950', 'text-cyan-200', 'border-cyan-800');
 
       if (success === true) {
         banner.classList.add('bg-emerald-950', 'text-emerald-200', 'border-emerald-800');
+        spinner.classList.add('hidden');
       } else if (success === false) {
         banner.classList.add('bg-rose-950', 'text-rose-200', 'border-rose-800');
+        spinner.classList.add('hidden');
       } else {
         banner.classList.add('bg-cyan-950', 'text-cyan-200', 'border-cyan-800');
+        if (isSpinning) spinner.classList.remove('hidden'); else spinner.classList.add('hidden');
       }
 
       text.textContent = message;
+    }
+
+    // CLIENT-SIDE STREAMING SYNC (SHEET -> SUPABASE)
+    // Menarik seluruh SKU dari Google Sheet lalu mengirimnya dalam chunk/batch (500 per request) langsung dari Browser
+    async function handleSyncSheetToSupabaseDirect() {
+      if (!state.gasUrl || !state.supabaseUrl || !state.supabaseKey) {
+        alert('Pastikan Web App GAS URL, Supabase URL, dan Anon Key sudah terisi!');
+        switchTab('settings');
+        return;
+      }
+
+      showBannerStatus(null, 'Step 1/2: Menarik Master SKU dari Google Sheet...');
+
+      try {
+        const res = await fetch(`${state.gasUrl}?action=GET_MASTER`);
+        if (!res.ok) throw new Error(`Gagal mengambil dari Sheet: HTTP ${res.status}`);
+        const json = await res.json();
+
+        if (!json.masterItems || !Array.isArray(json.masterItems) || json.masterItems.length === 0) {
+          showBannerStatus(false, 'Sheet terhubung namun data Master Item kosong.');
+          return;
+        }
+
+        const items = json.masterItems;
+        state.masterItems = items;
+        if (json.petugasByTeam) state.petugasByTeam = json.petugasByTeam;
+        saveState();
+        renderMasterTable();
+        renderPetugasOptions();
+
+        const total = items.length;
+        const chunkSize = 500;
+        let uploaded = 0;
+
+        showBannerStatus(null, `Step 2/2: Mengunggah ${total.toLocaleString('id-ID')} SKU ke Supabase... (0%)`);
+
+        // Sangat Penting: Parameter query 'on_conflict=sku' wajib untuk Supabase POST upsert
+        const supabaseEndpoint = `${state.supabaseUrl}/rest/v1/master_items?on_conflict=sku`;
+
+        for (let i = 0; i < total; i += chunkSize) {
+          const chunk = items.slice(i, i + chunkSize).map(item => ({
+            sku: item.sku,
+            nama_barang: item.namaBarang || '',
+            family: item.family || '',
+            original_code: item.originalCode || ''
+          }));
+
+          const supRes = await fetch(supabaseEndpoint, {
+            method: 'POST',
+            headers: {
+              'apikey': state.supabaseKey,
+              'Authorization': `Bearer ${state.supabaseKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates'
+            },
+            body: JSON.stringify(chunk)
+          });
+
+          if (!supRes.ok) {
+            const errText = await supRes.text();
+            throw new Error(`Error Supabase di batch ${i}: HTTP ${supRes.status} - ${errText}`);
+          }
+
+          uploaded += chunk.length;
+          const percent = Math.round((uploaded / total) * 100);
+          showBannerStatus(null, `Mengunggah ke Supabase: ${uploaded.toLocaleString('id-ID')} / ${total.toLocaleString('id-ID')} SKU (${percent}%)`);
+        }
+
+        showBannerStatus(true, `SUCCESS! ${uploaded.toLocaleString('id-ID')} SKU dari Spreadsheet berhasil disinkron penuh ke Supabase!`);
+        triggerFeedback('success');
+      } catch (err) {
+        showBannerStatus(false, `Gagal Sync Sheet ke Supabase: ${err.message}`);
+        triggerFeedback('error');
+      }
     }
 
     // MAIN BARCODE SUBMIT HANDLER
@@ -863,7 +944,6 @@
       await handlePushResultsToSpreadsheet();
     }
 
-    // RENDER PETUGAS DROPDOWN BASED ON SELECTED TEAM
     function renderPetugasOptions() {
       const selectPetugas = document.getElementById('select-petugas');
       const list = state.petugasByTeam[state.selectedTeam] || [];
@@ -873,7 +953,6 @@
       }
     }
 
-    // RENDER RECENT RAKS
     function renderRecentRaks() {
       const container = document.getElementById('recent-raks-container');
       container.innerHTML = state.recentRaks.map(r => `
@@ -894,7 +973,6 @@
       });
     }
 
-    // RENDER LAST SCANNED CARD
     function renderLastScannedCard() {
       const card = document.getElementById('last-scanned-card');
       if (!state.lastScannedItem) {
@@ -910,7 +988,6 @@
       document.getElementById('last-scanned-qty').textContent = `+${state.lastScannedItem.scannedQty}`;
     }
 
-    // RENDER RECENT SCAN LIST (SCANNER TAB)
     function renderRecentScansList() {
       const container = document.getElementById('recent-scans-list');
       document.getElementById('recent-count-text').textContent = `${state.soResults.length} Entry`;
@@ -942,7 +1019,6 @@
       `).join('');
     }
 
-    // RENDER AUDIT RESULTS TABLE
     function renderResultsTable() {
       const tbody = document.getElementById('table-results-body');
       
@@ -957,7 +1033,6 @@
         return matchSearch && matchTeam;
       });
 
-      // Update counters
       const totalQty = state.soResults.reduce((acc, c) => acc + (Number(c.qty) || 0), 0);
       const syncedCount = state.soResults.filter(r => r.syncedSupabase || r.syncedSheet).length;
 
@@ -1000,7 +1075,6 @@
       });
     }
 
-    // RENDER MASTER SKU TABLE
     function renderMasterTable() {
       const tbody = document.getElementById('table-master-body');
       document.getElementById('count-badge-master').textContent = state.masterItems.length.toLocaleString('id-ID');
@@ -1039,25 +1113,23 @@
       `).join('');
     }
 
-    // RENDER TEAMS TAB
     function renderTeamsList() {
       const t1 = document.getElementById('list-petugas-tim1');
       const t2 = document.getElementById('list-petugas-tim2');
 
-      t1.innerHTML = (state.petugasByTeam['TIM 1'] || []).map((p, i) => `
+      t1.innerHTML = (state.petugasByTeam['TIM 1'] || []).map((p) => `
         <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs font-bold text-slate-200">
           <span>${p}</span>
         </div>
       `).join('');
 
-      t2.innerHTML = (state.petugasByTeam['TIM 2'] || []).map((p, i) => `
+      t2.innerHTML = (state.petugasByTeam['TIM 2'] || []).map((p) => `
         <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs font-bold text-slate-200">
           <span>${p}</span>
         </div>
       `).join('');
     }
 
-    // TAB NAVIGATION SWITCHER
     function switchTab(tabName) {
       state.activeTab = tabName;
       ['scanner', 'results', 'master', 'teams', 'settings'].forEach(t => {
@@ -1069,7 +1141,6 @@
         }
       });
 
-      // Update Desktop Buttons
       document.querySelectorAll('.nav-tab-btn').forEach(btn => {
         if (btn.dataset.tab === tabName) {
           btn.className = 'nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition bg-emerald-500 text-slate-950';
@@ -1078,7 +1149,6 @@
         }
       });
 
-      // Update Mobile Buttons
       document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
         if (btn.dataset.tab === tabName) {
           btn.className = 'mobile-nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition text-emerald-400 font-bold';
@@ -1098,7 +1168,6 @@
       localStorage.setItem('so_petugas_map', JSON.stringify(state.petugasByTeam));
     }
 
-    // CAMERA HANDLERS
     function toggleCameraMode(enable) {
       state.cameraActive = enable;
       const viewport = document.getElementById('camera-viewport');
@@ -1130,21 +1199,18 @@
       }
     }
 
-    // EVENT LISTENERS BINDING ON LOAD
+    // INITIAL EVENT LISTENERS
     window.onload = function() {
-      // Bind Nav Buttons
       document.querySelectorAll('[data-tab]').forEach(btn => {
         btn.onclick = () => switchTab(btn.dataset.tab);
       });
 
-      // Sound Toggle
       document.getElementById('btn-toggle-sound').onclick = () => {
         state.soundEnabled = !state.soundEnabled;
         document.getElementById('icon-sound-on').classList.toggle('hidden', !state.soundEnabled);
         document.getElementById('icon-sound-off').classList.toggle('hidden', state.soundEnabled);
       };
 
-      // Session Lock Toggle
       document.getElementById('btn-toggle-session-lock').onclick = () => {
         state.isSessionLocked = !state.isSessionLocked;
         const btn = document.getElementById('btn-toggle-session-lock');
@@ -1155,23 +1221,19 @@
         document.querySelectorAll('.session-input').forEach(i => i.disabled = state.isSessionLocked);
       };
 
-      // Select Team Change
       document.getElementById('select-team').onchange = (e) => {
         state.selectedTeam = e.target.value;
         renderPetugasOptions();
       };
 
-      // Select Petugas Change
       document.getElementById('select-petugas').onchange = (e) => {
         state.selectedPetugas = e.target.value;
       };
 
-      // Rak Input Change
       document.getElementById('input-rak-manual').oninput = (e) => {
         state.manualRakInput = e.target.value;
       };
 
-      // Scan Qty Steppers
       document.getElementById('btn-qty-minus').onclick = () => {
         state.scanQty = Math.max(1, state.scanQty - 1);
         document.getElementById('input-scan-qty').value = state.scanQty;
@@ -1184,7 +1246,6 @@
         state.scanQty = Math.max(1, parseInt(e.target.value) || 1);
       };
 
-      // Quick Qty Presets
       document.querySelectorAll('.btn-qty-preset').forEach(btn => {
         btn.onclick = () => {
           const qty = parseInt(btn.dataset.qty);
@@ -1200,7 +1261,6 @@
         };
       });
 
-      // Submit Barcode
       document.getElementById('btn-submit-scan').onclick = () => {
         handleBarcodeSubmit(document.getElementById('input-barcode-scan').value);
       };
@@ -1211,7 +1271,6 @@
         }
       };
 
-      // Camera Controls
       document.getElementById('btn-mode-gun').onclick = () => toggleCameraMode(false);
       document.getElementById('btn-mode-camera').onclick = () => toggleCameraMode(true);
       document.getElementById('btn-flip-camera').onclick = () => {
@@ -1223,7 +1282,6 @@
         if (rand) handleBarcodeSubmit(rand.sku);
       };
 
-      // Settings Input Bindings
       document.getElementById('setting-gas-url').value = state.gasUrl;
       document.getElementById('setting-gas-url').onchange = (e) => {
         state.gasUrl = e.target.value;
@@ -1242,15 +1300,15 @@
         localStorage.setItem('so_supabase_key', e.target.value);
       };
 
-      // Sync Action Buttons
+      // BUTTON BINDINGS
       document.getElementById('btn-sync-all').onclick = handleSyncAll;
       document.getElementById('btn-push-supabase').onclick = handlePushResultsToSupabase;
       document.getElementById('btn-push-sheet').onclick = handlePushResultsToSpreadsheet;
+      document.getElementById('btn-sync-sheet-to-supabase').onclick = handleSyncSheetToSupabaseDirect;
       document.getElementById('btn-pull-master-supabase').onclick = handleFetchMasterFromSupabase;
       document.getElementById('btn-pull-master-sheet').onclick = handleFetchMasterFromSpreadsheet;
       document.getElementById('btn-close-banner').onclick = () => document.getElementById('sync-banner').classList.add('hidden');
 
-      // CSV Export
       document.getElementById('btn-export-csv').onclick = () => {
         const csvContent = "data:text/csv;charset=utf-8," 
           + ["Timestamp,Rak,Tim,Petugas,SKU,Original Code,Nama Barang,Qty,Family"].join(",") + "\n"
@@ -1264,7 +1322,6 @@
         document.body.removeChild(link);
       };
 
-      // Search Inputs
       document.getElementById('input-search-master').oninput = (e) => {
         state.masterSearch = e.target.value;
         state.masterPage = 1;
@@ -1288,7 +1345,6 @@
         renderResultsTable();
       };
 
-      // Initial Renders
       renderPetugasOptions();
       renderRecentRaks();
       renderRecentScansList();
@@ -1296,7 +1352,6 @@
       renderMasterTable();
       renderTeamsList();
 
-      // Auto Focus Scan Input
       setTimeout(() => document.getElementById('input-barcode-scan').focus(), 300);
     };
   </script>
