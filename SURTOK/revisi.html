@@ -586,15 +586,18 @@
                   <Icon name="cloud-download" className={`w-4 h-4 ${isSyncingSheet ? 'animate-bounce text-amber-300' : ''}`} />
                   <span>Sync Sheet</span>
                 </button>
-                <button 
-                  onClick={() => setShowSettingsModal(true)}
-                  className="p-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg transition-all border border-slate-700 relative"
-                >
-                  <Icon name="settings" className="w-4 h-4" />
-                  {isConnectedToSupabase && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 absolute -top-0.5 -right-0.5"></span>
-                  )}
-                </button>
+                {isUserAsep && (
+                  <button 
+                    onClick={() => setShowSettingsModal(true)}
+                    className="p-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg transition-all border border-slate-700 relative"
+                    title="Pengaturan Integrasi (Hanya Asep)"
+                  >
+                    <Icon name="settings" className="w-4 h-4" />
+                    {isConnectedToSupabase && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 absolute -top-0.5 -right-0.5"></span>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
 
