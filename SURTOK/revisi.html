@@ -18,7 +18,6 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <!-- Custom Styles for Mobile App UI -->
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -50,15 +49,6 @@
     const GID_REVISI_SO = "1723800282";
     const DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxk8sBWXYGZghCvlGMkzsmP4uf8LWOaL6e9tkyBg1m237nKlHS0qjKK-4QO2q1Ewxxq/exec";
 
-    // Sample data penyesuaian awal sesuai Sheet Revisi SO
-    const INITIAL_ITEMS = [
-      { id: 1, petugasAwal: "Wildan", rak: "RAK-1", kodeItem: "10401019", kodeOriginal: "8992771010024", namaItem: "PIGEON UV PROTECT REF+PUFF", tim1: 15, tim2: 12, selisih: 3, qtyRevisi: null, petugasRevisi: "", timRevisi: "", status: "Belum Revisi", catatan: "" },
-      { id: 2, petugasAwal: "Andi", rak: "RAK-1", kodeItem: "10401020", kodeOriginal: "8992771010055", namaItem: "PIGEON BABY POWDER 100G", tim1: 50, tim2: 50, selisih: 0, qtyRevisi: 50, petugasRevisi: "Rillo (TIM 2)", timRevisi: "TIM 2", status: "Sudah Revisi", catatan: "Akurat" },
-      { id: 3, petugasAwal: "Siti", rak: "RAK-2", kodeItem: "10401021", kodeOriginal: "8992771010112", namaItem: "SENSODYNE REPAIR & PROTECT 100G", tim1: 20, tim2: 18, selisih: 2, qtyRevisi: null, petugasRevisi: "", timRevisi: "", status: "Belum Revisi", catatan: "" },
-      { id: 4, petugasAwal: "Rian", rak: "RAK-2", kodeItem: "10401022", kodeOriginal: "8992771010150", namaItem: "PEPSODENT ACTION 123 190G", tim1: 30, tim2: 35, selisih: -5, qtyRevisi: null, petugasRevisi: "", timRevisi: "", status: "Belum Revisi", catatan: "" },
-      { id: 5, petugasAwal: "Eko", rak: "RAK-3", kodeItem: "10401023", kodeOriginal: "8992771010200", namaItem: "LIFEBUOY SABUN CAIR REFILL 450ML", tim1: 100, tim2: 95, selisih: 5, qtyRevisi: 98, petugasRevisi: "Siti Aminah (TIM 2)", timRevisi: "TIM 2", status: "Sudah Revisi", catatan: "2 kemasan bocor" }
-    ];
-
     const DEFAULT_OFFICERS = {
       "TIM 1": ["Budi Santoso", "Andi Wijaya", "Agus Pratama", "Rian Hidayat", "Dedi Kurniawan", "Wildan"],
       "TIM 2": ["Eko Susilo", "Siti Aminah", "Hendra Saputra", "Maya Indah", "Rudi Hermawan", "Rillo"],
@@ -66,47 +56,80 @@
       "TIM2": ["Eko Susilo", "Siti Aminah", "Hendra Saputra", "Maya Indah", "Rudi Hermawan", "Rillo"]
     };
 
-    const parseOfficersCSV = (csvText) => {
-      const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
-      if (lines.length < 1) return DEFAULT_OFFICERS;
-
-      const parseLine = (line) => {
-        const result = [];
-        let cur = '';
-        let inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-          const c = line[i];
-          if (c === '"') {
-            if (inQuotes && line[i+1] === '"') { cur += '"'; i++; }
-            else { inQuotes = !inQuotes; }
-          } else if (c === ',' && !inQuotes) {
-            result.push(cur.trim());
-            cur = '';
-          } else {
-            cur += c;
-          }
-        }
-        result.push(cur.trim());
-        return result;
+    const parseSORows = (rows) => {
+      if (!rows || rows.length < 2) return [];
+      
+      const parseNum = (val) => {
+        if (val === undefined || val === null || val === '') return 0;
+        const cleaned = val.toString().replace(/,/g, '').trim();
+        const num = parseInt(cleaned, 10);
+        return isNaN(num) ? 0 : num;
       };
 
-      const rows = lines.map(l => parseLine(l).map(c => c.replace(/^"|"$/g, '')));
-      if (rows.length === 0) return DEFAULT_OFFICERS;
+      const parsedItems = [];
+      // Skip header row (index 0)
+      for (let i = 1; i < rows.length; i++) {
+        const cols = rows[i];
+        if (!cols || cols.length < 3) continue;
+        
+        // Yellow Columns (A - H)
+        const petugasAwal = cols[0] ? String(cols[0]).trim() : "";
+        const rak = cols[1] ? String(cols[1]).trim() : "";
+        const kodeItem = cols[2] ? String(cols[2]).trim() : "";
+        const kodeOriginal = cols[3] ? String(cols[3]).trim() : "";
+        const namaItem = cols[4] ? String(cols[4]).trim() : "";
+        
+        if (!kodeItem && !namaItem) continue;
 
+        const tim1 = parseNum(cols[5]);
+        const tim2 = parseNum(cols[6]);
+        const selisih = cols[7] !== undefined && cols[7] !== "" ? parseNum(cols[7]) : (tim1 - tim2);
+        
+        // Red Input Columns (I - L)
+        const rawQtyRev = cols[8] !== undefined && cols[8] !== null ? String(cols[8]).trim() : "";
+        const qtyRevisiVal = rawQtyRev !== "" && !isNaN(parseInt(rawQtyRev, 10)) ? parseInt(rawQtyRev, 10) : null;
+        
+        const petugasRevisi = cols[9] ? String(cols[9]).trim() : "";
+        const rawStatus = cols[10] ? String(cols[10]).trim() : "";
+        const statusRevisi = rawStatus !== "" ? rawStatus : (qtyRevisiVal !== null ? "Sudah Revisi" : "Belum Revisi");
+        const keterangan = cols[11] ? String(cols[11]).trim() : "";
+
+        parsedItems.push({
+          id: i,
+          petugasAwal,
+          rak,
+          kodeItem,
+          kodeOriginal,
+          namaItem,
+          tim1,
+          tim2,
+          selisih,
+          qtyRevisi: qtyRevisiVal,
+          petugasRevisi,
+          timRevisi: petugasRevisi.includes("TIM 2") ? "TIM 2" : (petugasRevisi.includes("TIM 1") ? "TIM 1" : ""),
+          status: statusRevisi,
+          keterangan: keterangan,
+          catatan: keterangan
+        });
+      }
+      return parsedItems;
+    };
+
+    const parseOfficersRows = (rows) => {
+      if (!rows || rows.length < 1) return DEFAULT_OFFICERS;
+      
       const tim1List = [];
       const tim2List = [];
 
-      const header0 = (rows[0][0] || '').toUpperCase();
-      const header1 = (rows[0][1] || '').toUpperCase();
-
+      const header0 = String(rows[0][0] || '').toUpperCase();
       let startRow = 0;
-      if (header0.includes("TIM") || header0.includes("PETUGAS") || header1.includes("TIM")) {
+      if (header0.includes("TIM") || header0.includes("PETUGAS")) {
         startRow = 1;
       }
 
       for (let i = startRow; i < rows.length; i++) {
-        const col0 = rows[i][0] ? rows[i][0].trim() : '';
-        const col1 = rows[i][1] ? rows[i][1].trim() : '';
+        const col0 = rows[i][0] ? String(rows[i][0]).trim() : '';
+        const col1 = rows[i][1] ? String(rows[i][1]).trim() : '';
 
         if (col0) tim1List.push(col0);
         if (col1) tim2List.push(col1);
@@ -123,10 +146,8 @@
       };
     };
 
-    const parseCSV = (csvText) => {
+    const parseCSVTextToRows = (csvText) => {
       const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
-      if (lines.length < 2) return [];
-
       const parseLine = (line) => {
         const result = [];
         let cur = '';
@@ -146,69 +167,11 @@
         result.push(cur.trim());
         return result;
       };
-
-      const parseNum = (val) => {
-        if (val === undefined || val === null || val === '') return 0;
-        const cleaned = val.toString().replace(/,/g, '').trim();
-        const num = parseInt(cleaned, 10);
-        return isNaN(num) ? 0 : num;
-      };
-
-      const parsedItems = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = parseLine(lines[i]).map(c => c.replace(/^"|"$/g, ''));
-        if (cols.length < 3) continue;
-        
-        // Pemetaan persis sesuai Kolom Spreadsheet:
-        // Col A (0): petugas
-        // Col B (1): Rak
-        // Col C (2): kode item
-        // Col D (3): kode original
-        // Col E (4): nama item
-        // Col F (5): Tim1
-        // Col G (6): Tim2
-        // Col H (7): Selisih
-        // Col I (8): QTY Revisi
-        // Col J (9): Petugas Revisi
-        // Col K (10): Status Revisi
-        const petugasAwal = cols[0] || "";
-        const rak = cols[1] || "";
-        const kodeItem = cols[2] || "";
-        const kodeOriginal = cols[3] || "";
-        const namaItem = cols[4] || "";
-        const tim1 = parseNum(cols[5]);
-        const tim2 = parseNum(cols[6]);
-        const selisih = cols[7] !== undefined && cols[7] !== "" ? parseNum(cols[7]) : (tim1 - tim2);
-        
-        const rawQtyRev = cols[8] !== undefined ? cols[8].trim() : "";
-        const qtyRevisiVal = rawQtyRev !== "" && !isNaN(parseInt(rawQtyRev, 10)) ? parseInt(rawQtyRev, 10) : null;
-        
-        const petugasRevisi = cols[9] || "";
-        const rawStatus = cols[10] || "";
-        const statusRevisi = rawStatus.trim() !== "" ? rawStatus.trim() : (qtyRevisiVal !== null ? "Sudah Revisi" : "Belum Revisi");
-
-        parsedItems.push({
-          id: i,
-          petugasAwal,
-          rak,
-          kodeItem,
-          kodeOriginal,
-          namaItem,
-          tim1,
-          tim2,
-          selisih,
-          qtyRevisi: qtyRevisiVal,
-          petugasRevisi,
-          timRevisi: petugasRevisi.includes("TIM 2") ? "TIM 2" : (petugasRevisi.includes("TIM 1") ? "TIM 1" : ""),
-          status: statusRevisi,
-          catatan: ""
-        });
-      }
-      return parsedItems;
+      return lines.map(l => parseLine(l).map(c => c.replace(/^"|"$/g, '')));
     };
 
     function App() {
-      const [items, setItems] = React.useState(INITIAL_ITEMS);
+      const [items, setItems] = React.useState([]);
       const [officers, setOfficers] = React.useState(DEFAULT_OFFICERS);
       const [searchQuery, setSearchQuery] = React.useState("");
       const [selectedRak, setSelectedRak] = React.useState("ALL");
@@ -221,7 +184,7 @@
       const [appsScriptUrl, setAppsScriptUrl] = React.useState(DEFAULT_APPS_SCRIPT_URL);
       const [toastMsg, setToastMsg] = React.useState("");
 
-      // State Kunci Sesi Petugas
+      // State Session Officer Lock
       const [sessionOfficer, setSessionOfficer] = React.useState(() => {
         try {
           const saved = localStorage.getItem("so_session_officer");
@@ -239,60 +202,84 @@
         }
       });
 
+      // Default Session State starts empty
       const [tempSessionTeam, setTempSessionTeam] = React.useState("TIM 1");
       const [tempSessionOfficer, setTempSessionOfficer] = React.useState("");
 
-      // Form state modal revisi
-      const [selectedTeam, setSelectedTeam] = React.useState("TIM 1");
-      const [selectedOfficer, setSelectedOfficer] = React.useState("");
-      const [isCustomOfficer, setIsCustomOfficer] = React.useState(false);
-      const [customOfficerInput, setCustomOfficerInput] = React.useState("");
+      // Revision Form Inputs
       const [qtyInput, setQtyInput] = React.useState("");
       const [notesInput, setNotesInput] = React.useState("");
 
-      const fetchFromGoogleSheet = async () => {
+      const fetchFromGoogleSheet = React.useCallback(async () => {
         setIsLoading(true);
-        try {
-          // 1. Fetch data dari Sheet Revisi SO
-          const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID_REVISI_SO}`;
-          const response = await fetch(csvUrl);
-          if (!response.ok) throw new Error("Gagal mengambil data Revisi SO");
-          const csvText = await response.text();
-          const parsedData = parseCSV(csvText);
+        let fetchedSuccess = false;
 
-          // 2. Fetch data Petugas dari Sheet "Petugas"
+        if (appsScriptUrl) {
           try {
-            const officersUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Petugas`;
-            const offRes = await fetch(officersUrl);
-            if (offRes.ok) {
-              const offCsvText = await offRes.text();
-              const parsedOfficers = parseOfficersCSV(offCsvText);
-              if (parsedOfficers) {
-                setOfficers(parsedOfficers);
+            const apiRes = await fetch(appsScriptUrl);
+            if (apiRes.ok) {
+              const resJson = await apiRes.json();
+              if (resJson && resJson.status === "Success") {
+                if (resJson.dataSO && resJson.dataSO.length > 0) {
+                  const parsedSO = parseSORows(resJson.dataSO);
+                  setItems(parsedSO);
+                  fetchedSuccess = true;
+                }
+                if (resJson.dataPetugas && resJson.dataPetugas.length > 0) {
+                  const parsedOff = parseOfficersRows(resJson.dataPetugas);
+                  setOfficers(parsedOff);
+                }
+                triggerToast("✅ Data Live Google Sheets berhasil dimuat!");
               }
             }
-          } catch (offErr) {
-            console.warn("Gagal membaca sheet Petugas, menggunakan daftar default:", offErr);
+          } catch (apiErr) {
+            console.warn("Fetch dari Apps Script GET gagal, mencoba CSV fallback:", apiErr);
           }
-
-          if (parsedData && parsedData.length > 0) {
-            setItems(parsedData);
-            triggerToast("✅ Data & Daftar Petugas berhasil dimuat!");
-          } else {
-            triggerToast("⚠️ Data dari Spreadsheet kosong");
-          }
-        } catch (err) {
-          console.error("Fetch Sheet Error:", err);
-          triggerToast("⚠️ Gagal memuat Spreadsheet. Menggunakan data lokal.");
-        } finally {
-          setIsLoading(false);
         }
-      };
 
-      // Otomatis fetch dari spreadsheet saat aplikasi pertama kali dibuka
+        if (!fetchedSuccess) {
+          try {
+            const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID_REVISI_SO}`;
+            const response = await fetch(csvUrl);
+            if (response.ok) {
+              const csvText = await response.text();
+              const rows = parseCSVTextToRows(csvText);
+              const parsedData = parseSORows(rows);
+
+              if (parsedData && parsedData.length > 0) {
+                setItems(parsedData);
+                fetchedSuccess = true;
+                triggerToast("✅ Data dimuat dari Spreadsheet CSV!");
+              }
+            }
+
+            try {
+              const officersUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Petugas`;
+              const offRes = await fetch(officersUrl);
+              if (offRes.ok) {
+                const offCsvText = await offRes.text();
+                const offRows = parseCSVTextToRows(offCsvText);
+                const parsedOfficers = parseOfficersRows(offRows);
+                if (parsedOfficers) setOfficers(parsedOfficers);
+              }
+            } catch (offErr) {
+              console.warn("Gagal membaca sheet Petugas CSV:", offErr);
+            }
+
+          } catch (csvErr) {
+            console.error("Fetch CSV Error:", csvErr);
+          }
+        }
+
+        if (!fetchedSuccess) {
+          triggerToast("⚠️ Gagal memuat data online. Memakai data lokal.");
+        }
+        setIsLoading(false);
+      }, [appsScriptUrl]);
+
       React.useEffect(() => {
         fetchFromGoogleSheet();
-      }, []);
+      }, [fetchFromGoogleSheet]);
 
       React.useEffect(() => {
         if (window.lucide) {
@@ -300,7 +287,6 @@
         }
       }, [items, activeModalItem, showSettingsModal, showScriptModal, showSessionModal, toastMsg, statusFilter, selectedRak, officers]);
 
-      // Reset / set default officer saat modal kunci sesi terbuka
       React.useEffect(() => {
         if (showSessionModal) {
           if (sessionOfficer) {
@@ -308,10 +294,10 @@
             setTempSessionOfficer(sessionOfficer.name || "");
           } else {
             setTempSessionTeam("TIM 1");
-            setTempSessionOfficer(""); // Default KOSONG
+            setTempSessionOfficer("");
           }
         }
-      }, [showSessionModal]);
+      }, [showSessionModal, sessionOfficer]);
 
       const triggerToast = React.useCallback((msg) => {
         setToastMsg(msg);
@@ -334,7 +320,7 @@
         try {
           localStorage.setItem("so_session_officer", JSON.stringify(sessionData));
         } catch (e) {
-          console.warn("Gagal simpan session ke localStorage", e);
+          console.warn("Gagal simpan session", e);
         }
         setShowSessionModal(false);
         triggerToast(`🔒 Sesi dikunci: ${officerName} (${team})`);
@@ -342,21 +328,7 @@
 
       const handleTempTeamChange = (team) => {
         setTempSessionTeam(team);
-        setTempSessionOfficer(""); // Kosongkan nama petugas saat ganti tim
-      };
-
-      const handleTeamChange = (team) => {
-        setSelectedTeam(team);
-        if (sessionOfficer && sessionOfficer.team === team) {
-          setSelectedOfficer(sessionOfficer.name);
-          setCustomOfficerInput(sessionOfficer.name);
-        } else {
-          const teamOfficers = officers[team] || officers[team.replace(" ", "")] || [];
-          const firstOfficer = teamOfficers[0] || "";
-          setSelectedOfficer(firstOfficer);
-          setCustomOfficerInput(firstOfficer);
-        }
-        setIsCustomOfficer(false);
+        setTempSessionOfficer("");
       };
 
       const openRevisionModal = (item) => {
@@ -367,27 +339,17 @@
         }
 
         setActiveModalItem(item);
-
-        // Selalu kunci Tim & Petugas sesuai Sesi Terkunci
-        setSelectedTeam(sessionOfficer.team);
-        setSelectedOfficer(sessionOfficer.name);
-        setCustomOfficerInput(sessionOfficer.name);
-        setIsCustomOfficer(false);
-
         setQtyInput(item.qtyRevisi !== null && item.qtyRevisi !== undefined ? String(item.qtyRevisi) : String(item.tim1 !== undefined ? item.tim1 : 0));
-        setNotesInput(item.catatan || "");
+        setNotesInput(item.keterangan || item.catatan || "");
       };
 
       const saveRevision = async () => {
-        if (!activeModalItem) return;
+        if (!activeModalItem || !sessionOfficer) return;
         
-        const finalOfficer = isCustomOfficer ? customOfficerInput.trim() : selectedOfficer;
-        if (!finalOfficer) {
-          triggerToast("⚠️ Pilih atau ketik nama petugas revisi");
-          return;
-        }
+        const finalOfficer = sessionOfficer.name;
+        const selectedTeam = sessionOfficer.team;
 
-        const parsedQty = parseInt(qtyInput);
+        const parsedQty = parseInt(qtyInput, 10);
         if (isNaN(parsedQty) || parsedQty < 0) {
           triggerToast("⚠️ Jumlah QTY Revisi tidak valid");
           return;
@@ -403,6 +365,7 @@
               petugasRevisi: updatedOfficerName,
               timRevisi: selectedTeam,
               status: "Sudah Revisi",
+              keterangan: notesInput,
               catatan: notesInput
             };
           }
@@ -411,6 +374,7 @@
 
         setItems(updatedItems);
 
+        // Send POST payload to Apps Script updating Columns I, J, K, L
         if (appsScriptUrl) {
           try {
             fetch(appsScriptUrl, {
@@ -424,13 +388,14 @@
                 qtyRevisi: parsedQty,
                 petugasRevisi: updatedOfficerName,
                 statusRevisi: "Sudah Revisi",
+                keterangan: notesInput,
                 catatan: notesInput
               })
             });
-            triggerToast("💾 Ter-sync ke Google Sheets (Kolom I, J, & K)!");
+            triggerToast("💾 Ter-sync ke Kolom I, J, K, & L Google Sheets!");
           } catch (e) {
             console.error("Apps Script Sync Error:", e);
-            triggerToast("⚠️ Tersimpan lokal (Gagal sync Apps Script)");
+            triggerToast("⚠️ Tersimpan di HP (Gagal sync Apps Script)");
           }
         } else {
           triggerToast("💾 Status diperbarui ke SUDAH REVISI");
@@ -463,7 +428,7 @@
 
       const exportToCSV = () => {
         let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "petugas,Rak,kode item,kode original,nama item,Tim1,Tim2,Selisih,QTY Revisi,Petugas Revisi,Status Revisi,Catatan\n";
+        csvContent += "petugas,Rak,kode item,kode original,nama item,Tim1,Tim2,Selisih,QTY Revisi,Petugas Revisi,Status Revisi,Keterangan\n";
         
         items.forEach(i => {
           const row = [
@@ -478,7 +443,7 @@
             i.qtyRevisi !== null && i.qtyRevisi !== undefined ? i.qtyRevisi : "",
             `"${i.petugasRevisi || ''}"`,
             `"${i.status || ''}"`,
-            `"${i.catatan || ''}"`
+            `"${i.keterangan || i.catatan || ''}"`
           ].join(",");
           csvContent += row + "\n";
         });
@@ -496,7 +461,7 @@
       return (
         <div className="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col shadow-xl relative pb-20">
           
-          {}
+          {/* Top Header */}
           <header className="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-md">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -629,13 +594,12 @@
             </div>
           </section>
 
-          {}
           <main className="flex-1 p-3 space-y-3">
             {filteredItems.length === 0 ? (
               <div className="text-center py-12 px-4 bg-white rounded-2xl border border-dashed border-slate-300 my-4">
                 <i data-lucide="package-search" className="w-10 h-10 text-slate-300 mx-auto mb-2"></i>
                 <p className="text-sm font-bold text-slate-600">Tidak ada item ditemukan</p>
-                <p className="text-xs text-slate-400 mt-1">Coba sesuaikan pencarian atau filter Anda.</p>
+                <p className="text-xs text-slate-400 mt-1">Coba sesuaikan pencarian atau tekan tombol reload di atas.</p>
               </div>
             ) : (
               filteredItems.map(item => {
@@ -704,24 +668,24 @@
                     {isRevised && (
                       <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 text-xs text-emerald-900 space-y-1 my-2">
                         <div className="flex items-center justify-between font-bold">
-                          <span>QTY Hasil Revisi: <span className="text-sm text-emerald-700">{item.qtyRevisi}</span></span>
+                          <span>QTY Hasil Revisi (Col I): <span className="text-sm text-emerald-700">{item.qtyRevisi}</span></span>
                           <span className="text-[10px] bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full">
                             {item.timRevisi || "Revisi"}
                           </span>
                         </div>
                         <div className="text-[11px] text-emerald-700 flex items-center gap-1">
                           <i data-lucide="user" className="w-3 h-3"></i>
-                          <span>Petugas: {item.petugasRevisi || "-"}</span>
+                          <span>Petugas (Col J): {item.petugasRevisi || "-"}</span>
                         </div>
-                        {item.catatan && (
+                        {(item.keterangan || item.catatan) && (
                           <div className="text-[11px] text-slate-600 italic border-t border-emerald-200/60 pt-1 mt-1">
-                            💬 "{item.catatan}"
+                            💬 Keterangan (Col L): "{item.keterangan || item.catatan}"
                           </div>
                         )}
                       </div>
                     )}
 
-                    {/* Action Button inside card */}
+                    {/* Action Button */}
                     <button 
                       onClick={() => openRevisionModal(item)}
                       className={`w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-sm ${
@@ -739,7 +703,6 @@
             )}
           </main>
 
-          {}
           {showSessionModal && (
             <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
               <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl modal-animate space-y-4">
@@ -750,7 +713,7 @@
                   </div>
                   <h2 className="text-lg font-extrabold text-slate-900">Kunci Sesi Petugas Revisi</h2>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    Pilih nama Anda sebelum mulai revisi. Nama ini akan otomatis digunakan pada setiap input QTY revisi.
+                    Pilih tim dan nama Anda sebelum mulai revisi. Nama ini akan otomatis terisi pada Kolom J (Petugas Revisi).
                   </p>
                 </div>
 
@@ -787,7 +750,7 @@
                   </div>
                 </div>
 
-                {/* Pilih Nama Petugas */}
+                {/* Pilih Nama Petugas (Default Empty) */}
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-slate-700">
                     2. Pilih Nama Petugas ({tempSessionTeam}):
@@ -798,7 +761,7 @@
                       onChange={(e) => setTempSessionOfficer(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl p-3 pr-8 focus:outline-none focus:ring-2 focus:ring-red-500 font-semibold appearance-none"
                     >
-                      <option value="" disabled>-- Pilih Nama Petugas --</option>
+                      <option value="">-- Pilih Nama Petugas --</option>
                       {((officers[tempSessionTeam] || officers[tempSessionTeam.replace(" ", "")]) || []).map((officer, idx) => (
                         <option key={idx} value={officer}>{officer}</option>
                       ))}
@@ -833,7 +796,6 @@
             </div>
           )}
 
-          {}
           {activeModalItem && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
               <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl modal-animate max-h-[90vh] overflow-y-auto">
@@ -872,20 +834,20 @@
                   </div>
                 </div>
 
-                {/* Form Fields */}
+                {/* Form Fields for Red Columns I, J, K, L */}
                 <div className="space-y-4 my-4">
                   
-                  {/* Informasi Sesi Petugas Terkunci (Non-Editable) */}
+                  {/* Petugas Revisi (Kolom J) & Status (Kolom K) */}
                   <div className="bg-slate-100/80 border border-slate-200 rounded-2xl p-3 flex items-center justify-between shadow-inner">
                     <div className="space-y-0.5">
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Petugas Revisi (Terkunci Sesi)
+                        Petugas Revisi &rarr; <span className="text-red-600 font-bold">Kolom J</span>
                       </span>
                       <div className="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
                         <i data-lucide="user-check" className="w-4 h-4 text-emerald-600"></i>
-                        <span>{sessionOfficer ? sessionOfficer.name : selectedOfficer}</span>
+                        <span>{sessionOfficer ? sessionOfficer.name : "-"}</span>
                         <span className="text-[11px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-md border border-red-200 ml-1">
-                          {sessionOfficer ? sessionOfficer.team : selectedTeam}
+                          {sessionOfficer ? sessionOfficer.team : "-"}
                         </span>
                       </div>
                     </div>
@@ -894,19 +856,19 @@
                         <i data-lucide="lock" className="w-3 h-3 text-slate-600"></i>
                         Terkunci
                       </span>
-                      <span className="text-[9px] text-slate-400 italic">Kolom J</span>
+                      <span className="text-[9px] text-emerald-600 font-bold">Col K: Auto Revisi</span>
                     </div>
                   </div>
 
                   {/* Input QTY Revisi (Kolom I) */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      1. QTY Revisi Fix &rarr; <span className="text-red-600 font-normal">Kolom I</span>:
+                      1. QTY Revisi Fix &rarr; <span className="text-red-600 font-bold">Kolom I</span>:
                     </label>
                     <div className="flex items-center gap-2">
                       <button 
                         type="button"
-                        onClick={() => setQtyInput(prev => Math.max(0, (parseInt(prev) || 0) - 1).toString())}
+                        onClick={() => setQtyInput(prev => Math.max(0, (parseInt(prev, 10) || 0) - 1).toString())}
                         className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-300 flex items-center justify-center text-slate-700 font-bold active:scale-95 text-lg"
                       >
                         -
@@ -921,7 +883,7 @@
                       />
                       <button 
                         type="button"
-                        onClick={() => setQtyInput(prev => ((parseInt(prev) || 0) + 1).toString())}
+                        onClick={() => setQtyInput(prev => ((parseInt(prev, 10) || 0) + 1).toString())}
                         className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-300 flex items-center justify-center text-slate-700 font-bold active:scale-95 text-lg"
                       >
                         +
@@ -946,17 +908,17 @@
                     </div>
                   </div>
 
-                  {/* Catatan / Alasan */}
+                  {/* Keterangan / Alasan Revisi (Kolom L) */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      2. Catatan / Alasan Revisi (Opsional):
+                      2. Keterangan / Alasan Revisi &rarr; <span className="text-red-600 font-bold">Kolom L</span>:
                     </label>
                     <textarea 
                       rows="2"
                       value={notesInput}
                       onChange={(e) => setNotesInput(e.target.value)}
-                      placeholder="Contoh: Barang kurang 3 pcs di rak atas..."
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-800"
+                      placeholder="Contoh: Barang kurang di rak atas, telah disesuaikan..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-800"
                     ></textarea>
                   </div>
 
@@ -985,7 +947,6 @@
             </div>
           )}
 
-          {}
           {showSettingsModal && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
               <div className="bg-white w-full max-w-md rounded-2xl p-5 shadow-2xl modal-animate space-y-4 max-h-[85vh] overflow-y-auto">
@@ -1026,14 +987,14 @@
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-red-500 font-mono"
                   />
                   <p className="text-[10px] text-slate-400 mt-1">
-                    URL tempat posting otomatis ke Kolom I, J, & K Google Sheets.
+                    URL posting otomatis ke Kolom Merah (I, J, K, & L) Google Sheets.
                   </p>
                   <button 
                     onClick={() => setShowScriptModal(true)}
                     className="mt-1.5 text-xs text-blue-600 font-bold hover:underline flex items-center gap-1"
                   >
                     <i data-lucide="code" className="w-3.5 h-3.5"></i>
-                    Lihat Script Google Sheets (Update Col I, J, K)
+                    Lihat Kode Apps Script (Col I, J, K, & L)
                   </button>
                 </div>
 
@@ -1062,19 +1023,44 @@
             </div>
           )}
 
-          {}
+          {/* Apps Script Guide Modal */}
           {showScriptModal && (
             <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
               <div className="bg-white w-full max-w-md rounded-2xl p-5 shadow-2xl modal-animate space-y-3 max-h-[85vh] overflow-y-auto text-xs">
                 <div className="flex items-center justify-between border-b pb-2">
-                  <h3 className="font-bold text-slate-900 text-sm">Kode Apps Script (Mengisi Kolom Merah I, J, K)</h3>
+                  <h3 className="font-bold text-slate-900 text-sm">Kode Apps Script (Update Col I, J, K, L)</h3>
                   <button onClick={() => setShowScriptModal(false)}><i data-lucide="x" className="w-4 h-4"></i></button>
                 </div>
                 <p className="text-slate-600">
-                  Pasang kode ini di Apps Script agar kolom <b>QTY Revisi (I)</b>, <b>Petugas Revisi (J)</b>, dan <b>Status Revisi (K)</b> terisi otomatis saat simpan dari HP:
+                  Salin dan tempel kode ini di editor <b>Google Apps Script</b> (Ekstensi &rarr; Apps Script) lalu Deploy ulang sebagai <b>Web App</b> agar HP dapat meng-update kolom I, J, K, dan L secara langsung:
                 </p>
                 <pre className="bg-slate-900 text-emerald-400 p-3 rounded-xl overflow-x-auto text-[10px] font-mono select-all">
-{`function doPost(e) {
+{`function doGet(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // 1. Ambil Data Sheet "Revisi SO"
+    var sheetSO = ss.getSheetByName("Revisi SO");
+    var dataSO = sheetSO ? sheetSO.getDataRange().getValues() : [];
+    
+    // 2. Ambil Data Sheet "Petugas"
+    var sheetPetugas = ss.getSheetByName("Petugas");
+    var dataPetugas = sheetPetugas ? sheetPetugas.getDataRange().getValues() : [];
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "Success",
+      dataSO: dataSO,
+      dataPetugas: dataPetugas
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "Error",
+      error: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Revisi SO");
@@ -1088,9 +1074,10 @@
       var targetKode = String(data.kodeItem || "").trim();
       
       if (kodeItem === targetKode && (rak === targetRak || !data.rak)) { 
-        sheet.getRange(i + 1, 9).setValue(data.qtyRevisi);       // Col I: QTY Revisi
-        sheet.getRange(i + 1, 10).setValue(data.petugasRevisi);  // Col J: Petugas Revisi
-        sheet.getRange(i + 1, 11).setValue(data.statusRevisi);   // Col K: Status Revisi
+        sheet.getRange(i + 1, 9).setValue(data.qtyRevisi);                  // Col I (9): QTY Revisi
+        sheet.getRange(i + 1, 10).setValue(data.petugasRevisi);             // Col J (10): Petugas Revisi
+        sheet.getRange(i + 1, 11).setValue(data.statusRevisi);              // Col K (11): Status Revisi
+        sheet.getRange(i + 1, 12).setValue(data.keterangan || data.catatan || ""); // Col L (12): Keterangan
         break;
       }
     }
@@ -1100,10 +1087,6 @@
     return ContentService.createTextOutput(JSON.stringify({status: "Error", error: err.toString()}))
       .setMimeType(ContentService.MimeType.JSON);
   }
-}
-
-function doGet(e) {
-  return ContentService.createTextOutput("Script Web App Revisi SO Aktif!");
 }`}
                 </pre>
                 <button 
@@ -1116,14 +1099,14 @@ function doGet(e) {
             </div>
           )}
 
-          {}
+          {/* Toast Notification */}
           {toastMsg && (
             <div className="fixed bottom-16 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white text-xs px-4 py-2.5 rounded-full shadow-xl backdrop-blur-md z-50 flex items-center gap-2 border border-slate-700 font-medium animate-bounce">
               <span>{toastMsg}</span>
             </div>
           )}
 
-          {/* Navigation Bar */}
+          {}
           <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-slate-200 p-2 flex items-center justify-around z-30 shadow-lg">
             <button 
               onClick={() => setStatusFilter("ALL")}
