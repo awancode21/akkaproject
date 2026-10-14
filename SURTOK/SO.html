@@ -757,11 +757,24 @@
         }
       }
 
+      // JIKA BARCODE / SKU TIDAK DITEMUKAN DI MASTER DATA:
+      if (!matchedItem) {
+        triggerFeedback('error');
+        showBannerStatus(false, `❌ SALAH KODE / UNKNOWN! Barcode / SKU "${cleanCode}" tidak terdaftar di Master Data.`);
+        
+        const scanInputEl = document.getElementById('input-barcode-scan');
+        if (scanInputEl) {
+          scanInputEl.value = '';
+          scanInputEl.focus();
+        }
+        return; // Hentikan proses, jangan buka modal Qty, dan jangan simpan ke Spreadsheet/Supabase!
+      }
+
       state.pendingScanItem = {
-        sku: matchedItem ? matchedItem.sku : cleanCode,
-        namaBarang: matchedItem ? (matchedItem.namaBarang || matchedItem.nama_barang) : '*** BARANG BARU / UNKNOWN ***',
-        family: matchedItem ? (matchedItem.family || '-') : '-',
-        originalCode: matchedItem ? (matchedItem.originalCode || matchedItem.original_code || '-') : '-'
+        sku: matchedItem.sku,
+        namaBarang: matchedItem.namaBarang || matchedItem.nama_barang,
+        family: matchedItem.family || '-',
+        originalCode: matchedItem.originalCode || matchedItem.original_code || '-'
       };
 
       triggerFeedback('success');
