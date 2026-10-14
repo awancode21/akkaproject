@@ -37,6 +37,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col pb-20 md:pb-0 select-none">
 
+  <!-- HEADER -->
   <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 px-4 py-2.5 shadow-lg">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       <div class="flex items-center gap-2.5">
@@ -47,7 +48,7 @@
           <h1 class="font-black text-sm sm:text-base leading-none text-white flex items-center gap-1.5">
             ScanOpname <span class="bg-emerald-500/20 text-emerald-400 text-[10px] px-1.5 py-0.5 rounded-md border border-emerald-500/30">Mobile</span>
           </h1>
-          <p class="text-[10px] text-slate-400 mt-0.5">Supabase & Google Sheet Hybrid Sync</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">Deduplicated Supabase & Sheet Sync</p>
         </div>
       </div>
 
@@ -94,7 +95,7 @@
 
     <section id="tab-scanner" class="space-y-3.5">
       
-      <!-- STICKY SESSION CONTEXT CARD -->
+      <!-- SESSION CONTEXT -->
       <div class="bg-slate-900 rounded-2xl p-3 sm:p-4 border border-slate-800 shadow-md">
         <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2.5">
           <div class="flex items-center gap-2">
@@ -107,7 +108,6 @@
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-          <!-- TIM SELECTION -->
           <div>
             <label class="text-[10px] font-bold text-slate-400 uppercase">Tim Opname</label>
             <select id="select-team" class="session-input w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-white font-bold outline-none mt-1">
@@ -116,15 +116,12 @@
             </select>
           </div>
 
-          <!-- PETUGAS SELECTION -->
           <div>
             <label class="text-[10px] font-bold text-slate-400 uppercase">Nama Petugas (Sheet Petugas)</label>
             <select id="select-petugas" class="session-input w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-white font-bold outline-none mt-1">
-              <!-- Populated by JS -->
             </select>
           </div>
 
-          <!-- MANUAL RAK INPUT -->
           <div>
             <label class="text-[10px] font-bold text-amber-400 uppercase flex items-center justify-between">
               <span>Nama Rak SO (Manual)</span>
@@ -132,9 +129,7 @@
             </label>
             <input id="input-rak-manual" type="text" placeholder="Ketik Kode Rak (mis: RAK-A-01)" value="RAK-A-01" class="session-input w-full bg-slate-950 border-2 border-emerald-500/60 rounded-xl px-2.5 py-2 text-emerald-300 font-mono font-extrabold outline-none uppercase mt-1">
             
-            <!-- Recent Raks Quick Selector -->
             <div id="recent-raks-container" class="flex gap-1 mt-1 overflow-x-auto no-scrollbar">
-              <!-- Populated by JS -->
             </div>
           </div>
         </div>
@@ -143,7 +138,6 @@
       <!-- SCANNING WORKSPACE -->
       <div class="bg-slate-900 rounded-2xl p-4 border border-slate-800 shadow-md space-y-3.5">
         
-        <!-- SCAN MODE TOGGLE -->
         <div class="flex items-center justify-between bg-slate-950 p-1.5 rounded-xl border border-slate-800">
           <button id="btn-mode-gun" class="flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow">
             <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg> Scanner Gun / USB
@@ -153,7 +147,6 @@
           </button>
         </div>
 
-        <!-- CAMERA VIEWPORT -->
         <div id="camera-viewport" class="hidden bg-black rounded-xl p-3 border border-emerald-500/40 text-center space-y-2">
           <div id="reader" class="w-full max-w-sm mx-auto overflow-hidden rounded-xl border-2 border-emerald-500/50"></div>
           
@@ -167,7 +160,6 @@
           </div>
         </div>
 
-        <!-- BARCODE / SKU INPUT FIELD -->
         <div class="space-y-2">
           <div class="flex items-center justify-between text-xs">
             <span class="font-extrabold text-slate-300">Scan Barcode / SKU / Original Code:</span>
@@ -186,10 +178,7 @@
           </div>
         </div>
 
-        <!-- SCAN FEEDBACK NOTIFICATION BANNER -->
-        <div id="scan-notification-container"></div>
-
-        <!-- MODAL POPUP: DISPLAY DESKRIPSI ITEM TERLEBIH DAHULU BARU INPUT QTY -->
+        <!-- MODAL POPUP: DETAIL BARANG & INPUT QTY -->
         <div id="modal-confirm-qty" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
           <div class="bg-slate-900 border-2 border-emerald-500 rounded-2xl w-full max-w-md p-4 sm:p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200 max-h-[95vh] overflow-y-auto">
             
@@ -200,7 +189,6 @@
               <button id="btn-cancel-confirm" class="text-slate-400 hover:text-white font-bold text-xs px-2 py-1">✕ Batal</button>
             </div>
 
-            <!-- DESKRIPSI ITEM LENGKAP -->
             <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
               <div class="flex justify-between items-center">
                 <span id="confirm-item-rak" class="text-[11px] font-mono font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 rounded-md uppercase">RAK: -</span>
@@ -222,7 +210,6 @@
               </div>
             </div>
 
-            <!-- INPUT QUANTITY SETELAH DESKRIPSI TAMPIL -->
             <div class="space-y-2.5">
               <label class="block text-xs font-black text-amber-400 uppercase">2. Masukkan Qty Fisik Hasil Scan:</label>
               
@@ -234,7 +221,6 @@
                 <button id="btn-modal-qty-plus" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black w-12 h-12 rounded-xl text-2xl flex items-center justify-center shrink-0 border border-slate-700">+</button>
               </div>
 
-              <!-- PRESET QTY CEPAT MODAL -->
               <div class="flex gap-1.5 pt-1 overflow-x-auto no-scrollbar">
                 <button class="btn-modal-preset px-3 py-1.5 rounded-lg text-xs font-extrabold border bg-emerald-500 text-slate-950 border-emerald-400" data-qty="1">+1</button>
                 <button class="btn-modal-preset px-3 py-1.5 rounded-lg text-xs font-extrabold border bg-slate-950 text-slate-300 border-slate-800" data-qty="5">+5</button>
@@ -245,7 +231,6 @@
               </div>
             </div>
 
-            <!-- ACTION BUTTONS -->
             <div class="flex gap-2 pt-2">
               <button id="btn-modal-cancel" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl text-xs">
                 Batal / Scan Lain
@@ -294,6 +279,7 @@
       </div>
     </section>
 
+    <!-- TAB HASIL -->
     <section id="tab-results" class="hidden space-y-4">
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800">
@@ -341,7 +327,6 @@
         </div>
       </div>
 
-      <!-- RESULTS TABLE -->
       <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
@@ -355,13 +340,13 @@
               </tr>
             </thead>
             <tbody id="table-results-body" class="divide-y divide-slate-800/80 font-medium">
-              <!-- Populated by JS -->
             </tbody>
           </table>
         </div>
       </div>
     </section>
 
+    <!-- TAB MASTER -->
     <section id="tab-master" class="hidden space-y-4">
       <div class="bg-slate-900 rounded-2xl p-4 border border-slate-800 space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -387,14 +372,12 @@
           </div>
         </div>
 
-        <!-- SEARCH MASTER -->
         <div class="relative">
           <svg class="w-4 h-4 absolute left-3 top-2.5 text-slate-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input id="input-search-master" type="text" placeholder="Cari SKU, Original Code, Nama Barang..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
       </div>
 
-      <!-- MASTER ITEMS TABLE -->
       <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
@@ -407,12 +390,10 @@
               </tr>
             </thead>
             <tbody id="table-master-body" class="divide-y divide-slate-800/80 font-medium">
-              <!-- Populated by JS -->
             </tbody>
           </table>
         </div>
 
-        <!-- PAGINATION -->
         <div class="bg-slate-950 px-4 py-3 border-t border-slate-800 flex items-center justify-between text-xs">
           <span id="master-page-info" class="text-slate-400 text-[11px]">Hal 1 dari 1</span>
 
@@ -424,8 +405,8 @@
       </div>
     </section>
 
+    <!-- TAB SETTINGS -->
     <section id="tab-settings" class="hidden space-y-4 max-w-2xl mx-auto">
-      <!-- GOOGLE SHEET CONFIG -->
       <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800 space-y-4">
         <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
           <svg class="w-5 h-5 text-emerald-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -445,7 +426,6 @@
         </div>
       </div>
 
-      <!-- SUPABASE CONFIG -->
       <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800 space-y-4">
         <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
           <svg class="w-5 h-5 text-teal-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
@@ -605,13 +585,6 @@
         }
       }
 
-      for (const key of Object.keys(state.petugasByTeam)) {
-        if (key.includes('1') && teamName.includes('1')) return state.petugasByTeam[key];
-        if ((key.includes('2') || key.includes('21')) && (teamName.includes('2') || teamName.includes('21'))) {
-          return state.petugasByTeam[key];
-        }
-      }
-
       const firstKey = Object.keys(state.petugasByTeam)[0];
       return state.petugasByTeam[firstKey] || ['Petugas 1'];
     }
@@ -677,14 +650,12 @@
         renderRecentRaks();
       }
 
-      // Local search
       let matchedItem = state.masterItems.find(
         item => (item.sku && item.sku.toLowerCase() === cleanCode.toLowerCase()) || 
                 (item.originalCode && item.originalCode.toLowerCase() === cleanCode.toLowerCase()) ||
                 (item.original_code && item.original_code.toLowerCase() === cleanCode.toLowerCase())
       );
 
-      // Online Supabase fallback
       if (!matchedItem && state.supabaseUrl && state.supabaseKey) {
         try {
           const res = await fetch(`${state.supabaseUrl}/rest/v1/master_items?or=(sku.eq.${encodeURIComponent(cleanCode)},original_code.eq.${encodeURIComponent(cleanCode)})&limit=1`, {
@@ -752,8 +723,11 @@
       const item = state.pendingScanItem.matchedItem;
       const rak = state.pendingScanItem.rak;
 
+      // Unik ID Permanen berbasis TIMESTAMP + RANDOM SUFFIX
+      const uniqueEntryId = 'so-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+
       const newEntry = {
-        id: 'so-' + Date.now(),
+        id: uniqueEntryId,
         timestamp: new Date().toISOString(),
         team: state.selectedTeam,
         petugas: state.selectedPetugas || 'Petugas 1',
@@ -832,6 +806,7 @@
       }
     }
 
+    /* PUSH DATA HASIL SO KE SUPABASE DENGAN UPSERT ON CONFLICT (ID) - MENCEGAH DUPLIKASI */
     async function handlePushResultsToSupabase() {
       if (!state.supabaseUrl || !state.supabaseKey) {
         showBannerStatus(false, 'Masukkan Supabase URL dan Anon Key di Settings!');
@@ -850,7 +825,10 @@
           return;
         }
 
+        // Kirim `id` transaksi scan dari HP sebagai Primary Key ke Supabase
         const payload = targetData.map(r => ({
+          id: r.id,
+          timestamp: r.timestamp,
           rak: r.rak,
           tim: r.team,
           petugas: r.petugas,
@@ -861,13 +839,14 @@
           qty: Number(r.qty) || 1
         }));
 
-        const res = await fetch(`${state.supabaseUrl}/rest/v1/hasil_so`, {
+        // Menggunakan ?on_conflict=id & resolution=merge-duplicates untuk UPSERT
+        const res = await fetch(`${state.supabaseUrl}/rest/v1/hasil_so?on_conflict=id`, {
           method: 'POST',
           headers: {
             'apikey': state.supabaseKey,
             'Authorization': `Bearer ${state.supabaseKey}`,
             'Content-Type': 'application/json',
-            'Prefer': 'return=minimal'
+            'Prefer': 'resolution=merge-duplicates'
           },
           body: JSON.stringify(payload)
         });
@@ -877,7 +856,7 @@
         state.soResults = state.soResults.map(item => ({ ...item, syncedSupabase: true }));
         saveState();
         renderResultsTable();
-        showBannerStatus(true, `Berhasil terkirim ${payload.length} data SO ke Supabase!`);
+        showBannerStatus(true, `Berhasil terkirim/ter-update ${payload.length} data SO ke Supabase!`);
         triggerFeedback('success');
       } catch (err) {
         showBannerStatus(false, `Gagal Sync ke Supabase: ${err.message}`);
@@ -885,6 +864,7 @@
       }
     }
 
+    /* PUSH DATA HASIL SO KE SPREADSHEET DENGAN DEDUPLIKASI DI SERVER CODE.GS */
     async function handlePushResultsToSpreadsheet() {
       if (!state.gasUrl) {
         showBannerStatus(false, 'Masukkan URL Apps Script!');
@@ -901,16 +881,19 @@
           data: unsyncedData.length > 0 ? unsyncedData : state.soResults
         };
 
-        await fetch(state.gasUrl, {
+        const res = await fetch(state.gasUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify(payload)
         });
 
+        const json = await res.json();
+
         state.soResults = state.soResults.map(item => ({ ...item, syncedSheet: true }));
         saveState();
         renderResultsTable();
-        showBannerStatus(true, `Berhasil mengirim ${unsyncedData.length || state.soResults.length} data ke Google Spreadsheet!`);
+
+        showBannerStatus(true, json.message || `Berhasil mengirim data ke Google Spreadsheet!`);
         triggerFeedback('success');
       } catch (err) {
         showBannerStatus(false, 'Gagal mengirim data ke Google Sheet.');
@@ -1355,8 +1338,8 @@
 
       document.getElementById('btn-export-csv').onclick = () => {
         const csvContent = "data:text/csv;charset=utf-8," 
-          + ["Timestamp,Rak,Tim,Petugas,SKU,Original Code,Nama Barang,Qty,Family"].join(",") + "\n"
-          + state.soResults.map(r => `"${r.timestamp}","${r.rak}","${r.team}","${r.petugas}","${r.sku}","${r.originalCode}","${r.namaBarang}",${r.qty},"${r.family}"`).join("\n");
+          + ["ID Scan,Timestamp,Rak,Tim,Petugas,SKU,Original Code,Nama Barang,Qty,Family"].join(",") + "\n"
+          + state.soResults.map(r => `"${r.id}","${r.timestamp}","${r.rak}","${r.team}","${r.petugas}","${r.sku}","${r.originalCode}","${r.namaBarang}",${r.qty},"${r.family}"`).join("\n");
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
