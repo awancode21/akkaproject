@@ -1,1 +1,1342 @@
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { 
+  Barcode, 
+  Camera, 
+  RefreshCw, 
+  Database, 
+  FileSpreadsheet, 
+  Users, 
+  Search, 
+  Trash2, 
+  Download, 
+  Settings, 
+  Volume2, 
+  VolumeX, 
+  Box, 
+  Smartphone, 
+  MapPin, 
+  UserCheck, 
+  RotateCw, 
+  CheckCircle2, 
+  XCircle, 
+  AlertTriangle,
+  List,
+  BarChart3,
+  Wifi,
+  CloudUpload,
+  CloudDownload,
+  Zap
+} from 'lucide-react';
 
+const triggerFeedback = (type = 'success', soundEnabled = true) => {
+  if (navigator.vibrate) {
+    type === 'success' ? navigator.vibrate([60]) : navigator.vibrate([100, 50, 100]);
+  }
+
+  if (!soundEnabled) return;
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    if (type === 'success') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1300, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1900, ctx.currentTime + 0.09);
+      gain.gain.setValueAtTime(0.35, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.09);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.09);
+    } else {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(280, ctx.currentTime);
+      osc.frequency.setValueAtTime(140, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.45, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.28);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.28);
+    }
+  } catch (e) {
+    console.warn('Audio synthesis warning', e);
+  }
+};
+
+const generateSampleMaster = (count = 100) => {
+  const families = ['Minuman', 'Makanan', 'Perawatan', 'Pembersih', 'Elektronik', 'Alat Tulis'];
+  const items = [];
+  for (let i = 1; i <= count; i++) {
+    const sku = `SKU-${100000 + i}`;
+    const originalCode = `899${String(i).padStart(9, '0')}`;
+    const family = families[i % families.length];
+    items.push({
+      id: `item-${i}`,
+      sku: sku,
+      namaBarang: `Produk ${family} Brand Top-Type-${i}`,
+      family: family,
+      originalCode: originalCode
+    });
+  }
+  return items;
+};
+
+const DEFAULT_PETUGAS = {
+  "TIM 1": ['Ahmad Syafi\'i', 'Budi Santoso', 'Citra Dewi'],
+  "TIM 2": ['Doni Hermawan', 'Eka Pratama', 'Fani Rahmawati']
+};
+
+export default function StockOpnameApp() {
+  const [activeTab, setActiveTab] = useState('scanner'); // 'scanner', 'results', 'master', 'teams', 'settings'
+  
+  // User Credentials preconfigured
+  const PRESET_GAS_URL = 'https://script.google.com/macros/s/AKfycbxuEIofQ98dUo0UrYQgzOCYa4IaBstWHCGrdMd-n3dMpH0PEAsTnUX17YjGPOgFrJwhkA/exec';
+  const PRESET_SUPABASE_URL = 'https://qtfyfrvrqvbgyaezorbb.supabase.co';
+  const PRESET_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0ZnlmcnZycXZiZ3lhZXpvcmJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4OTkyNzIsImV4cCI6MjEwNjQ3NTI3Mn0.vL8COXCm7UrhoMSj0iBV8HwvN6VZtd8X08YbxSkLcQM';
+
+  // App Config State
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [autoResetQty, setAutoResetQty] = useState(true);
+  const [googleSheetAppUrl, setGoogleSheetAppUrl] = useState(
+    localStorage.getItem('so_gas_url') || PRESET_GAS_URL
+  );
+  const [supabaseUrl, setSupabaseUrl] = useState(
+    localStorage.getItem('so_supabase_url') || PRESET_SUPABASE_URL
+  );
+  const [supabaseKey, setSupabaseKey] = useState(
+    localStorage.getItem('so_supabase_key') || PRESET_SUPABASE_KEY
+  );
+
+  // Master SKU & Team Data
+  const [masterItems, setMasterItems] = useState(() => {
+    const saved = localStorage.getItem('so_master_items');
+    return saved ? JSON.parse(saved) : generateSampleMaster(100);
+  });
+  
+  const [teams] = useState(['TIM 1', 'TIM 2']);
+  const [petugasByTeam, setPetugasByTeam] = useState(() => {
+    const saved = localStorage.getItem('so_petugas_map');
+    return saved ? JSON.parse(saved) : DEFAULT_PETUGAS;
+  });
+
+  // Session Context State (Tim, Petugas, Rak SO Manual)
+  const [selectedTeam, setSelectedTeam] = useState('TIM 1');
+  const [selectedPetugas, setSelectedPetugas] = useState('');
+  const [manualRakInput, setManualRakInput] = useState('RAK-A-01');
+  const [recentRaks, setRecentRaks] = useState(['RAK-A-01', 'RAK-B-02', 'RAK-C-05']);
+  const [isSessionLocked, setIsSessionLocked] = useState(false);
+
+  // Scanned SO Results State
+  const [soResults, setSoResults] = useState(() => {
+    const saved = localStorage.getItem('so_scanned_results');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Scanner Operational State
+  const [scanInput, setScanInput] = useState('');
+  const [scanQty, setScanQty] = useState(1);
+  const [lastScannedItem, setLastScannedItem] = useState(null);
+  const [scanNotification, setScanNotification] = useState(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [facingMode, setFacingMode] = useState('environment');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState({ success: null, message: '' });
+
+  // Tables Search & Pagination
+  const [masterSearch, setMasterSearch] = useState('');
+  const [masterPage, setMasterPage] = useState(1);
+  const masterItemsPerPage = 25;
+
+  const [resultsSearch, setResultsSearch] = useState('');
+  const [filterTeam, setFilterTeam] = useState('ALL');
+
+  const hwInputRef = useRef(null);
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const currentList = petugasByTeam[selectedTeam] || [];
+    if (currentList.length > 0 && !currentList.includes(selectedPetugas)) {
+      setSelectedPetugas(currentList[0]);
+    }
+  }, [selectedTeam, petugasByTeam]);
+
+  useEffect(() => {
+    localStorage.setItem('so_master_items', JSON.stringify(masterItems));
+  }, [masterItems]);
+
+  useEffect(() => {
+    localStorage.setItem('so_scanned_results', JSON.stringify(soResults));
+  }, [soResults]);
+
+  useEffect(() => {
+    localStorage.setItem('so_petugas_map', JSON.stringify(petugasByTeam));
+  }, [petugasByTeam]);
+
+  useEffect(() => {
+    if (activeTab === 'scanner' && !cameraActive) {
+      const timer = setTimeout(() => {
+        hwInputRef.current?.focus();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, cameraActive, lastScannedItem, scanInput]);
+
+  useEffect(() => {
+    let stream = null;
+    if (cameraActive && videoRef.current) {
+      navigator.mediaDevices?.getUserMedia({ video: { facingMode: facingMode } })
+        .then((mediaStream) => {
+          stream = mediaStream;
+          if (videoRef.current) videoRef.current.srcObject = mediaStream;
+        })
+        .catch((err) => console.warn("Camera stream warning", err));
+    }
+    return () => {
+      if (stream) stream.getTracks().forEach(track => track.stop());
+    };
+  }, [cameraActive, facingMode]);
+
+  const handleBarcodeSubmit = (barcodeValue) => {
+    const cleanCode = barcodeValue.trim();
+    if (!cleanCode) return;
+
+    const currentRak = manualRakInput.trim().toUpperCase();
+    if (!currentRak) {
+      triggerFeedback('error', soundEnabled);
+      setScanNotification({ type: 'error', message: 'Wajib isi/ketik KODE RAK SO terlebih dahulu!' });
+      return;
+    }
+
+    if (currentRak && !recentRaks.includes(currentRak)) {
+      setRecentRaks(prev => [currentRak, ...prev.slice(0, 4)]);
+    }
+
+    const matchedItem = masterItems.find(
+      item => (item.sku && item.sku.toLowerCase() === cleanCode.toLowerCase()) || 
+              (item.originalCode && item.originalCode.toLowerCase() === cleanCode.toLowerCase())
+    );
+
+    if (!matchedItem) {
+      triggerFeedback('error', soundEnabled);
+      setScanNotification({ 
+        type: 'error', 
+        message: `SKU / Original Code "${cleanCode}" TIDAK DITEMUKAN di Master Database!` 
+      });
+
+      const newUnknown = {
+        id: `so-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        team: selectedTeam,
+        petugas: selectedPetugas || 'Petugas 1',
+        rak: currentRak,
+        sku: cleanCode,
+        originalCode: cleanCode,
+        namaBarang: '*** BARANG BARU / UNKNOWN ***',
+        family: 'N/A',
+        qty: scanQty,
+        syncedSheet: false,
+        syncedSupabase: false
+      };
+      setSoResults(prev => [newUnknown, ...prev]);
+      setScanInput('');
+      return;
+    }
+
+    triggerFeedback('success', soundEnabled);
+
+    const newEntry = {
+      id: `so-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      team: selectedTeam,
+      petugas: selectedPetugas || 'Petugas 1',
+      rak: currentRak,
+      sku: matchedItem.sku,
+      originalCode: matchedItem.originalCode,
+      namaBarang: matchedItem.namaBarang,
+      family: matchedItem.family,
+      qty: scanQty,
+      syncedSheet: false,
+      syncedSupabase: false
+    };
+
+    setSoResults(prev => [newEntry, ...prev]);
+    setLastScannedItem({ 
+      ...matchedItem, 
+      scannedQty: scanQty, 
+      rak: currentRak, 
+      time: new Date().toLocaleTimeString('id-ID') 
+    });
+    
+    setScanNotification({ 
+      type: 'success', 
+      message: `Terscan: ${matchedItem.namaBarang} (+${scanQty})` 
+    });
+
+    setScanInput('');
+    if (autoResetQty) setScanQty(1);
+
+    setTimeout(() => {
+      setScanNotification(null);
+    }, 3000);
+  };
+
+  const handleFetchMasterFromSupabase = async () => {
+    if (!supabaseUrl || !supabaseKey) {
+      alert('Masukkan Supabase URL dan Anon Key terlebih dahulu!');
+      setActiveTab('settings');
+      return;
+    }
+
+    setIsSyncing(true);
+    setSyncStatus({ success: null, message: 'Menarik Master SKU dari Supabase Database...' });
+
+    try {
+      const res = await fetch(`${supabaseUrl}/rest/v1/master_items?select=sku,nama_barang,family,original_code&limit=75000`, {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`
+        }
+      });
+
+      if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+      const data = await res.json();
+
+      if (Array.isArray(data) && data.length > 0) {
+        const formatted = data.map((item, idx) => ({
+          id: `sp-${idx}`,
+          sku: item.sku || '',
+          namaBarang: item.nama_barang || '',
+          family: item.family || '',
+          originalCode: item.original_code || ''
+        }));
+
+        setMasterItems(formatted);
+        setSyncStatus({ 
+          success: true, 
+          message: `Berhasil menarik ${formatted.length.toLocaleString('id-ID')} SKU dari Supabase!` 
+        });
+        triggerFeedback('success', soundEnabled);
+      } else {
+        setSyncStatus({ 
+          success: false, 
+          message: 'Supabase terhubung tapi tabel master_items masih kosong. Sync dulu dari Spreadsheet.' 
+        });
+      }
+    } catch (err) {
+      setSyncStatus({ 
+        success: false, 
+        message: `Gagal terhubung ke Supabase: ${err.message}` 
+      });
+      triggerFeedback('error', soundEnabled);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handlePushResultsToSupabase = async () => {
+    if (!supabaseUrl || !supabaseKey) {
+      alert('Masukkan Supabase URL dan Anon Key!');
+      setActiveTab('settings');
+      return;
+    }
+
+    setIsSyncing(true);
+    setSyncStatus({ success: null, message: 'Mengirim Hasil SO ke Supabase Database...' });
+
+    try {
+      const unsynced = soResults.filter(r => !r.syncedSupabase);
+      const targetData = unsynced.length > 0 ? unsynced : soResults;
+
+      if (targetData.length === 0) {
+        setSyncStatus({ success: true, message: 'Semua data SO sudah tersinkron ke Supabase.' });
+        setIsSyncing(false);
+        return;
+      }
+
+      const payload = targetData.map(r => ({
+        rak: r.rak,
+        tim: r.team,
+        petugas: r.petugas,
+        sku: r.sku,
+        original_code: r.originalCode,
+        nama_barang: r.namaBarang,
+        family: r.family,
+        qty: Number(r.qty) || 1,
+        timestamp: r.timestamp
+      }));
+
+      const res = await fetch(`${supabaseUrl}/rest/v1/hasil_so`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+
+      setSoResults(prev => prev.map(item => ({ ...item, syncedSupabase: true })));
+      setSyncStatus({ 
+        success: true, 
+        message: `Berhasil terkirim ${payload.length} data SO ke Supabase!` 
+      });
+      triggerFeedback('success', soundEnabled);
+    } catch (err) {
+      setSyncStatus({ 
+        success: false, 
+        message: `Gagal Sync ke Supabase: ${err.message}` 
+      });
+      triggerFeedback('error', soundEnabled);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleFetchMasterFromSpreadsheet = async () => {
+    if (!googleSheetAppUrl) {
+      alert('Masukkan URL Apps Script Google Sheet!');
+      setActiveTab('settings');
+      return;
+    }
+
+    setIsSyncing(true);
+    setSyncStatus({ success: null, message: 'Menarik Master Item & Petugas dari Google Spreadsheet...' });
+
+    try {
+      const res = await fetch(`${googleSheetAppUrl}?action=GET_MASTER`);
+      if (!res.ok) throw new Error('Gagal terhubung ke Apps Script');
+      const json = await res.json();
+
+      if (json.masterItems && Array.isArray(json.masterItems)) {
+        setMasterItems(json.masterItems);
+      }
+      if (json.petugasByTeam) {
+        setPetugasByTeam(json.petugasByTeam);
+      }
+
+      setSyncStatus({ 
+        success: true, 
+        message: `Sync Sheet Berhasil! (${json.masterItems ? json.masterItems.length : 0} SKU ter-update)` 
+      });
+      triggerFeedback('success', soundEnabled);
+    } catch (err) {
+      setSyncStatus({ 
+        success: false, 
+        message: 'Gagal sync dari Spreadsheet. Pastikan URL Apps Script benar.' 
+      });
+      triggerFeedback('error', soundEnabled);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handlePushResultsToSpreadsheet = async () => {
+    if (!googleSheetAppUrl) {
+      alert('Masukkan URL Apps Script!');
+      setActiveTab('settings');
+      return;
+    }
+
+    setIsSyncing(true);
+    setSyncStatus({ success: null, message: 'Mengirim Hasil SO ke Sheet "Hasil SO"...' });
+
+    try {
+      const unsyncedData = soResults.filter(r => !r.syncedSheet);
+      const payload = {
+        action: 'PUSH_SO_RESULTS',
+        data: unsyncedData.length > 0 ? unsyncedData : soResults
+      };
+
+      await fetch(googleSheetAppUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+      });
+
+      setSoResults(prev => prev.map(item => ({ ...item, syncedSheet: true })));
+      
+      setSyncStatus({ 
+        success: true, 
+        message: `Berhasil mengirim ${unsyncedData.length || soResults.length} data ke Google Spreadsheet!` 
+      });
+      triggerFeedback('success', soundEnabled);
+    } catch (err) {
+      setSyncStatus({ 
+        success: false, 
+        message: 'Gagal mengirim data ke Google Sheet.' 
+      });
+      triggerFeedback('error', soundEnabled);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Combined Sync Handler
+  const handleSyncAll = async () => {
+    await handlePushResultsToSupabase();
+    await handlePushResultsToSpreadsheet();
+  };
+
+  const filteredMaster = useMemo(() => {
+    if (!masterSearch) return masterItems;
+    const q = masterSearch.toLowerCase();
+    return masterItems.filter(item => 
+      (item.sku && item.sku.toLowerCase().includes(q)) || 
+      (item.originalCode && item.originalCode.toLowerCase().includes(q)) || 
+      (item.namaBarang && item.namaBarang.toLowerCase().includes(q)) ||
+      (item.family && item.family.toLowerCase().includes(q))
+    );
+  }, [masterItems, masterSearch]);
+
+  const totalMasterPages = Math.ceil(filteredMaster.length / masterItemsPerPage);
+  const currentMasterPageItems = useMemo(() => {
+    const start = (masterPage - 1) * masterItemsPerPage;
+    return filteredMaster.slice(start, start + masterItemsPerPage);
+  }, [filteredMaster, masterPage]);
+
+  const filteredResults = useMemo(() => {
+    return soResults.filter(item => {
+      const matchSearch = !resultsSearch || 
+        item.sku.toLowerCase().includes(resultsSearch.toLowerCase()) ||
+        item.namaBarang.toLowerCase().includes(resultsSearch.toLowerCase()) ||
+        item.rak.toLowerCase().includes(resultsSearch.toLowerCase()) ||
+        item.petugas.toLowerCase().includes(resultsSearch.toLowerCase());
+      
+      const matchTeam = filterTeam === 'ALL' || item.team === filterTeam;
+      return matchSearch && matchTeam;
+    });
+  }, [soResults, resultsSearch, filterTeam]);
+
+  const totalQtyScanned = useMemo(() => {
+    return soResults.reduce((acc, curr) => acc + (Number(curr.qty) || 0), 0);
+  }, [soResults]);
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-20 md:pb-0">
+      
+      {/* HEADER */}
+      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 px-4 py-3 shadow-md">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-gradient-to-tr from-emerald-500 to-teal-400 p-2 rounded-xl text-slate-950 font-black shadow flex items-center justify-center">
+              <Smartphone className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="font-extrabold text-base leading-none text-white flex items-center gap-1.5">
+                ScanOpname <span className="text-emerald-400 text-xs">Mobile Web</span>
+              </h1>
+              <p className="text-[10px] text-slate-400 mt-0.5">Supabase & Google Sheet Hybrid Sync</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className={`p-2 rounded-xl border text-xs flex items-center gap-1 transition ${
+                soundEnabled 
+                  ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' 
+                  : 'bg-slate-800 border-slate-700 text-slate-500'
+              }`}
+              title="Suara Bip Scan"
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </button>
+
+            <button
+              onClick={handleSyncAll}
+              disabled={isSyncing}
+              className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-3 py-2 rounded-xl text-xs font-bold shadow flex items-center gap-1.5 transition"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Sync Data</span>
+            </button>
+          </div>
+        </div>
+
+        {/* DESKTOP NAV TABS */}
+        <div className="hidden md:flex max-w-7xl mx-auto gap-2 mt-3 pt-2 border-t border-slate-800">
+          <button
+            onClick={() => setActiveTab('scanner')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+              activeTab === 'scanner' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:bg-slate-800'
+            }`}
+          >
+            <Camera className="w-4 h-4" /> Scan HP / Gun
+          </button>
+          <button
+            onClick={() => setActiveTab('results')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+              activeTab === 'results' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:bg-slate-800'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" /> Hasil SO ({soResults.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('master')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+              activeTab === 'master' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:bg-slate-800'
+            }`}
+          >
+            <Box className="w-4 h-4" /> Master SKU ({masterItems.length.toLocaleString('id-ID')})
+          </button>
+          <button
+            onClick={() => setActiveTab('teams')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+              activeTab === 'teams' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:bg-slate-800'
+            }`}
+          >
+            <Users className="w-4 h-4" /> Tim & Petugas
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+              activeTab === 'settings' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:bg-slate-800'
+            }`}
+          >
+            <Settings className="w-4 h-4" /> Config & Credentials
+          </button>
+        </div>
+      </header>
+
+      {/* SYNC NOTIFICATION BANNER */}
+      {syncStatus.message && (
+        <div className={`px-4 py-2 text-xs font-medium flex items-center justify-between gap-2 border-b ${
+          syncStatus.success === true ? 'bg-emerald-950 text-emerald-200 border-emerald-800' :
+          syncStatus.success === false ? 'bg-rose-950 text-rose-200 border-rose-800' :
+          'bg-cyan-950 text-cyan-200 border-cyan-800'
+        }`}>
+          <div className="flex items-center gap-2">
+            {syncStatus.success === true && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
+            {syncStatus.success === false && <XCircle className="w-4 h-4 text-rose-400 shrink-0" />}
+            <span>{syncStatus.message}</span>
+          </div>
+          <button onClick={() => setSyncStatus({ success: null, message: '' })} className="text-slate-400 text-xs font-bold">
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* MAIN CONTAINER */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5">
+        
+        {/* ========================================================================= */}
+        {/* TAB 1: SCANNER MOBILE & HARDWARE */}
+        {/* ========================================================================= */}
+        {activeTab === 'scanner' && (
+          <div className="space-y-4">
+            
+            {/* SESSION CONTEXT & RAK MANUAL INPUT */}
+            <div className="bg-slate-900 rounded-2xl p-3.5 border border-slate-800 shadow-md">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-2.5">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-bold text-slate-200">Sesi Scan & Lokasi Rak SO</span>
+                </div>
+                <button
+                  onClick={() => setIsSessionLocked(!isSessionLocked)}
+                  className={`text-[10px] px-2.5 py-1 rounded-full font-bold border transition ${
+                    isSessionLocked 
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' 
+                      : 'bg-slate-800 text-slate-300 border-slate-700'
+                  }`}
+                >
+                  {isSessionLocked ? '🔒 Sesi Terkunci' : '🔓 Ubah Sesi'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                {/* TIM SELECTION */}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Pilih Tim Opname</label>
+                  <select
+                    disabled={isSessionLocked}
+                    value={selectedTeam}
+                    onChange={(e) => setSelectedTeam(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-white font-bold outline-none disabled:opacity-60 mt-1"
+                  >
+                    {teams.map((t, i) => <option key={i} value={t}>{t}</option>)}
+                  </select>
+                </div>
+
+                {/* PETUGAS SELECTION */}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Petugas Scan ({selectedTeam})</label>
+                  <select
+                    disabled={isSessionLocked}
+                    value={selectedPetugas}
+                    onChange={(e) => setSelectedPetugas(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-white font-bold outline-none disabled:opacity-60 mt-1"
+                  >
+                    {(petugasByTeam[selectedTeam] || []).map((p, i) => <option key={i} value={p}>{p}</option>)}
+                  </select>
+                </div>
+
+                {/* MANUAL RAK INPUT */}
+                <div>
+                  <label className="text-[10px] font-bold text-amber-400 uppercase flex items-center justify-between">
+                    <span>Nama Rak SO (Manual)</span>
+                    <span className="text-[9px] text-slate-400 font-normal">Input Bebas</span>
+                  </label>
+                  <input
+                    type="text"
+                    disabled={isSessionLocked}
+                    placeholder="Contoh: RAK-A-01..."
+                    value={manualRakInput}
+                    onChange={(e) => setManualRakInput(e.target.value)}
+                    className="w-full bg-slate-950 border-2 border-emerald-500/60 rounded-xl px-2.5 py-2 text-emerald-300 font-mono font-bold outline-none uppercase disabled:opacity-60 mt-1"
+                  />
+                  
+                  {/* Quick Select Recent Manual Raks */}
+                  <div className="flex gap-1 mt-1 overflow-x-auto">
+                    {recentRaks.map((r, i) => (
+                      <button
+                        key={i}
+                        disabled={isSessionLocked}
+                        onClick={() => setManualRakInput(r)}
+                        className={`text-[9px] px-2 py-0.5 rounded border font-mono ${
+                          manualRakInput.toUpperCase() === r.toUpperCase() 
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 font-bold' 
+                            : 'bg-slate-950 text-slate-400 border-slate-800'
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SCANNING WORKSPACE */}
+            <div className="bg-slate-900 rounded-2xl p-4 border border-slate-800 shadow-md space-y-4">
+              
+              {/* SCAN MODE TOGGLE */}
+              <div className="flex items-center justify-between bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                <button
+                  onClick={() => setCameraActive(false)}
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                    !cameraActive ? 'bg-emerald-600 text-white shadow' : 'text-slate-400'
+                  }`}
+                >
+                  <Barcode className="w-4 h-4" /> USB / Bluetooth Scanner Gun
+                </button>
+                <button
+                  onClick={() => setCameraActive(!cameraActive)}
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                    cameraActive ? 'bg-emerald-600 text-white shadow' : 'text-slate-400'
+                  }`}
+                >
+                  <Camera className="w-4 h-4" /> Kamera HP
+                </button>
+              </div>
+
+              {/* SMARTPHONE CAMERA VIEWPORT */}
+              {cameraActive && (
+                <div className="bg-black rounded-xl p-3 border border-emerald-500/40 relative text-center space-y-2">
+                  <div className="relative aspect-video max-h-56 bg-slate-950 rounded-lg overflow-hidden border-2 border-emerald-500/50 flex flex-col items-center justify-center mx-auto">
+                    <video 
+                      ref={videoRef} 
+                      autoPlay 
+                      playsInline 
+                      muted 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 border-2 border-emerald-400/80 m-6 rounded-lg pointer-events-none flex items-center justify-center">
+                      <div className="w-full h-0.5 bg-emerald-400 animate-pulse shadow-[0_0_8px_#10b981]" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => setFacingMode(facingMode === 'user' ? 'environment' : 'user')}
+                      className="bg-slate-800 border border-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1"
+                    >
+                      <RotateCw className="w-3.5 h-3.5" /> Putar Kamera
+                    </button>
+                    <button
+                      onClick={() => {
+                        const rand = masterItems[Math.floor(Math.random() * masterItems.length)];
+                        if (rand) handleBarcodeSubmit(rand.sku);
+                      }}
+                      className="bg-emerald-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg"
+                    >
+                      🎲 Tes Scan Random
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* BARCODE / SKU INPUT FIELD */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-300">Scan Barcode / SKU / Original Code:</span>
+                  <label className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                    <input
+                      type="checkbox"
+                      checked={autoResetQty}
+                      onChange={(e) => setAutoResetQty(e.target.checked)}
+                      className="rounded bg-slate-950 border-slate-700 text-emerald-500"
+                    />
+                    Auto Reset Qty = 1
+                  </label>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    ref={hwInputRef}
+                    type="text"
+                    value={scanInput}
+                    onChange={(e) => setScanInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleBarcodeSubmit(scanInput);
+                      }
+                    }}
+                    placeholder="Arahkan scanner ke barcode..."
+                    className="flex-1 bg-slate-950 border-2 border-emerald-500/60 rounded-xl px-3.5 py-3 text-base font-mono font-bold text-emerald-300 placeholder-slate-600 outline-none focus:ring-2 focus:ring-emerald-400"
+                  />
+
+                  {/* QUICK QUANTITY STEPPER */}
+                  <div className="flex items-center bg-slate-950 border border-slate-800 rounded-xl px-1">
+                    <button
+                      onClick={() => setScanQty(Math.max(1, scanQty - 1))}
+                      className="w-8 h-8 font-bold text-slate-300 hover:bg-slate-800 rounded text-base"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      value={scanQty}
+                      onChange={(e) => setScanQty(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-10 bg-transparent text-center font-extrabold text-white text-sm outline-none"
+                    />
+                    <button
+                      onClick={() => setScanQty(scanQty + 1)}
+                      className="w-8 h-8 font-bold text-slate-300 hover:bg-slate-800 rounded text-base"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => handleBarcodeSubmit(scanInput)}
+                    className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold px-4 rounded-xl text-xs shadow flex items-center justify-center"
+                  >
+                    Submit
+                  </button>
+                </div>
+
+                {/* QUICK QUANTITY PRESETS */}
+                <div className="flex gap-1.5 pt-1 overflow-x-auto">
+                  <span className="text-[10px] text-slate-500 py-1 font-semibold">Qty Cepat:</span>
+                  {[1, 5, 10, 24, 50, 100].map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => setScanQty(num)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
+                        scanQty === num
+                          ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800'
+                      }`}
+                    >
+                      +{num}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* SCAN FEEDBACK NOTIFICATION */}
+              {scanNotification && (
+                <div className={`p-3 rounded-xl border text-xs font-bold flex items-center gap-2 ${
+                  scanNotification.type === 'success' 
+                    ? 'bg-emerald-950 border-emerald-700 text-emerald-200' 
+                    : 'bg-rose-950 border-rose-700 text-rose-200'
+                }`}>
+                  {scanNotification.type === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                  )}
+                  <p>{scanNotification.message}</p>
+                </div>
+              )}
+
+              {/* LAST SCANNED ITEM CARD */}
+              {lastScannedItem && (
+                <div className="bg-slate-950 rounded-xl p-3.5 border border-emerald-500/40 space-y-2">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold uppercase">
+                      Terscan ({lastScannedItem.time})
+                    </span>
+                    <span className="text-emerald-300 font-mono font-bold">Rak: {lastScannedItem.rak}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-extrabold text-white leading-tight">{lastScannedItem.namaBarang}</p>
+                      <p className="text-xs font-mono text-emerald-400 mt-0.5">
+                        SKU: {lastScannedItem.sku} | OrigCode: {lastScannedItem.originalCode}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Family: {lastScannedItem.family}</p>
+                    </div>
+
+                    <div className="bg-slate-900 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-center shrink-0">
+                      <p className="text-[9px] text-slate-400 uppercase">Qty Fisik</p>
+                      <p className="text-lg font-black text-emerald-400">+{lastScannedItem.scannedQty}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* RECENT SCAN LIST */}
+            <div className="bg-slate-900 rounded-2xl p-4 border border-slate-800 shadow-md space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h3 className="font-extrabold text-white text-xs flex items-center gap-1.5">
+                  <List className="w-4 h-4 text-emerald-400" /> Hasil Scan Sesi Ini
+                </h3>
+                <span className="text-[11px] text-slate-400 font-bold">{soResults.length} Entry</span>
+              </div>
+
+              {soResults.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 text-xs">
+                  Belum ada item yang di-scan pada sesi ini.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                  {soResults.slice(0, 15).map((row) => (
+                    <div key={row.id} className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-bold text-emerald-400 text-[11px] bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                            {row.rak}
+                          </span>
+                          <span className="text-[10px] text-slate-500">{new Date(row.timestamp).toLocaleTimeString('id-ID')}</span>
+                        </div>
+                        <p className="font-bold text-white text-xs mt-0.5">{row.namaBarang}</p>
+                        <p className="font-mono text-[10px] text-slate-400">SKU: {row.sku} • {row.petugas} ({row.team})</p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <p className="font-black text-emerald-300 text-sm">+{row.qty}</p>
+                        <div className="flex gap-1 justify-end mt-0.5">
+                          <span className={`text-[8px] px-1 py-0.5 rounded font-bold ${row.syncedSupabase ? 'bg-teal-500/20 text-teal-300' : 'bg-slate-800 text-slate-500'}`}>
+                            Supabase
+                          </span>
+                          <span className={`text-[8px] px-1 py-0.5 rounded font-bold ${row.syncedSheet ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'}`}>
+                            Sheet
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 2: AUDIT HASIL SO */}
+        {/* ========================================================================= */}
+        {activeTab === 'results' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="bg-slate-900 p-3 rounded-2xl border border-slate-800">
+                <p className="text-[10px] text-slate-400 font-bold uppercase">Total Baris Entry</p>
+                <p className="text-xl font-extrabold text-white mt-1">{soResults.length}</p>
+              </div>
+
+              <div className="bg-slate-900 p-3 rounded-2xl border border-slate-800">
+                <p className="text-[10px] text-slate-400 font-bold uppercase">Total Qty Fisik</p>
+                <p className="text-xl font-extrabold text-emerald-400 mt-1">{totalQtyScanned.toLocaleString('id-ID')}</p>
+              </div>
+
+              <div className="bg-slate-900 p-3 rounded-2xl border border-slate-800 col-span-2 sm:col-span-1">
+                <p className="text-[10px] text-slate-400 font-bold uppercase">Synced (Supabase / Sheet)</p>
+                <p className="text-xl font-extrabold text-teal-400 mt-1">
+                  {soResults.filter(r => r.syncedSupabase || r.syncedSheet).length}/{soResults.length}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-900 rounded-2xl p-3.5 border border-slate-800 shadow-md space-y-3">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari SKU, Nama Barang, Rak, Petugas..."
+                    value={resultsSearch}
+                    onChange={(e) => setResultsSearch(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <select
+                  value={filterTeam}
+                  onChange={(e) => setFilterTeam(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none"
+                >
+                  <option value="ALL">Semua Tim Opname</option>
+                  {teams.map((t, i) => <option key={i} value={t}>{t}</option>)}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1 flex-wrap">
+                <button
+                  onClick={handlePushResultsToSupabase}
+                  disabled={isSyncing}
+                  className="flex-1 bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1.5"
+                >
+                  <Database className="w-3.5 h-3.5" /> Sync ke Supabase
+                </button>
+
+                <button
+                  onClick={handlePushResultsToSpreadsheet}
+                  disabled={isSyncing}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1.5"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" /> Sync ke Sheet
+                </button>
+
+                <button
+                  onClick={() => {
+                    const csvContent = "data:text/csv;charset=utf-8," 
+                      + ["Timestamp,Rak,Tim,Petugas,SKU,Original Code,Nama Barang,Qty,Family"].join(",") + "\n"
+                      + soResults.map(r => `"${r.timestamp}","${r.rak}","${r.team}","${r.petugas}","${r.sku}","${r.originalCode}","${r.namaBarang}",${r.qty},"${r.family}"`).join("\n");
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `Hasil_SO_${new Date().toISOString().slice(0,10)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" /> CSV
+                </button>
+              </div>
+            </div>
+
+            {/* RESULTS TABLE */}
+            <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] border-b border-slate-800 font-bold">
+                    <tr>
+                      <th className="p-3">Rak SO</th>
+                      <th className="p-3">SKU & Item</th>
+                      <th className="p-3 text-right">Qty</th>
+                      <th className="p-3">Petugas</th>
+                      <th className="p-3 text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/80 font-medium">
+                    {filteredResults.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="p-6 text-center text-slate-500">
+                          Tidak ada data SO.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredResults.map((row) => (
+                        <tr key={row.id} className="hover:bg-slate-800/40">
+                          <td className="p-3 font-mono font-bold text-emerald-400 whitespace-nowrap">{row.rak}</td>
+                          <td className="p-3">
+                            <p className="font-bold text-white">{row.namaBarang}</p>
+                            <p className="font-mono text-[10px] text-slate-400">SKU: {row.sku} | Orig: {row.originalCode}</p>
+                          </td>
+                          <td className="p-3 text-right font-mono font-extrabold text-emerald-300 text-sm whitespace-nowrap">+{row.qty}</td>
+                          <td className="p-3 whitespace-nowrap">
+                            <p className="font-semibold text-slate-200">{row.petugas}</p>
+                            <p className="text-[10px] text-slate-500">{row.team}</p>
+                          </td>
+                          <td className="p-3 text-center">
+                            <button
+                              onClick={() => setSoResults(prev => prev.filter(i => i.id !== row.id))}
+                              className="text-slate-500 hover:text-rose-400 p-1"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 3: MASTER DATABASE SKU (70,000+ SKU) */}
+        {/* ========================================================================= */}
+        {activeTab === 'master' && (
+          <div className="space-y-4">
+            <div className="bg-slate-900 rounded-2xl p-4 border border-slate-800 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-extrabold text-white text-base flex items-center gap-2">
+                    <Box className="w-5 h-5 text-emerald-400" /> Master Database SKU
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {masterItems.length.toLocaleString('id-ID')} SKU terdaftar di memori web HP.
+                  </p>
+                </div>
+
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={handleFetchMasterFromSupabase}
+                    disabled={isSyncing}
+                    className="bg-teal-600 hover:bg-teal-500 text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5"
+                  >
+                    <CloudDownload className="w-3.5 h-3.5" /> Pull dari Supabase
+                  </button>
+
+                  <button
+                    onClick={handleFetchMasterFromSpreadsheet}
+                    disabled={isSyncing}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} /> Pull dari Sheet
+                  </button>
+                </div>
+              </div>
+
+              {/* SEARCH */}
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari SKU, Original Code, Nama Barang..."
+                  value={masterSearch}
+                  onChange={(e) => { setMasterSearch(e.target.value); setMasterPage(1); }}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            {/* MASTER ITEMS TABLE */}
+            <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] border-b border-slate-800 font-bold">
+                    <tr>
+                      <th className="p-3">SKU</th>
+                      <th className="p-3">Original Code</th>
+                      <th className="p-3">Nama Barang</th>
+                      <th className="p-3">Family</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/80 font-medium">
+                    {currentMasterPageItems.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-slate-800/40">
+                        <td className="p-3 font-mono font-bold text-emerald-400 whitespace-nowrap">{item.sku}</td>
+                        <td className="p-3 font-mono text-slate-300 whitespace-nowrap">{item.originalCode || '-'}</td>
+                        <td className="p-3 font-bold text-white">{item.namaBarang}</td>
+                        <td className="p-3 text-slate-300">{item.family || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* PAGINATION */}
+              <div className="bg-slate-950 px-4 py-3 border-t border-slate-800 flex items-center justify-between text-xs">
+                <span className="text-slate-400 text-[11px]">
+                  Hal {masterPage} dari {totalMasterPages || 1}
+                </span>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setMasterPage(Math.max(1, masterPage - 1))}
+                    disabled={masterPage === 1}
+                    className="px-3 py-1 bg-slate-800 disabled:opacity-40 rounded-lg text-slate-200 font-bold"
+                  >
+                    Prev
+                  </button>
+                  <button
+                    onClick={() => setMasterPage(Math.min(totalMasterPages, masterPage + 1))}
+                    disabled={masterPage >= totalMasterPages}
+                    className="px-3 py-1 bg-slate-800 disabled:opacity-40 rounded-lg text-slate-200 font-bold"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 4: TIM & PETUGAS */}
+        {/* ========================================================================= */}
+        {activeTab === 'teams' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {teams.map((t) => (
+              <div key={t} className="bg-slate-900 rounded-2xl p-4 border border-slate-800 space-y-3">
+                <h3 className="font-extrabold text-white text-sm flex items-center gap-2 border-b border-slate-800 pb-2">
+                  <UserCheck className="w-4 h-4 text-emerald-400" /> Daftar Petugas ({t})
+                </h3>
+                
+                <div className="space-y-2">
+                  {(petugasByTeam[t] || []).map((p, i) => (
+                    <div key={i} className="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs font-bold text-slate-200">
+                      <span>{p}</span>
+                      <button 
+                        onClick={() => {
+                          setPetugasByTeam(prev => ({
+                            ...prev,
+                            [t]: prev[t].filter((_, idx) => idx !== i)
+                          }));
+                        }}
+                        className="text-slate-500 hover:text-rose-400"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 5: PENGATURAN & SCRIPT SPREADSHEET / SUPABASE */}
+        {/* ========================================================================= */}
+        {activeTab === 'settings' && (
+          <div className="space-y-4 max-w-2xl mx-auto">
+            {/* GOOGLE SHEET CONFIG */}
+            <div className="bg-slate-900 rounded-2xl p-5 border border-slate-800 space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+                <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
+                <h3 className="font-extrabold text-white text-base">Google Apps Script Web App Endpoint</h3>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Web App Deployment URL:</label>
+                <input
+                  type="text"
+                  value={googleSheetAppUrl}
+                  onChange={(e) => {
+                    setGoogleSheetAppUrl(e.target.value);
+                    localStorage.setItem('so_gas_url', e.target.value);
+                  }}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-emerald-300 font-mono outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-1 text-slate-400">
+                <p className="font-bold text-slate-200">Link Google Spreadsheet Target:</p>
+                <p className="font-mono text-[11px] text-emerald-400 break-all">
+                  https://docs.google.com/spreadsheets/d/1iwIUex4VL_P1ORfPzTUKRgFvg_9bJsoEjdaNi605C_Y/edit
+                </p>
+              </div>
+            </div>
+
+            {/* SUPABASE CONFIG */}
+            <div className="bg-slate-900 rounded-2xl p-5 border border-slate-800 space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+                <Database className="w-5 h-5 text-teal-400" />
+                <h3 className="font-extrabold text-white text-base">Supabase Database API Credentials</h3>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Supabase Project URL:</label>
+                  <input
+                    type="text"
+                    value={supabaseUrl}
+                    onChange={(e) => {
+                      setSupabaseUrl(e.target.value);
+                      localStorage.setItem('so_supabase_url', e.target.value);
+                    }}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-teal-300 font-mono outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Supabase Public Anon Key:</label>
+                  <textarea
+                    rows={3}
+                    value={supabaseKey}
+                    onChange={(e) => {
+                      setSupabaseKey(e.target.value);
+                      localStorage.setItem('so_supabase_key', e.target.value);
+                    }}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-teal-300 font-mono outline-none focus:ring-2 focus:ring-teal-500 break-all"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* MOBILE BOTTOM NAV */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-2 py-1.5 z-50 flex justify-around">
+        <button
+          onClick={() => setActiveTab('scanner')}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition ${
+            activeTab === 'scanner' ? 'text-emerald-400 font-bold' : 'text-slate-500'
+          }`}
+        >
+          <Camera className="w-5 h-5" />
+          <span className="text-[10px]">Scan HP</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('results')}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition ${
+            activeTab === 'results' ? 'text-emerald-400 font-bold' : 'text-slate-500'
+          }`}
+        >
+          <BarChart3 className="w-5 h-5" />
+          <span className="text-[10px]">Hasil ({soResults.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('master')}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition ${
+            activeTab === 'master' ? 'text-emerald-400 font-bold' : 'text-slate-500'
+          }`}
+        >
+          <Box className="w-5 h-5" />
+          <span className="text-[10px]">Master SKU</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('teams')}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition ${
+            activeTab === 'teams' ? 'text-emerald-400 font-bold' : 'text-slate-500'
+          }`}
+        >
+          <Users className="w-5 h-5" />
+          <span className="text-[10px]">Petugas</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition ${
+            activeTab === 'settings' ? 'text-emerald-400 font-bold' : 'text-slate-500'
+          }`}
+        >
+          <Settings className="w-5 h-5" />
+          <span className="text-[10px]">Setting</span>
+        </button>
+      </nav>
+    </div>
+  );
+}
