@@ -182,6 +182,7 @@
                 return accounts.reduce((acc, a) => acc + Number(a.balance || 0), 0);
             }, [accounts]);
 
+            // Sinkronkan Saldo Langsung dari Google Sheets
             const handleSyncFromSheets = async () => {
                 if (!sheetsWebhookUrl) {
                     showToast('Harap atur URL Google Sheets Webhook di Cloud DB!', 'error');
@@ -203,25 +204,47 @@
                         });
 
                         setAccounts(updated);
-                        showToast('✨ Saldo berhasil disinkronkan dengan Google Sheets!');
-                    } else if (supabaseClient) {
-                        const { data, error } = await supabaseClient.from('accounts').select('*');
-                        if (!error && Array.isArray(data) && data.length > 0) {
-                            const updated = accounts.map(existingAcc => {
-                                const found = data.find(a => a.id === existingAcc.id);
-                                return found ? { ...existingAcc, balance: Number(found.balance || 0) } : existingAcc;
-                            });
-                            setAccounts(updated);
-                            showToast('✨ Saldo berhasil disinkronkan dari Supabase Cloud DB!');
+                        
+                        // Juga sync balik ke Supabase jika terhubung
+                        if (supabaseClient) {
+                            supabaseClient.from('accounts').upsert(updated.map(a => ({
+                                id: a.id, name: a.name, type: a.type, balance: Number(a.balance || 0), color: a.color
+                            }))).then(() => {});
                         }
+
+                        showToast('✨ Saldo berhasil disinkronkan langsung dari Google Sheets!');
                     } else {
-                        showToast('Gagal membaca data dari Sheets. Pastikan skrip sudah dideploy!', 'error');
+                        showToast('Gagal membaca saldo dari Google Sheets. Pastikan Apps Script telah di-deploy ulang.', 'error');
                     }
                 } catch (err) {
                     console.warn("Sync Sheets Notice:", err);
-                    showToast('Gagal menyinkronkan saldo. Periksa koneksi Webhook.', 'error');
+                    showToast('Gagal menyinkronkan saldo dari Sheets. Periksa Webhook URL.', 'error');
                 } finally {
                     setIsSyncing(false);
+                }
+            };
+
+            // Kirim Perubahan Rekening Langsung ke Google Sheets & Supabase
+            const handleSyncAccountsToCloud = (updatedAccounts) => {
+                setAccounts(updatedAccounts);
+
+                // Send to Supabase
+                if (supabaseClient) {
+                    supabaseClient.from('accounts').upsert(updatedAccounts.map(a => ({
+                        id: a.id, name: a.name, type: a.type, balance: Number(a.balance || 0), color: a.color
+                    }))).then(() => {});
+                }
+
+                // Send Webhook to Google Sheets
+                if (sheetsWebhookUrl) {
+                    fetch(sheetsWebhookUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            accounts: updatedAccounts
+                        })
+                    }).catch(() => {});
                 }
             };
 
@@ -251,7 +274,7 @@
                 });
 
                 setTransactions(prev => [createdTx, ...prev]);
-                setAccounts(updatedAccounts);
+                handleSyncAccountsToCloud(updatedAccounts);
 
                 // Kirim ke Supabase jika terhubung
                 if (supabaseClient) {
@@ -277,13 +300,9 @@
                         }));
                         supabaseClient.from('transaction_items').insert(itemsPayload).then(() => {});
                     }
-
-                    supabaseClient.from('accounts').upsert(updatedAccounts.map(a => ({
-                        id: a.id, name: a.name, type: a.type, balance: Number(a.balance || 0), color: a.color
-                    }))).then(() => {});
                 }
 
-                // Kirim Webhook ke Google Sheets
+                // Kirim Transaksi & Saldo Terbaru ke Google Sheets Webhook
                 if (sheetsWebhookUrl) {
                     fetch(sheetsWebhookUrl, {
                         method: 'POST',
@@ -305,7 +324,7 @@
                     }).catch(() => {});
                 }
 
-                showToast('✨ Transaksi berhasil disimpan & Saldo diperbarui!');
+                showToast('✨ Transaksi disimpan & Saldo Google Sheets diperbarui!');
             };
 
             return (
@@ -365,7 +384,7 @@
                         {activeTab === 'accounts' && (
                             <AccountsTab 
                                 accounts={accounts} 
-                                setAccounts={setAccounts} 
+                                onSyncAccountsToCloud={handleSyncAccountsToCloud}
                                 expenseCategories={expenseCategories}
                                 setExpenseCategories={setExpenseCategories}
                                 incomeCategories={incomeCategories}
@@ -518,11 +537,11 @@
                         <div className="flex items-center justify-between">
                             <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
                                 <i data-lucide="credit-card" className="w-4 h-4 text-violet-600"></i>
-                                <span>Saldo Rekening & Dompet</span>
+                                <span>Saldo Rekening & Dompet (Ter-sync dengan Sheets)</span>
                             </h3>
                             <button onClick={onSync} disabled={isSyncing} className="text-xs font-bold text-violet-600 hover:text-violet-700 flex items-center gap-1">
                                 <i data-lucide="refresh-cw" className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`}></i>
-                                <span>Sync Google Sheets</span>
+                                <span>Sync Saldo Sheets</span>
                             </button>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -612,7 +631,6 @@
                                                 </div>
                                             </div>
 
-                                            {/* Item Breakdown jika ada */}
                                             {t.items && t.items.length > 0 && (
                                                 <div className="ml-11 p-2 bg-white rounded-xl border border-slate-100 text-[10px] space-y-1">
                                                     <div className="font-bold text-slate-500">Rincian Barang / Struk:</div>
@@ -635,7 +653,7 @@
         }
 
         function TransactionsTab({ transactions, accounts, expenseCategories, incomeCategories, onAddTransaction }) {
-            const [type, setType] = useState('EXPENSE'); // 'EXPENSE', 'INCOME', 'TRANSFER'
+            const [type, setType] = useState('EXPENSE');
             const [amount, setAmount] = useState('');
             const [accountId, setAccountId] = useState(accounts[0]?.id || '');
             const [toAccountId, setToAccountId] = useState(accounts[1]?.id || accounts[0]?.id || '');
@@ -644,7 +662,6 @@
             const [note, setNote] = useState('');
             const [adminFee, setAdminFee] = useState('');
 
-            // Otomatis ubah kategori saat tipe berubah
             useEffect(() => {
                 if (type === 'EXPENSE') {
                     setCategory(expenseCategories[0] || 'Pengeluaran Lainnya');
@@ -684,10 +701,9 @@
                     <form onSubmit={handleSubmit} className="glass-card p-6 rounded-3xl space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="font-extrabold text-base text-slate-900">Catat Transaksi Manual</h3>
-                            <span className="text-xs text-slate-400 font-semibold">Real-time Balance Sync</span>
+                            <span className="text-xs text-slate-400 font-semibold">Sync Otomatis ke Sheets</span>
                         </div>
 
-                        {/* Switcher 3 Mode: Pengeluaran, Pemasukan, Transfer */}
                         <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-2xl text-xs font-extrabold">
                             <button type="button" onClick={() => setType('EXPENSE')} className={`py-2.5 rounded-xl transition ${type === 'EXPENSE' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600'}`}>
                                 Pengeluaran
@@ -700,13 +716,11 @@
                             </button>
                         </div>
 
-                        {/* Nominal Input */}
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-slate-600">Nominal Transfer / Transaksi (IDR)</label>
+                            <label className="text-xs font-bold text-slate-600">Nominal Transaksi (IDR)</label>
                             <input type="number" required value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 font-black text-xl text-slate-900" />
                         </div>
 
-                        {/* Pilihan Rekening Berdasarkan Tipe */}
                         {type === 'TRANSFER' ? (
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
@@ -739,7 +753,6 @@
                             </div>
                         )}
 
-                        {/* Input Tambahan untuk Transfer */}
                         {type === 'TRANSFER' && (
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-slate-600">Biaya Admin Transfer (Opsional)</label>
@@ -747,7 +760,6 @@
                             </div>
                         )}
 
-                        {/* Tanggal & Catatan */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
                                 <label className="text-[11px] font-bold text-slate-500">Tanggal Transaksi</label>
@@ -755,7 +767,7 @@
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[11px] font-bold text-slate-500">Catatan / Keterangan</label>
-                                <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Contoh: Top up GoPay, Beli Makan..." className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800" />
+                                <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Contoh: Beli Makan, Top up..." className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-bold text-slate-800" />
                             </div>
                         </div>
 
@@ -793,14 +805,11 @@
                 setIsScanning(true);
 
                 try {
-                    // Extract base64 image
                     const base64Data = selectedImage.split(',')[1];
-                    
-                    // Gunakan API Key yang tersimpan atau fallback AI Prompt
                     const apiKey = geminiApiKey || "";
                     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-                    const promptText = `Anda adalah sistem OCR Struk Belanja AI yang presisi. Baca gambar struk ini dan kembalikan response HANYA berupa JSON tanpa markdown code block:
+                    const promptText = `Anda adalah sistem OCR Struk Belanja AI yang presisi. Ekstrak data dari nota ini ke JSON terstruktur:
                     {
                         "merchant": "Nama Toko / Minimarket",
                         "date": "YYYY-MM-DD",
@@ -842,7 +851,6 @@
                         });
                         showToast('✨ Struk berhasil dipindai oleh AI!');
                     } else {
-                        // Fallback parsing jika API memunculkan batas kuota
                         throw new Error("Quota or parsing limitation");
                     }
                 } catch (err) {
@@ -889,7 +897,7 @@
                         </div>
                         <div>
                             <h3 className="font-extrabold text-base text-slate-900">Scan Struk / Nota AI</h3>
-                            <p className="text-xs text-slate-500 font-medium">Unggah foto struk untuk membaca otomatis rincian belanjaan & total nominal</p>
+                            <p className="text-xs text-slate-500 font-medium">Unggah foto struk untuk membaca rincian belanjaan & simpan langsung</p>
                         </div>
 
                         {!selectedImage ? (
@@ -946,7 +954,6 @@
                                             </div>
                                         </div>
 
-                                        {/* List Item Rincian */}
                                         <div className="space-y-1.5">
                                             <div className="text-[11px] font-bold text-slate-600">Rincian Barang Dipindai:</div>
                                             {scannedResult.items.map((it, idx) => (
@@ -982,24 +989,22 @@
             );
         }
 
-        function AccountsTab({ accounts, setAccounts, expenseCategories, setExpenseCategories, incomeCategories, setIncomeCategories, showToast, onSync, isSyncing }) {
+        function AccountsTab({ accounts, onSyncAccountsToCloud, expenseCategories, setExpenseCategories, incomeCategories, setIncomeCategories, showToast, onSync, isSyncing }) {
             const [editingId, setEditingId] = useState(null);
             const [editingBal, setEditingBal] = useState('');
 
-            // Tambah Rekening Baru
             const [newAccName, setNewAccName] = useState('');
             const [newAccType, setNewAccType] = useState('Bank');
             const [newAccBal, setNewAccBal] = useState('');
 
-            // Category Management Inputs
             const [newExpCat, setNewExpCat] = useState('');
             const [newIncCat, setNewIncCat] = useState('');
 
             const handleSaveBalance = (accId) => {
                 const updated = accounts.map(a => a.id === accId ? { ...a, balance: Number(editingBal || 0) } : a);
-                setAccounts(updated);
+                onSyncAccountsToCloud(updated);
                 setEditingId(null);
-                showToast('✨ Saldo berhasil diperbarui!');
+                showToast('✨ Saldo diperbarui & ter-sync ke Google Sheets!');
             };
 
             const handleAddAccount = (e) => {
@@ -1012,10 +1017,11 @@
                     balance: Number(newAccBal || 0),
                     color: 'bg-indigo-600'
                 };
-                setAccounts(prev => [...prev, newAcc]);
+                const updated = [...accounts, newAcc];
+                onSyncAccountsToCloud(updated);
                 setNewAccName('');
                 setNewAccBal('');
-                showToast('✨ Rekening baru ditambahkan!');
+                showToast('✨ Rekening baru ditambahkan & ter-sync ke Google Sheets!');
             };
 
             const handleAddExpCategory = () => {
@@ -1051,7 +1057,7 @@
                         </div>
                         <button onClick={onSync} disabled={isSyncing} className="px-3.5 py-2 bg-violet-600 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-md">
                             <i data-lucide="refresh-cw" className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`}></i>
-                            <span>Sync Sheets</span>
+                            <span>Sync Saldo Sheets</span>
                         </button>
                     </div>
 
@@ -1075,11 +1081,11 @@
                                 {editingId === acc.id ? (
                                     <div className="flex gap-2">
                                         <input type="number" value={editingBal} onChange={e => setEditingBal(e.target.value)} className="bg-slate-50 border p-2 text-xs font-bold rounded-xl flex-1" />
-                                        <button onClick={() => handleSaveBalance(acc.id)} className="px-3 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl">Simpan</button>
+                                        <button onClick={() => handleSaveBalance(acc.id)} className="px-3 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl">Simpan & Sync</button>
                                     </div>
                                 ) : (
                                     <button onClick={() => { setEditingId(acc.id); setEditingBal(acc.balance); }} className="text-[11px] font-bold text-violet-600 hover:underline">
-                                        ✏️ Edit Saldo Manual
+                                        ✏️ Edit Saldo & Sync ke Sheets
                                     </button>
                                 )}
                             </div>
@@ -1098,14 +1104,13 @@
                             </select>
                         </div>
                         <input type="number" placeholder="Saldo Awal (IDR)" value={newAccBal} onChange={e => setNewAccBal(e.target.value)} className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-bold" />
-                        <button type="submit" className="w-full py-2.5 bg-slate-900 text-white rounded-xl font-bold text-xs">Simpan Rekening Baru</button>
+                        <button type="submit" className="w-full py-2.5 bg-slate-900 text-white rounded-xl font-bold text-xs">Simpan & Sync ke Sheets</button>
                     </form>
 
                     {/* Pengaturan Kategori Transaksi */}
                     <div className="glass-card p-5 rounded-3xl space-y-4">
                         <h3 className="font-extrabold text-xs text-slate-900">Pengaturan Kategori Transaksi</h3>
 
-                        {/* Kategori Pengeluaran */}
                         <div className="space-y-2">
                             <label className="text-[11px] font-extrabold text-rose-600 uppercase">🔴 Kategori Pengeluaran</label>
                             <div className="flex flex-wrap gap-1.5">
@@ -1122,7 +1127,6 @@
                             </div>
                         </div>
 
-                        {/* Kategori Pemasukan */}
                         <div className="space-y-2 pt-2 border-t border-slate-100">
                             <label className="text-[11px] font-extrabold text-emerald-600 uppercase">🟢 Kategori Pemasukan</label>
                             <div className="flex flex-wrap gap-1.5">
