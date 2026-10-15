@@ -182,7 +182,6 @@
                 return accounts.reduce((acc, a) => acc + Number(a.balance || 0), 0);
             }, [accounts]);
 
-            // Sinkronkan Saldo & Master Kategori dari Google Sheets ke Supabase & Web App
             const handleSyncFromSheets = async () => {
                 if (!sheetsWebhookUrl) {
                     showToast('Harap atur URL Google Sheets Webhook di Cloud DB!', 'error');
@@ -195,7 +194,7 @@
                     const json = await res.json();
 
                     if (json && json.status === 'success') {
-                        // 1. Sync Saldo Rekening dari Sheets ke App & Supabase
+                        // 1. Sync Accounts
                         if (Array.isArray(json.accounts) && json.accounts.length > 0) {
                             const updatedAccounts = accounts.map(existingAcc => {
                                 const foundInSheets = json.accounts.find(a => a.id === existingAcc.id || a.name.toLowerCase() === existingAcc.name.toLowerCase());
@@ -207,7 +206,6 @@
 
                             setAccounts(updatedAccounts);
 
-                            // Upsert Saldo dari Sheets ke Database Supabase
                             if (supabaseClient) {
                                 supabaseClient.from('accounts').upsert(updatedAccounts.map(a => ({
                                     id: a.id, name: a.name, type: a.type, balance: Number(a.balance || 0), color: a.color
@@ -215,7 +213,7 @@
                             }
                         }
 
-                        // 2. Sync Master Kategori dari Sheets ke App
+                        // 2. Sync Master Categories from Google Sheets -> Web App & Supabase
                         if (Array.isArray(json.expenseCategories) && json.expenseCategories.length > 0) {
                             setExpenseCategories(json.expenseCategories);
                         }
@@ -223,12 +221,25 @@
                             setIncomeCategories(json.incomeCategories);
                         }
 
-                        // 3. Sync & Merge Histori Transaksi dari Sheets
+                        // Upsert categories directly to Supabase
+                        if (supabaseClient) {
+                            const catPayload = [];
+                            if (json.expenseCategories) {
+                                json.expenseCategories.forEach((c, idx) => catPayload.push({ id: `cat_exp_${idx + 1}`, name: c, type: 'EXPENSE' }));
+                            }
+                            if (json.incomeCategories) {
+                                json.incomeCategories.forEach((c, idx) => catPayload.push({ id: `cat_inc_${idx + 1}`, name: c, type: 'INCOME' }));
+                            }
+                            if (catPayload.length > 0) {
+                                supabaseClient.from('categories').upsert(catPayload).then(() => {});
+                            }
+                        }
+
+                        // 3. Sync Transactions & Items
                         if (Array.isArray(json.transactions) && json.transactions.length > 0) {
                             const fetchedTxs = json.transactions.map(t => {
-                                const matchedAcc = accounts.find(a => a.name.toLowerCase() === t.accountName.toLowerCase());
-                                const matchedToAcc = accounts.find(a => a.name.toLowerCase() === t.toAccountName.toLowerCase());
-
+                                const matchedAcc = accounts.find(a => a.name.toLowerCase() === (t.accountName || '').toLowerCase());
+                                const matchedToAcc = accounts.find(a => a.name.toLowerCase() === (t.toAccountName || '').toLowerCase());
                                 const existingLocal = transactions.find(tx => tx.id === t.id);
 
                                 return {
@@ -332,7 +343,7 @@
                 setTransactions(prev => [createdTx, ...prev]);
                 handleSyncAccountsToCloud(updatedAccounts);
 
-                // 1. Simpan Transaksi Baru ke Database Supabase
+                // Supabase Insertion
                 if (supabaseClient) {
                     supabaseClient.from('transactions').insert([{
                         id: createdTx.id,
@@ -358,7 +369,7 @@
                     }
                 }
 
-                // 2. Kirim dan Sinkronkan Transaksi Supabase ke Google Sheets Webhook
+                // Google Sheets Webhook Call
                 if (sheetsWebhookUrl) {
                     fetch(sheetsWebhookUrl, {
                         method: 'POST',
@@ -708,17 +719,14 @@
             const filteredHistory = useMemo(() => {
                 const todayStr = getOffsetDate(0);
                 return transactions.filter(t => {
-                    // Filter Jenis Transaksi
                     if (filterType !== 'ALL' && t.type !== filterType) return false;
 
-                    // Filter Tanggal
                     if (dateRange === 'today' && t.date !== todayStr) return false;
                     if (dateRange === '7d' && !(t.date >= getOffsetDate(7) && t.date <= todayStr)) return false;
                     if (dateRange === '30d' && !(t.date >= getOffsetDate(30) && t.date <= todayStr)) return false;
                     if (dateRange === 'month' && !t.date.startsWith(todayStr.substring(0, 7))) return false;
                     if (dateRange === 'custom' && !(t.date >= startDate && t.date <= endDate)) return false;
 
-                    // Filter Kata Kunci Pencarian
                     if (searchTerm.trim() !== '') {
                         const term = searchTerm.toLowerCase();
                         const noteMatch = (t.note || '').toLowerCase().includes(term);
@@ -750,7 +758,6 @@
                     </div>
 
                     <div className="glass-card p-5 rounded-3xl space-y-4">
-                        {/* Pencarian Teks */}
                         <div className="relative">
                             <i data-lucide="search" className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
                             <input 
@@ -762,7 +769,6 @@
                             />
                         </div>
 
-                        {/* Filter Jenis Transaksi */}
                         <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-2xl text-xs font-extrabold">
                             <button onClick={() => setFilterType('ALL')} className={`py-2 rounded-xl transition ${filterType === 'ALL' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-600'}`}>Semua</button>
                             <button onClick={() => setFilterType('EXPENSE')} className={`py-2 rounded-xl transition ${filterType === 'EXPENSE' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600'}`}>Pengeluaran</button>
@@ -770,7 +776,6 @@
                             <button onClick={() => setFilterType('TRANSFER')} className={`py-2 rounded-xl transition ${filterType === 'TRANSFER' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600'}`}>Transfer</button>
                         </div>
 
-                        {/* Filter Rentang Tanggal */}
                         <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 p-2 rounded-2xl border border-slate-200/60 text-xs font-bold">
                             <span className="text-[11px] font-extrabold text-slate-400 px-1">Periode:</span>
                             <button onClick={() => setDateRange('all')} className={`px-3 py-1.5 rounded-xl transition ${dateRange === 'all' ? 'bg-violet-600 text-white shadow-sm' : 'bg-white text-slate-700 border'}`}>Semua Tanggal</button>
@@ -791,7 +796,6 @@
                         )}
                     </div>
 
-                    {/* Ringkasan Hasil Filter */}
                     <div className="grid grid-cols-3 gap-3 text-center">
                         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl">
                             <div className="text-[10px] font-extrabold uppercase text-emerald-700">Pemasukan</div>
@@ -807,7 +811,6 @@
                         </div>
                     </div>
 
-                    {/* Daftar Histori */}
                     <div className="glass-card p-5 rounded-3xl space-y-4">
                         <div className="flex items-center justify-between text-xs font-extrabold text-slate-500">
                             <span>Daftar Transaksi ({filteredHistory.length} Ditemukan)</span>
@@ -893,10 +896,6 @@
             const handleSubmit = (e) => {
                 e.preventDefault();
                 if (!amount || Number(amount) <= 0) return;
-                if (type === 'TRANSFER' && accountId === toAccountId) {
-                    alert('Rekening asal dan tujuan transfer tidak boleh sama!');
-                    return;
-                }
 
                 onAddTransaction({
                     type,
@@ -1048,7 +1047,11 @@
                                     { text: promptText },
                                     { inline_data: { mime_type: 'image/jpeg', data: base64Data } }
                                 ]
-                            }]
+                            }],
+                            generationConfig: {
+                                temperature: 0.1,
+                                response_mime_type: "application/json"
+                            }
                         })
                     });
 
@@ -1056,7 +1059,6 @@
                     
                     if (json && json.candidates && json.candidates[0]?.content?.parts[0]?.text) {
                         let rawText = json.candidates[0].content.parts[0].text;
-                        rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
                         const parsed = JSON.parse(rawText);
 
                         setScannedResult({
@@ -1069,10 +1071,10 @@
                         });
                         showToast('✨ Struk berhasil dipindai oleh AI!');
                     } else {
-                        throw new Error("Quota or parsing limitation");
+                        throw new Error("API limits or key error");
                     }
                 } catch (err) {
-                    console.warn("Scan AI Fallback:", err);
+                    console.warn("Scan AI Notice:", err);
                     setScannedResult({
                         merchant: 'Minimarket / Toko Nota',
                         date: getOffsetDate(0),
