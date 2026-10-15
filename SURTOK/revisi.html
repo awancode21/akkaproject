@@ -51,8 +51,8 @@
     const DEFAULT_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0ZnlmcnZycXZiZ3lhZXpvcmJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4OTkyNzIsImV4cCI6MjEwNjQ3NTI3Mn0.vL8COXCm7UrhoMSj0iBV8HwvN6VZtd8X08YbxSkLcQM";
 
     const DEFAULT_OFFICERS = {
-      "TIM 1": ["Wildan", "Budi Santoso", "Andi Wijaya", "Agus Pratama", "Rian Hidayat", "Dedi Kurniawan", "Asep"],
-      "TIM 2": ["Rillo", "Eko Susilo", "Siti Aminah", "Hendra Saputra", "Maya Indah", "Rudi Hermawan", "Riki"]
+      "TIM 1": [],
+      "TIM 2": []
     };
 
     const SVG_ICONS = {
@@ -192,8 +192,8 @@
                   if (row[1]) tim2List.push(row[1]);
                 });
                 setOfficers({
-                  "TIM 1": tim1List.filter(Boolean).length > 0 ? tim1List.filter(Boolean) : DEFAULT_OFFICERS["TIM 1"],
-                  "TIM 2": tim2List.filter(Boolean).length > 0 ? tim2List.filter(Boolean) : DEFAULT_OFFICERS["TIM 2"]
+                  "TIM 1": tim1List.filter(Boolean),
+                  "TIM 2": tim2List.filter(Boolean)
                 });
               }
             }
