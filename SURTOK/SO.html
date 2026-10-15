@@ -68,7 +68,7 @@
     <!-- DESKTOP NAVIGATION TABS -->
     <div class="hidden md:flex max-w-7xl mx-auto gap-2 mt-2.5 pt-2 border-t border-slate-800">
       <button data-tab="scanner" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition bg-emerald-500 text-slate-950">
-        <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Scan HP / Gun
+        <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Scan HP / Manual
       </button>
       <button data-tab="results" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800">
         <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Hasil SO (<span id="count-badge-results">0</span>)
@@ -120,7 +120,13 @@
           </div>
 
           <div>
-            <label class="text-[10px] font-bold text-slate-400 uppercase">Nama Petugas (Sheet Petugas)</label>
+            <label class="text-[10px] font-bold text-slate-400 uppercase flex items-center justify-between">
+              <span>Nama Petugas (Sheet)</span>
+              <button id="btn-refresh-petugas" class="text-emerald-400 hover:text-emerald-300 flex items-center gap-0.5" title="Tarik data terbaru dari Sheet">
+                <svg class="w-3 h-3 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                Sync
+              </button>
+            </label>
             <select id="select-petugas" class="session-input w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-white font-bold outline-none mt-1">
               <option value="">-- Pilih Tim Terlebih Dahulu --</option>
             </select>
@@ -144,7 +150,7 @@
         
         <div class="flex items-center justify-between bg-slate-950 p-1.5 rounded-xl border border-slate-800">
           <button id="btn-mode-gun" class="flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow">
-            <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg> Scanner Gun / USB
+            <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg> Scanner Gun / USB / Keyboard
           </button>
           <button id="btn-mode-camera" class="flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 text-slate-400">
             <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Kamera HP
@@ -166,7 +172,7 @@
 
         <div class="space-y-2">
           <div class="flex items-center justify-between text-xs">
-            <span class="font-extrabold text-slate-300">Scan Barcode / SKU / Original Code:</span>
+            <span class="font-extrabold text-slate-300">Scan Barcode / Ketik SKU / Original Code Manual:</span>
             <label class="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
               <input id="chk-auto-reset-qty" type="checkbox" checked class="rounded bg-slate-950 border-slate-700 text-emerald-500">
               Reset Qty = 1
@@ -174,12 +180,13 @@
           </div>
 
           <div class="flex gap-2">
-            <input id="input-barcode-scan" type="text" placeholder="Arahkan scanner gun / ketik barcode..." class="flex-1 bg-slate-950 border-2 border-emerald-500/60 rounded-xl px-3.5 py-3 text-base font-mono font-bold text-emerald-300 placeholder-slate-600 outline-none focus:ring-2 focus:ring-emerald-400">
+            <input id="input-barcode-scan" type="text" placeholder="Ketik SKU manual / scan barcode..." class="flex-1 bg-slate-950 border-2 border-emerald-500/60 rounded-xl px-3.5 py-3 text-base font-mono font-bold text-emerald-300 placeholder-slate-600 outline-none focus:ring-2 focus:ring-emerald-400">
 
             <button id="btn-submit-scan" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black px-4 rounded-xl text-xs shadow flex items-center justify-center shrink-0">
               Cek Item
             </button>
           </div>
+          <p class="text-[10px] text-slate-400 italic">💡 Tip: Anda bisa mengetik SKU manual dengan keyboard HP/PC lalu tekan Enter atau tombol 'Cek Item'.</p>
         </div>
 
         <!-- MODAL POPUP: DETAIL BARANG & INPUT QTY -->
@@ -215,7 +222,7 @@
             </div>
 
             <div class="space-y-2.5">
-              <label class="block text-xs font-black text-amber-400 uppercase">2. Masukkan Qty Fisik Hasil Scan:</label>
+              <label class="block text-xs font-black text-amber-400 uppercase">2. Masukkan Qty Fisik Hasil Scan / Hitungan Manual:</label>
               
               <div class="flex items-center gap-2">
                 <button id="btn-modal-qty-minus" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black w-12 h-12 rounded-xl text-2xl flex items-center justify-center shrink-0 border border-slate-700">-</button>
@@ -560,6 +567,16 @@
       filterTeam: 'ALL'
     };
 
+    function generateUUID() {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
     function saveState() {
       localStorage.setItem('so_master_items', JSON.stringify(state.masterItems));
       localStorage.setItem('so_scanned_results', JSON.stringify(state.soResults));
@@ -859,7 +876,7 @@
 
       const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
       const qtyVal = Math.max(1, parseInt(document.getElementById('input-confirm-qty').value) || 1);
-      const entryId = `so-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      const entryId = generateUUID();
 
       const newEntry = {
         id: entryId,
@@ -919,19 +936,24 @@
     async function autoSyncSingleEntry(entryItem) {
       if (!entryItem) return;
 
+      // Ensure valid ID exists
+      if (!entryItem.id) {
+        entryItem.id = generateUUID();
+      }
+
       if (state.supabaseUrl && state.supabaseKey) {
         try {
           const payload = [{
-            id: entryItem.id,
-            rak: entryItem.rak,
-            tim: entryItem.team,
-            petugas: entryItem.petugas,
-            sku: entryItem.sku,
-            original_code: entryItem.originalCode,
-            nama_barang: entryItem.namaBarang,
-            family: entryItem.family,
+            id: String(entryItem.id),
+            rak: String(entryItem.rak || '-'),
+            tim: String(entryItem.team || entryItem.tim || '-'),
+            petugas: String(entryItem.petugas || '-'),
+            sku: String(entryItem.sku || '-'),
+            original_code: String(entryItem.originalCode || entryItem.original_code || '-'),
+            nama_barang: String(entryItem.namaBarang || entryItem.nama_barang || '-'),
+            family: String(entryItem.family || '-'),
             qty: Number(entryItem.qty) || 1,
-            timestamp: entryItem.timestamp
+            timestamp: entryItem.timestamp || new Date().toISOString()
           }];
 
           const res = await fetch(`${state.supabaseUrl}/rest/v1/hasil_so?on_conflict=id`, {
@@ -947,6 +969,9 @@
 
           if (res.ok) {
             entryItem.syncedSupabase = true;
+          } else {
+            const errJson = await res.json().catch(() => ({}));
+            console.warn('Auto-sync Supabase HTTP Error:', res.status, errJson);
           }
         } catch (e) {
           console.warn('Auto-sync Supabase failed', e);
@@ -976,11 +1001,6 @@
       renderResultsTable();
     }
 
-    async function handleSyncAll() {
-      await handlePushResultsToSupabase();
-      await handlePushResultsToSpreadsheet();
-    }
-
     async function handlePushResultsToSupabase() {
       if (!state.supabaseUrl || !state.supabaseKey) return;
       showBannerStatus(null, 'Syncing ke Supabase...');
@@ -995,16 +1015,16 @@
         }
 
         const payload = target.map(r => ({
-          id: r.id,
-          rak: r.rak,
-          tim: r.team,
-          petugas: r.petugas,
-          sku: r.sku,
-          original_code: r.originalCode,
-          nama_barang: r.namaBarang,
-          family: r.family,
+          id: String(r.id || generateUUID()),
+          rak: String(r.rak || '-'),
+          tim: String(r.team || r.tim || '-'),
+          petugas: String(r.petugas || '-'),
+          sku: String(r.sku || '-'),
+          original_code: String(r.originalCode || r.original_code || '-'),
+          nama_barang: String(r.namaBarang || r.nama_barang || '-'),
+          family: String(r.family || '-'),
           qty: Number(r.qty) || 1,
-          timestamp: r.timestamp
+          timestamp: r.timestamp || new Date().toISOString()
         }));
 
         const res = await fetch(`${state.supabaseUrl}/rest/v1/hasil_so?on_conflict=id`, {
@@ -1018,7 +1038,10 @@
           body: JSON.stringify(payload)
         });
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          const errBody = await res.text();
+          throw new Error(`HTTP ${res.status}: ${errBody}`);
+        }
 
         state.soResults.forEach(r => r.syncedSupabase = true);
         saveState();
@@ -1148,8 +1171,9 @@
       }
     }
 
-    async function fetchPetugasFromSpreadsheet() {
+    async function fetchPetugasFromSpreadsheet(showFeedback = false) {
       if (!state.gasUrl) return;
+      if (showFeedback) showBannerStatus(null, 'Menarik data Tim & Petugas dari Sheet...');
       try {
         const res = await fetch(`${state.gasUrl}?action=getPetugas`);
         if (res.ok) {
@@ -1158,10 +1182,30 @@
             state.petugasByTeam = json.data;
             saveState();
             renderPetugasOptions();
+            if (showFeedback) {
+              showBannerStatus(true, '✓ Data Tim & Petugas berhasil diperbarui dari Spreadsheet.');
+              triggerFeedback('success');
+            }
+          } else {
+             if (showFeedback) showBannerStatus(false, 'Gagal memproses data petugas dari Sheet.');
           }
         }
       } catch (e) {
         console.warn('Fetch petugas failed', e);
+        if (showFeedback) showBannerStatus(false, `Gagal narik petugas: ${e.message}`);
+      }
+    }
+
+    async function handleSyncAll() {
+      showBannerStatus(null, 'Menyinkronkan data...');
+      try {
+        if (state.supabaseUrl && state.supabaseKey) await handlePushResultsToSupabase();
+        if (state.gasUrl) await handlePushResultsToSpreadsheet();
+        await fetchPetugasFromSpreadsheet(false);
+        showBannerStatus(true, '✓ Sinkronisasi Manual Selesai.');
+        setTimeout(() => document.getElementById('sync-banner').classList.add('hidden'), 3000);
+      } catch (err) {
+        showBannerStatus(false, 'Beberapa sinkronisasi gagal. Cek koneksi Anda.');
       }
     }
 
@@ -1491,6 +1535,14 @@
         document.getElementById('modal-finish-rak').classList.add('hidden');
       };
 
+      document.getElementById('btn-refresh-petugas').onclick = () => {
+        if (state.isSessionLocked) {
+           showBannerStatus(false, 'Buka kunci sesi terlebih dahulu untuk sync petugas!');
+           return;
+        }
+        fetchPetugasFromSpreadsheet(true);
+      };
+
       document.getElementById('btn-modal-save').onclick = confirmScanEntry;
       document.getElementById('btn-modal-cancel').onclick = closeConfirmModal;
       document.getElementById('btn-cancel-confirm').onclick = closeConfirmModal;
@@ -1528,6 +1580,7 @@
       let scanTimer = null;
       const scanInput = document.getElementById('input-barcode-scan');
       if (scanInput) {
+        // Mendukung input manual keyboard (Enter atau Tab)
         scanInput.onkeydown = (e) => {
           if (e.key === 'Enter' || e.key === 'Tab') {
             e.preventDefault();
@@ -1536,16 +1589,25 @@
           }
         };
 
+        // Mendukung pengetikan manual real-time atau barcode gun scanner
         scanInput.oninput = (e) => {
           const val = e.target.value.trim();
           if (!val) return;
           
           if (scanTimer) clearTimeout(scanTimer);
           scanTimer = setTimeout(() => {
+            // Jika diketik manual minimal 3 karakter, coba otomatis cek match
             if (val.length >= 3) {
-              handleBarcodeSubmit(val);
+              const exactMatch = state.masterItems.some(
+                i => (i.sku && i.sku.toLowerCase() === val.toLowerCase()) || 
+                     (i.originalCode && i.originalCode.toLowerCase() === val.toLowerCase()) ||
+                     (i.original_code && i.original_code.toLowerCase() === val.toLowerCase())
+              );
+              if (exactMatch) {
+                handleBarcodeSubmit(val);
+              }
             }
-          }, 120);
+          }, 150);
         };
       }
 
