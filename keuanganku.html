@@ -182,7 +182,7 @@
                 return accounts.reduce((acc, a) => acc + Number(a.balance || 0), 0);
             }, [accounts]);
 
-            // Sinkronkan Saldo Langsung dari Google Sheets
+            // Sinkronkan Saldo & Kategori dari Google Sheets
             const handleSyncFromSheets = async () => {
                 if (!sheetsWebhookUrl) {
                     showToast('Harap atur URL Google Sheets Webhook di Cloud DB!', 'error');
@@ -194,31 +194,34 @@
                     const res = await fetch(sheetsWebhookUrl);
                     const json = await res.json();
 
-                    if (json && json.status === 'success' && Array.isArray(json.accounts) && json.accounts.length > 0) {
-                        const updated = accounts.map(existingAcc => {
-                            const foundInSheets = json.accounts.find(a => a.id === existingAcc.id || a.name.toLowerCase() === existingAcc.name.toLowerCase());
-                            if (foundInSheets) {
-                                return { ...existingAcc, balance: Number(foundInSheets.balance || 0) };
-                            }
-                            return existingAcc;
-                        });
-
-                        setAccounts(updated);
-                        
-                        // Juga sync balik ke Supabase jika terhubung
-                        if (supabaseClient) {
-                            supabaseClient.from('accounts').upsert(updated.map(a => ({
-                                id: a.id, name: a.name, type: a.type, balance: Number(a.balance || 0), color: a.color
-                            }))).then(() => {});
+                    if (json && json.status === 'success') {
+                        // 1. Sync Saldo Rekening
+                        if (Array.isArray(json.accounts) && json.accounts.length > 0) {
+                            const updated = accounts.map(existingAcc => {
+                                const foundInSheets = json.accounts.find(a => a.id === existingAcc.id || a.name.toLowerCase() === existingAcc.name.toLowerCase());
+                                if (foundInSheets) {
+                                    return { ...existingAcc, balance: Number(foundInSheets.balance || 0) };
+                                }
+                                return existingAcc;
+                            });
+                            setAccounts(updated);
                         }
 
-                        showToast('✨ Saldo berhasil disinkronkan langsung dari Google Sheets!');
+                        // 2. Sync Kategori Transaksi
+                        if (Array.isArray(json.expenseCategories) && json.expenseCategories.length > 0) {
+                            setExpenseCategories(json.expenseCategories);
+                        }
+                        if (Array.isArray(json.incomeCategories) && json.incomeCategories.length > 0) {
+                            setIncomeCategories(json.incomeCategories);
+                        }
+
+                        showToast('✨ Saldo & Kategori berhasil disinkronkan dari Google Sheets!');
                     } else {
-                        showToast('Gagal membaca saldo dari Google Sheets. Pastikan Apps Script telah di-deploy ulang.', 'error');
+                        showToast('Gagal membaca data dari Google Sheets. Pastikan Apps Script telah di-deploy ulang.', 'error');
                     }
                 } catch (err) {
                     console.warn("Sync Sheets Notice:", err);
-                    showToast('Gagal menyinkronkan saldo dari Sheets. Periksa Webhook URL.', 'error');
+                    showToast('Gagal menyinkronkan data dari Sheets. Periksa Webhook URL.', 'error');
                 } finally {
                     setIsSyncing(false);
                 }
@@ -228,21 +231,39 @@
             const handleSyncAccountsToCloud = (updatedAccounts) => {
                 setAccounts(updatedAccounts);
 
-                // Send to Supabase
                 if (supabaseClient) {
                     supabaseClient.from('accounts').upsert(updatedAccounts.map(a => ({
                         id: a.id, name: a.name, type: a.type, balance: Number(a.balance || 0), color: a.color
                     }))).then(() => {});
                 }
 
-                // Send Webhook to Google Sheets
                 if (sheetsWebhookUrl) {
                     fetch(sheetsWebhookUrl, {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            accounts: updatedAccounts
+                            accounts: updatedAccounts,
+                            expenseCategories,
+                            incomeCategories
+                        })
+                    }).catch(() => {});
+                }
+            };
+
+            // Kirim Perubahan Kategori Transaksi ke Google Sheets
+            const handleSyncCategoriesToCloud = (updatedExpCat, updatedIncCat) => {
+                setExpenseCategories(updatedExpCat);
+                setIncomeCategories(updatedIncCat);
+
+                if (sheetsWebhookUrl) {
+                    fetch(sheetsWebhookUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            expenseCategories: updatedExpCat,
+                            incomeCategories: updatedIncCat
                         })
                     }).catch(() => {});
                 }
@@ -255,7 +276,6 @@
                     items: newTx.items || [] 
                 };
 
-                // Perbarui Saldo Rekening
                 const updatedAccounts = accounts.map(acc => {
                     let newBal = Number(acc.balance || 0);
                     if (newTx.type === 'INCOME' && acc.id === newTx.accountId) {
@@ -276,7 +296,6 @@
                 setTransactions(prev => [createdTx, ...prev]);
                 handleSyncAccountsToCloud(updatedAccounts);
 
-                // Kirim ke Supabase jika terhubung
                 if (supabaseClient) {
                     supabaseClient.from('transactions').insert([{
                         id: createdTx.id,
@@ -302,7 +321,6 @@
                     }
                 }
 
-                // Kirim Transaksi & Saldo Terbaru ke Google Sheets Webhook
                 if (sheetsWebhookUrl) {
                     fetch(sheetsWebhookUrl, {
                         method: 'POST',
@@ -319,12 +337,14 @@
                             note: createdTx.note || '-',
                             adminFee: createdTx.adminFee || 0,
                             items: createdTx.items || [],
-                            accounts: updatedAccounts
+                            accounts: updatedAccounts,
+                            expenseCategories,
+                            incomeCategories
                         })
                     }).catch(() => {});
                 }
 
-                showToast('✨ Transaksi disimpan & Saldo Google Sheets diperbarui!');
+                showToast('✨ Transaksi disimpan & ter-sync ke Google Sheets!');
             };
 
             return (
@@ -343,7 +363,7 @@
                             <div className="flex items-center gap-2">
                                 <button onClick={handleSyncFromSheets} disabled={isSyncing} className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-full transition flex items-center gap-1.5">
                                     <i data-lucide="refresh-cw" className={`w-3.5 h-3.5 text-violet-600 ${isSyncing ? 'animate-spin' : ''}`}></i>
-                                    <span className="hidden sm:inline">Sync Saldo Sheets</span>
+                                    <span className="hidden sm:inline">Sync Sheets</span>
                                 </button>
                                 <div className="bg-violet-50 text-violet-700 font-extrabold text-xs px-3 py-1.5 rounded-full border border-violet-100">
                                     {formatIDR(totalBalance)}
@@ -386,9 +406,8 @@
                                 accounts={accounts} 
                                 onSyncAccountsToCloud={handleSyncAccountsToCloud}
                                 expenseCategories={expenseCategories}
-                                setExpenseCategories={setExpenseCategories}
                                 incomeCategories={incomeCategories}
-                                setIncomeCategories={setIncomeCategories}
+                                onSyncCategoriesToCloud={handleSyncCategoriesToCloud}
                                 showToast={showToast} 
                                 onSync={handleSyncFromSheets}
                                 isSyncing={isSyncing}
@@ -424,7 +443,7 @@
                         </button>
                         <button onClick={() => setActiveTab('accounts')} className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-bold transition-all ${activeTab === 'accounts' ? 'bg-violet-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>
                             <i data-lucide="credit-card" className="w-4 h-4"></i>
-                            <span className="hidden sm:inline">Rekening</span>
+                            <span className="hidden sm:inline">Pengaturan</span>
                         </button>
                         <button onClick={() => setActiveTab('supabase')} className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-bold transition-all ${activeTab === 'supabase' ? 'bg-violet-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>
                             <i data-lucide="database" className="w-4 h-4"></i>
@@ -500,7 +519,6 @@
                         </div>
                     )}
 
-                    {/* Ringkasan Angka */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-emerald-50/80 border border-emerald-200/80 p-5 rounded-3xl space-y-2">
                             <div className="flex items-center justify-between">
@@ -532,16 +550,15 @@
                         </div>
                     </div>
 
-                    {/* Snapshot Saldo Rekening */}
                     <div className="glass-card p-5 rounded-3xl space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
                                 <i data-lucide="credit-card" className="w-4 h-4 text-violet-600"></i>
-                                <span>Saldo Rekening & Dompet (Ter-sync dengan Sheets)</span>
+                                <span>Saldo Rekening & Dompet (Ter-sync Sheets)</span>
                             </h3>
                             <button onClick={onSync} disabled={isSyncing} className="text-xs font-bold text-violet-600 hover:text-violet-700 flex items-center gap-1">
                                 <i data-lucide="refresh-cw" className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`}></i>
-                                <span>Sync Saldo Sheets</span>
+                                <span>Sync Sheets</span>
                             </button>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -562,7 +579,6 @@
                         </div>
                     </div>
 
-                    {/* Progress Bar Alokasi Pengeluaran */}
                     {summary.expense > 0 && (
                         <div className="glass-card p-5 rounded-3xl space-y-3">
                             <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
@@ -588,7 +604,6 @@
                         </div>
                     )}
 
-                    {/* Daftar Transaksi Terbaru */}
                     <div className="glass-card p-5 rounded-3xl space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
@@ -989,7 +1004,7 @@
             );
         }
 
-        function AccountsTab({ accounts, onSyncAccountsToCloud, expenseCategories, setExpenseCategories, incomeCategories, setIncomeCategories, showToast, onSync, isSyncing }) {
+        function AccountsTab({ accounts, onSyncAccountsToCloud, expenseCategories, incomeCategories, onSyncCategoriesToCloud, showToast, onSync, isSyncing }) {
             const [editingId, setEditingId] = useState(null);
             const [editingBal, setEditingBal] = useState('');
 
@@ -1026,26 +1041,32 @@
 
             const handleAddExpCategory = () => {
                 if (!newExpCat || expenseCategories.includes(newExpCat)) return;
-                setExpenseCategories(prev => [...prev, newExpCat]);
+                const updated = [...expenseCategories, newExpCat];
+                onSyncCategoriesToCloud(updated, incomeCategories);
                 setNewExpCat('');
-                showToast('✨ Kategori pengeluaran ditambahkan!');
+                showToast('✨ Kategori pengeluaran ditambahkan & ter-sync ke Google Sheets!');
             };
 
             const handleDeleteExpCategory = (cat) => {
                 if (expenseCategories.length <= 1) return;
-                setExpenseCategories(prev => prev.filter(c => c !== cat));
+                const updated = expenseCategories.filter(c => c !== cat);
+                onSyncCategoriesToCloud(updated, incomeCategories);
+                showToast('✨ Kategori pengeluaran dihapus & ter-sync ke Google Sheets!');
             };
 
             const handleAddIncCategory = () => {
                 if (!newIncCat || incomeCategories.includes(newIncCat)) return;
-                setIncomeCategories(prev => [...prev, newIncCat]);
+                const updated = [...incomeCategories, newIncCat];
+                onSyncCategoriesToCloud(expenseCategories, updated);
                 setNewIncCat('');
-                showToast('✨ Kategori pemasukan ditambahkan!');
+                showToast('✨ Kategori pemasukan ditambahkan & ter-sync ke Google Sheets!');
             };
 
             const handleDeleteIncCategory = (cat) => {
                 if (incomeCategories.length <= 1) return;
-                setIncomeCategories(prev => prev.filter(c => c !== cat));
+                const updated = incomeCategories.filter(c => c !== cat);
+                onSyncCategoriesToCloud(expenseCategories, updated);
+                showToast('✨ Kategori pemasukan dihapus & ter-sync ke Google Sheets!');
             };
 
             return (
@@ -1057,11 +1078,10 @@
                         </div>
                         <button onClick={onSync} disabled={isSyncing} className="px-3.5 py-2 bg-violet-600 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-md">
                             <i data-lucide="refresh-cw" className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`}></i>
-                            <span>Sync Saldo Sheets</span>
+                            <span>Sync Saldo & Kategori</span>
                         </button>
                     </div>
 
-                    {/* Daftar Rekening */}
                     <div className="space-y-3">
                         <h3 className="text-xs font-black uppercase text-slate-500 tracking-wider">Daftar Rekening & Dompet</h3>
                         {accounts.map(acc => (
@@ -1092,7 +1112,6 @@
                         ))}
                     </div>
 
-                    {/* Form Tambah Rekening */}
                     <form onSubmit={handleAddAccount} className="glass-card p-5 rounded-3xl space-y-3">
                         <h3 className="font-extrabold text-xs text-slate-900">+ Tambah Rekening / Dompet Baru</h3>
                         <div className="grid grid-cols-2 gap-2">
@@ -1107,9 +1126,11 @@
                         <button type="submit" className="w-full py-2.5 bg-slate-900 text-white rounded-xl font-bold text-xs">Simpan & Sync ke Sheets</button>
                     </form>
 
-                    {/* Pengaturan Kategori Transaksi */}
                     <div className="glass-card p-5 rounded-3xl space-y-4">
-                        <h3 className="font-extrabold text-xs text-slate-900">Pengaturan Kategori Transaksi</h3>
+                        <div className="flex items-center justify-between">
+                            <h3 className="font-extrabold text-xs text-slate-900">Pengaturan Kategori Transaksi</h3>
+                            <span className="text-[10px] text-slate-400 font-bold">Ter-sync ke Sheet 🏷️ Kategori</span>
+                        </div>
 
                         <div className="space-y-2">
                             <label className="text-[11px] font-extrabold text-rose-600 uppercase">🔴 Kategori Pengeluaran</label>
@@ -1123,7 +1144,7 @@
                             </div>
                             <div className="flex gap-2 pt-1">
                                 <input type="text" placeholder="Tambah Kategori Pengeluaran..." value={newExpCat} onChange={e => setNewExpCat(e.target.value)} className="bg-slate-50 border p-2 text-xs font-bold rounded-xl flex-1" />
-                                <button type="button" onClick={handleAddExpCategory} className="px-3 py-2 bg-rose-600 text-white font-bold text-xs rounded-xl">+ Tambah</button>
+                                <button type="button" onClick={handleAddExpCategory} className="px-3 py-2 bg-rose-600 text-white font-bold text-xs rounded-xl">+ Tambah & Sync</button>
                             </div>
                         </div>
 
@@ -1139,7 +1160,7 @@
                             </div>
                             <div className="flex gap-2 pt-1">
                                 <input type="text" placeholder="Tambah Kategori Pemasukan..." value={newIncCat} onChange={e => setNewIncCat(e.target.value)} className="bg-slate-50 border p-2 text-xs font-bold rounded-xl flex-1" />
-                                <button type="button" onClick={handleAddIncCategory} className="px-3 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl">+ Tambah</button>
+                                <button type="button" onClick={handleAddIncCategory} className="px-3 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl">+ Tambah & Sync</button>
                             </div>
                         </div>
                     </div>
