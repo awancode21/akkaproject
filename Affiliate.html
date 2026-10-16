@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Affiliate Tracker Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-900 text-white flex flex-col hidden md:flex transition-all duration-300">
+        <div class="p-6 flex items-center gap-3 border-b border-slate-700">
+            <i class="fas fa-chart-line text-blue-400 text-2xl"></i>
+            <h1 class="text-xl font-bold tracking-wider">AffilTrack</h1>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <button onclick="navigate('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-600 text-white transition-colors">
+                <i class="fas fa-home w-5"></i> Dashboard
+            </button>
+            <button onclick="navigate('input')" id="nav-input" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors">
+                <i class="fas fa-plus-circle w-5"></i> Input Data
+            </button>
+            <button onclick="navigate('history')" id="nav-history" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors">
+                <i class="fas fa-table w-5"></i> Data Riwayat
+            </button>
+            <button onclick="navigate('products')" id="nav-products" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors">
+                <i class="fas fa-box-open w-5"></i> Produk & Sampel
+            </button>
+        </nav>
+        <div class="p-4 text-xs text-slate-500 text-center border-t border-slate-700">
+            Terhubung Google Sheets
+        </div>
+    </aside>
+
+    <!-- Mobile Nav -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 flex justify-around p-2 shadow-lg">
+        <button onclick="navigate('dashboard')" class="flex flex-col items-center p-2 text-blue-600" id="mob-dashboard">
+            <i class="fas fa-home text-lg"></i>
+            <span class="text-[10px] mt-1">Dashboard</span>
+        </button>
+        <button onclick="navigate('input')" class="flex flex-col items-center p-2 text-gray-500" id="mob-input">
+            <i class="fas fa-plus-circle text-lg"></i>
+            <span class="text-[10px] mt-1">Input</span>
+        </button>
+        <button onclick="navigate('history')" class="flex flex-col items-center p-2 text-gray-500" id="mob-history">
+            <i class="fas fa-table text-lg"></i>
+            <span class="text-[10px] mt-1">Riwayat</span>
+        </button>
+        <button onclick="navigate('products')" class="flex flex-col items-center p-2 text-gray-500" id="mob-products">
+            <i class="fas fa-box-open text-lg"></i>
+            <span class="text-[10px] mt-1">Produk</span>
+        </button>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-y-auto pb-16 md:pb-0 relative">
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center sticky top-0 z-40">
+            <h2 id="page-title" class="text-2xl font-bold text-gray-800">Dashboard</h2>
+            <div class="flex items-center gap-2">
+                <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-green-200">
+                    Online Spreadsheet Mode
+                </span>
+            </div>
+        </header>
+
+        <div class="p-6 max-w-7xl mx-auto w-full">
+            
+            <!-- VIEW: DASHBOARD -->
+            <div id="view-dashboard" class="fade-in space-y-6">
+                
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-card rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium mb-1">Total Pendapatan</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="summary-income">Rp 0</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xl shadow-inner">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                    </div>
+                    <div class="glass-card rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium mb-1">Total Penjualan</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="summary-sales">0 <span class="text-sm font-normal text-gray-500">pcs</span></h3>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xl shadow-inner">
+                            <i class="fas fa-box-open"></i>
+                        </div>
+                    </div>
+                    <div class="glass-card rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium mb-1">Total Views Konten</p>
+                            <h3 class="text-2xl font-bold text-gray-800" id="summary-views">0</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xl shadow-inner">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                        <h4 class="font-semibold text-gray-700 mb-4 text-sm uppercase tracking-wide">Tren Pendapatan & Views</h4>
+                        <div class="h-64">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                        <h4 class="font-semibold text-gray-700 mb-4 text-sm uppercase tracking-wide">Perbandingan Platform</h4>
+                        <div class="h-64 flex justify-center">
+                            <canvas id="platformChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Lists Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Top Products -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="bg-gray-50 px-5 py-4 border-b border-gray-100 flex justify-between items-center">
+                            <h4 class="font-semibold text-gray-700">Produk Terlaris</h4>
+                            <select id="filter-top-product" onchange="updateDashboard()" class="text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="all">Semua Platform</option>
+                                <option value="tiktok">TikTok</option>
+                                <option value="shopee">Shopee</option>
+                            </select>
+                        </div>
+                        <div class="p-0">
+                            <ul id="list-top-products" class="divide-y divide-gray-100">
+                                <!-- Products will be injected here -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Trending Content -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="bg-gray-50 px-5 py-4 border-b border-gray-100">
+                            <h4 class="font-semibold text-gray-700 flex items-center gap-2">
+                                <i class="fas fa-fire text-orange-500"></i> Konten Naik Daun (7 Hari Terakhir)
+                            </h4>
+                        </div>
+                        <div class="p-0">
+                            <ul id="list-trending-content" class="divide-y divide-gray-100">
+                                <!-- Content will be injected here -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: INPUT DATA -->
+            <div id="view-input" class="fade-in hidden max-w-4xl mx-auto">
+                <!-- Tabs -->
+                <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                    <button id="tab-content" onclick="switchInputTab('content')" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-md transition-all flex items-center justify-center gap-2">
+                        <i class="fas fa-video"></i> Form Kenaikan Konten
+                    </button>
+                    <button id="tab-sales" onclick="switchInputTab('sales')" class="flex-1 py-3 bg-white text-gray-600 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+                        <i class="fas fa-shopping-cart"></i> Form Data Penjualan
+                    </button>
+                    <button id="tab-upload" onclick="switchInputTab('upload')" class="flex-1 py-3 bg-white text-gray-600 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+                        <i class="fas fa-upload"></i> Form Upload Harian
+                    </button>
+                </div>
+
+                <!-- Form 1: Konten -->
+                <div id="container-form-content" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+                    <h3 class="text-xl font-bold mb-6 text-gray-800 border-b pb-4">Data Kenaikan Konten</h3>
+                    <form id="form-content" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Upload</label>
+                                <input type="date" id="content-date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Platform</label>
+                                <select id="content-platform" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-50 bg-white outline-none">
+                                    <option value="tiktok">TikTok</option>
+                                    <option value="shopee">Shopee</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nama Produk (Dari Katalog)</label>
+                                <select id="content-product" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white outline-none">
+                                    <option value="">-- Pilih Produk --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Views</label>
+                                <input type="number" id="content-views" min="0" placeholder="0" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Judul / Deskripsi Konten</label>
+                                <input type="text" id="content-title" placeholder="Contoh: Racun Skincare Viral Terbaru..." required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            </div>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded-lg transition-colors border border-transparent hover:border-blue-200">
+                                <input type="checkbox" id="content-trending" class="w-5 h-5 text-blue-600 rounded">
+                                <span class="text-sm font-medium text-gray-700"><i class="fas fa-fire text-orange-500"></i> Video Sedang Naik!</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded-lg transition-colors border border-transparent hover:border-blue-200">
+                                <input type="checkbox" id="content-top-views" class="w-5 h-5 text-blue-600 rounded">
+                                <span class="text-sm font-medium text-gray-700"><i class="fas fa-trophy text-yellow-500"></i> Top Views Harian</span>
+                            </label>
+                        </div>
+                        <div class="flex justify-end pt-4 border-t border-gray-100">
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-6 rounded-lg shadow-md flex items-center gap-2 transition-all">
+                                <i class="fas fa-save"></i> Simpan Data Konten
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Form 2: Penjualan -->
+                <div id="container-form-sales" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 hidden">
+                    <h3 class="text-xl font-bold mb-6 text-gray-800 border-b pb-4">Data Kenaikan Penjualan</h3>
+                    <form id="form-sales" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Terjual</label>
+                                <input type="date" id="sales-date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Platform</label>
+                                <select id="sales-platform" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white outline-none">
+                                    <option value="tiktok">TikTok</option>
+                                    <option value="shopee">Shopee</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nama Produk (Dari Katalog)</label>
+                                <select id="sales-product" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white outline-none">
+                                    <option value="">-- Pilih Produk --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Dari Konten Mana?</label>
+                                <input type="text" id="sales-content" placeholder="Sebutkan video sumber penjualan..." required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Qty Terjual</label>
+                                <input type="number" id="sales-qty" min="1" placeholder="0" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Total Komisi (Rp)</label>
+                                <input type="number" id="sales-income" min="0" placeholder="0" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            </div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-xl border border-green-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded-lg transition-colors border border-transparent hover:border-green-200">
+                                <input type="checkbox" id="sales-trending" class="w-5 h-5 text-green-600 rounded">
+                                <span class="text-sm font-medium text-gray-700"><i class="fas fa-chart-line text-green-500"></i> Penjualan Melonjak!</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded-lg transition-colors border border-transparent hover:border-green-200">
+                                <input type="checkbox" id="sales-top-sales" class="w-5 h-5 text-green-600 rounded">
+                                <span class="text-sm font-medium text-gray-700"><i class="fas fa-crown text-purple-500"></i> Top Penjualan Harian</span>
+                            </label>
+                        </div>
+                        <div class="flex justify-end pt-4 border-t border-gray-100">
+                            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-6 rounded-lg shadow-md flex items-center gap-2 transition-all">
+                                <i class="fas fa-save"></i> Simpan Data Penjualan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Form 3: Upload Harian -->
+                <div id="container-form-upload" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 hidden">
+                    <h3 class="text-xl font-bold mb-6 text-gray-800 border-b pb-4">Log Upload Harian</h3>
+                    <form id="form-upload" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Upload</label>
+                                <input type="date" id="upload-date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Platform</label>
+                                <select id="upload-platform" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white outline-none">
+                                    <option value="tiktok">TikTok</option>
+                                    <option value="shopee">Shopee</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Total Konten (Video) Diupload</label>
+                                <input type="number" id="upload-count" min="1" placeholder="Misal: 3" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Produk yang Diupload (Centang)</label>
+                                <div id="upload-products-container" class="w-full max-h-40 overflow-y-auto px-4 py-2 border border-gray-300 rounded-lg bg-white space-y-2">
+                                    <p class="text-sm text-gray-400">Memuat produk...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-end pt-4 border-t border-gray-100">
+                            <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 px-6 rounded-lg shadow-md flex items-center gap-2 transition-all">
+                                <i class="fas fa-save"></i> Simpan Log Upload
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- VIEW: HISTORY -->
+            <div id="view-history" class="fade-in hidden">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                        <h3 class="text-lg font-bold text-gray-800">Riwayat Data</h3>
+                        <button onclick="clearAllData()" class="text-red-500 hover:text-red-700 text-sm font-medium flex items-center gap-1 bg-red-50 px-3 py-1.5 rounded-lg transition-colors">
+                            <i class="fas fa-trash"></i> Hapus Semua
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                                    <th class="p-4 border-b">Tanggal</th>
+                                    <th class="p-4 border-b">Platform</th>
+                                    <th class="p-4 border-b">Konten & Produk</th>
+                                    <th class="p-4 border-b text-right">Views</th>
+                                    <th class="p-4 border-b text-right">Penjualan</th>
+                                    <th class="p-4 border-b text-right">Komisi (Rp)</th>
+                                    <th class="p-4 border-b text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-tbody" class="divide-y divide-gray-100 text-sm">
+                                <!-- Table rows will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="empty-state" class="hidden p-8 text-center text-gray-500">
+                        <i class="fas fa-folder-open text-4xl mb-3 text-gray-300"></i>
+                        <p>Belum ada data rekapan. Silakan tambah data di menu Input.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: PRODUK & SAMPEL -->
+            <div id="view-products" class="fade-in hidden">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="p-5 border-b border-gray-100 bg-gray-50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                        <h3 class="text-lg font-bold text-gray-800">Katalog Produk & Sampel</h3>
+                        <div class="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+                            <!-- Filter Tanggal -->
+                            <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 w-full sm:w-auto shadow-sm">
+                                <i class="far fa-calendar-alt text-gray-400"></i>
+                                <input type="date" id="filter-prod-start" class="text-sm outline-none text-gray-600 bg-transparent w-full" onchange="renderProducts()">
+                                <span class="text-gray-400">-</span>
+                                <input type="date" id="filter-prod-end" class="text-sm outline-none text-gray-600 bg-transparent w-full" onchange="renderProducts()">
+                            </div>
+                            <!-- Filter Urutkan -->
+                            <select id="filter-prod-sort" onchange="renderProducts()" class="bg-white border border-gray-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 text-sm shadow-sm w-full sm:w-auto">
+                                <option value="terbaru">Terbaru Ditambahkan</option>
+                                <option value="sering">Sering Diupload</option>
+                                <option value="jarang">Lama Tidak Diupload</option>
+                            </select>
+                            <!-- Tombol Tambah (Buka Modal) -->
+                            <button onclick="openProductModal()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 text-sm whitespace-nowrap">
+                                <i class="fas fa-plus"></i> Tambah Produk
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-white text-gray-500 text-xs uppercase tracking-wider border-b">
+                                    <th class="p-4 whitespace-nowrap">Nama Produk</th>
+                                    <th class="p-4 text-center whitespace-nowrap">Status Sampel</th>
+                                    <th class="p-4 text-center">Frekuensi Upload <br><span class="text-[10px] lowercase text-gray-400">(Sesuai Rentang Tanggal)</span></th>
+                                    <th class="p-4">Catatan</th>
+                                    <th class="p-4 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="products-tbody" class="divide-y divide-gray-100 text-sm">
+                                <!-- Daftar produk akan dirender di sini -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="products-empty" class="hidden p-8 text-center text-gray-500">
+                        <i class="fas fa-box-open text-4xl mb-3 text-gray-300"></i>
+                        <p>Belum ada produk di dalam katalog. Silakan tambah produk terlebih dahulu.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modal Form Tambah Produk -->
+    <div id="modal-add-product" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 transform scale-95 transition-transform duration-300" id="modal-add-product-content">
+            <div class="p-5 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-800">Tambah Katalog Produk</h3>
+                <button onclick="closeProductModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="form-product" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Produk</label>
+                        <input type="text" id="prod-name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Sumber Sampel</label>
+                        <select id="prod-sample-source" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white outline-none">
+                            <option value="none">Tidak Ada Sampel</option>
+                            <option value="tiktok">Sampel Gratis TikTok</option>
+                            <option value="shopee">Sampel Gratis Shopee</option>
+                            <option value="other">Beli Sendiri / Dari Brand</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Catatan Tambahan (Opsional)</label>
+                        <input type="text" id="prod-notes" placeholder="Misal: Harus dikembalikan 2 minggu..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                        <button type="button" onclick="closeProductModal()" class="px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-gray-100 transition-colors">Batal</button>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow-md transition-all flex items-center justify-center gap-2">
+                            <i class="fas fa-save"></i> Simpan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal/Alert -->
+    <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4 transform scale-95 transition-transform duration-300" id="modal-content">
+            <div class="text-center">
+                <div id="modal-icon" class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                    <i class="fas fa-check text-green-600 text-xl"></i>
+                </div>
+                <h3 id="modal-title" class="text-lg leading-6 font-medium text-gray-900 mb-2">Berhasil</h3>
+                <p id="modal-message" class="text-sm text-gray-500 mb-6">Data berhasil disimpan.</p>
+                <button onclick="closeModal()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:text-sm">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-80 z-[60] flex flex-col items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <i class="fas fa-circle-notch fa-spin text-4xl text-blue-600 mb-4"></i>
+        <p class="text-gray-800 font-bold text-lg">Sinkronisasi Database Spreadsheet...</p>
+        <p class="text-gray-500 text-sm mt-1">Harap tunggu sebentar</p>
+    </div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzpFI35oRxPRKAVoWf-9lnwsXQHVhLslp7YZDmCuQ3L3T6WbCxQ3IJtyXzsU2EDQfxH/exec';
+
+        // State
+        let appData = [];
+        let productsData = [];
+        let chartInstances = {};
+
+        // Helper Loading Overlay
+        const showLoading = () => {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.remove('hidden');
+            void overlay.offsetWidth;
+            overlay.classList.remove('opacity-0');
+        };
+
+        const hideLoading = () => {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        };
+
+        const fetchDataFromAPI = async () => {
+            showLoading();
+            try {
+                const response = await fetch(SCRIPT_URL);
+                const result = await response.json();
+                
+                if (result.status === "success") {
+                    appData = result.data.appData;
+                    productsData = result.data.productsData;
+                }
+            } catch (error) {
+                console.error("Gagal menarik data:", error);
+                showModal('Error Koneksi', 'Gagal memuat data dari Spreadsheet. Pastikan koneksi internet stabil.');
+            }
+            
+            // Set tanggal default ke hari ini
+            const today = formatDate(new Date());
+            document.getElementById('content-date').value = today;
+            document.getElementById('sales-date').value = today;
+            document.getElementById('upload-date').value = today;
+            
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            document.getElementById('filter-prod-start').value = formatDate(sevenDaysAgo);
+            document.getElementById('filter-prod-end').value = today;
+
+            updateProductDatalist();
+            updateDashboard();
+            hideLoading();
+        };
+
+        const syncToAPI = async (action, dataPayload) => {
+            showLoading();
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: action, data: dataPayload, id: dataPayload ? dataPayload.id : null }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+            } catch (error) {
+                console.error("Gagal sinkronisasi data:", error);
+                showModal('Error', 'Data mungkin gagal tersimpan ke Spreadsheet.');
+            }
+            hideLoading();
+        };
+
+        const formatRupiah = (number) => {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+        };
+
+        const formatNumber = (num) => {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toString();
+        };
+
+        const formatDate = (date) => {
+            return date.toISOString().split('T')[0];
+        };
+
+        const navigate = (viewId) => {
+            document.getElementById('view-dashboard').classList.add('hidden');
+            document.getElementById('view-input').classList.add('hidden');
+            document.getElementById('view-history').classList.add('hidden');
+            document.getElementById('view-products').classList.add('hidden');
+            
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+
+            ['dashboard', 'input', 'history', 'products'].forEach(id => {
+                const desktopNav = document.getElementById(`nav-${id}`);
+                const mobNav = document.getElementById(`mob-${id}`);
+                
+                if (id === viewId) {
+                    desktopNav.className = 'w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-600 text-white transition-colors';
+                    mobNav.className = 'flex flex-col items-center p-2 text-blue-600';
+                } else {
+                    desktopNav.className = 'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors';
+                    mobNav.className = 'flex flex-col items-center p-2 text-gray-500';
+                }
+            });
+
+            const titles = {
+                'dashboard': 'Dashboard Analisa',
+                'input': 'Input Laporan Harian',
+                'history': 'Data Rekapan',
+                'products': 'Katalog Produk & Sampel'
+            };
+            document.getElementById('page-title').innerText = titles[viewId];
+
+            if (viewId === 'dashboard') updateDashboard();
+            if (viewId === 'history') renderTable();
+            if (viewId === 'products') renderProducts();
+        };
+
+        const updateDashboard = () => {
+            const totalIncome = appData.reduce((sum, item) => sum + item.income, 0);
+            const totalSales = appData.reduce((sum, item) => sum + item.sales, 0);
+            const totalViews = appData.reduce((sum, item) => sum + item.views, 0);
+
+            document.getElementById('summary-income').innerText = formatRupiah(totalIncome);
+            document.getElementById('summary-sales').innerHTML = `${totalSales.toLocaleString('id-ID')} <span class="text-sm font-normal text-gray-500">pcs</span>`;
+            document.getElementById('summary-views').innerText = formatNumber(totalViews);
+
+            renderCharts();
+            renderTopProducts();
+            renderTrendingContent();
+        };
+
+        const renderTopProducts = () => {
+            const filter = document.getElementById('filter-top-product').value;
+            const validData = appData.filter(item => item.type === 'content' || item.type === 'sales');
+            const filteredData = filter === 'all' ? validData : validData.filter(item => item.platform === filter);
+            
+            const productMap = {};
+            filteredData.forEach(item => {
+                if(!item.product) return;
+                if (!productMap[item.product]) {
+                    productMap[item.product] = { sales: 0, income: 0, views: 0 };
+                }
+                productMap[item.product].sales += item.sales;
+                productMap[item.product].income += item.income;
+                productMap[item.product].views += item.views;
+            });
+
+            const topProducts = Object.entries(productMap)
+                .map(([name, stats]) => ({ name, ...stats }))
+                .sort((a, b) => b.sales - a.sales)
+                .slice(0, 5);
+
+            const listEl = document.getElementById('list-top-products');
+            listEl.innerHTML = '';
+
+            if (topProducts.length === 0) {
+                listEl.innerHTML = '<li class="p-5 text-center text-gray-500 text-sm">Belum ada data produk</li>';
+                return;
+            }
+
+            topProducts.forEach((prod, index) => {
+                listEl.innerHTML += `
+                    <li class="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 text-sm">
+                                #${index + 1}
+                            </div>
+                            <div>
+                                <h5 class="font-medium text-gray-800 text-sm">${prod.name}</h5>
+                                <p class="text-xs text-gray-500">${formatNumber(prod.views)} Views</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-gray-800 text-sm">${prod.sales} Terjual</p>
+                            <p class="text-xs text-green-600">${formatRupiah(prod.income)}</p>
+                        </div>
+                    </li>
+                `;
+            });
+        };
+
+        const renderTrendingContent = () => {
+            const validData = appData.filter(item => item.type === 'content' || item.type === 'sales');
+            const trending = validData.sort((a, b) => {
+                if (a.isTrendingVideo && !b.isTrendingVideo) return -1;
+                if (!a.isTrendingVideo && b.isTrendingVideo) return 1;
+                return b.views - a.views;
+            }).slice(0, 5);
+            
+            const listEl = document.getElementById('list-trending-content');
+            listEl.innerHTML = '';
+
+            if (trending.length === 0) {
+                listEl.innerHTML = '<li class="p-5 text-center text-gray-500 text-sm">Belum ada data konten</li>';
+                return;
+            }
+
+            trending.forEach(item => {
+                const icon = item.platform === 'tiktok' 
+                    ? '<i class="fab fa-tiktok text-black"></i>' 
+                    : '<svg class="w-3 h-3 text-orange-500 inline" viewBox="0 0 24 24" fill="currentColor"><path d="M16.44 5.314c-2.455-1.92-5.59-1.92-8.045 0A2.88 2.88 0 0 0 7.31 7.64l-.94 6.72a2.88 2.88 0 0 0 1.085 2.326c2.455 1.92 5.59 1.92 8.045 0a2.88 2.88 0 0 0 1.085-2.326l-.94-6.72a2.88 2.88 0 0 0-1.085-2.326zM12 14.5c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z"/></svg>';
+                
+                const productName = item.product || '';
+                const productInfo = productsData.find(p => p.name && p.name.toLowerCase() === productName.toLowerCase());
+                const sampleBadge = (productInfo && productInfo.sampleSource && productInfo.sampleSource !== 'none') 
+                    ? '<span class="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded ml-2 border border-blue-200"><i class="fas fa-box-open mr-1"></i>Ada Sampel</span>' 
+                    : '';
+                
+                const trendVideoBadge = item.isTrendingVideo ? '<i class="fas fa-fire text-orange-500 ml-1" title="Video Naik"></i>' : '';
+                const trendSalesBadge = item.isTrendingSales ? '<i class="fas fa-chart-line text-green-500 ml-1" title="Penjualan Melonjak"></i>' : '';
+                const topViewsBadge = item.isTopViews ? '<i class="fas fa-trophy text-yellow-500 ml-1" title="Top Views Harian"></i>' : '';
+                const topSalesBadge = item.isTopSales ? '<i class="fas fa-crown text-purple-500 ml-1" title="Top Penjualan Harian"></i>' : '';
+
+                listEl.innerHTML += `
+                    <li class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50 transition-colors">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="bg-gray-100 w-6 h-6 rounded flex items-center justify-center">${icon}</span>
+                                <h5 class="font-medium text-gray-800 text-sm truncate max-w-[200px] md:max-w-[300px]">${item.content || '-'} ${trendVideoBadge} ${trendSalesBadge} ${topViewsBadge} ${topSalesBadge}</h5>
+                            </div>
+                            <p class="text-xs text-gray-500 ml-8">${productName} ${sampleBadge}</p>
+                        </div>
+                        <div class="flex items-center gap-4 sm:ml-8 text-sm bg-gray-50 sm:bg-transparent p-2 sm:p-0 rounded">
+                            <div class="text-center sm:text-right">
+                                <p class="text-xs text-gray-500">Views</p>
+                                <p class="font-semibold text-gray-800">${formatNumber(item.views)}</p>
+                            </div>
+                            <div class="w-px h-8 bg-gray-200 hidden sm:block"></div>
+                            <div class="text-center sm:text-right">
+                                <p class="text-xs text-gray-500">Sales</p>
+                                <p class="font-semibold ${item.isTrendingSales ? 'text-green-600' : 'text-blue-600'}">${item.sales}</p>
+                            </div>
+                        </div>
+                    </li>
+                `;
+            });
+        };
+
+        const renderCharts = () => {
+            const dateMap = {};
+            const platformMap = { tiktok: { views: 0, sales: 0 }, shopee: { views: 0, sales: 0 } };
+
+            const sortedData = [...appData].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            sortedData.forEach(item => {
+                if (!dateMap[item.date]) dateMap[item.date] = { income: 0, views: 0 };
+                dateMap[item.date].income += item.income;
+                dateMap[item.date].views += item.views;
+
+                if (platformMap[item.platform]) {
+                    platformMap[item.platform].views += item.views;
+                    platformMap[item.platform].sales += item.sales;
+                }
+            });
+
+            const labels = Object.keys(dateMap);
+            const incomeData = labels.map(date => dateMap[date].income);
+            const viewsData = labels.map(date => dateMap[date].views);
+
+            if (chartInstances.trend) chartInstances.trend.destroy();
+            if (chartInstances.platform) chartInstances.platform.destroy();
+
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+            chartInstances.trend = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: labels.map(d => {
+                        const dateObj = new Date(d);
+                        return `${dateObj.getDate()}/${dateObj.getMonth()+1}`;
+                    }),
+                    datasets: [
+                        {
+                            label: 'Pendapatan (Rp)',
+                            data: incomeData,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Views',
+                            data: viewsData,
+                            borderColor: '#6366f1',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } },
+                    scales: {
+                        y: { type: 'linear', display: true, position: 'left', ticks: { callback: v => formatNumber(v) } },
+                        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => formatNumber(v) } }
+                    }
+                }
+            });
+
+            const ctxPlatform = document.getElementById('platformChart').getContext('2d');
+            chartInstances.platform = new Chart(ctxPlatform, {
+                type: 'doughnut',
+                data: {
+                    labels: ['TikTok', 'Shopee'],
+                    datasets: [{
+                        data: [platformMap.tiktok.sales, platformMap.shopee.sales],
+                        backgroundColor: ['#000000', '#f97316'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        title: { display: true, text: 'Proporsi Penjualan' }
+                    }
+                }
+            });
+        };
+
+        const switchInputTab = (tab) => {
+            const tabs = ['content', 'sales', 'upload'];
+            const activeClasses = {
+                'content': 'bg-blue-600 text-white',
+                'sales': 'bg-green-600 text-white',
+                'upload': 'bg-purple-600 text-white'
+            };
+            const inactiveClass = 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50';
+
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const form = document.getElementById(`container-form-${t}`);
+                
+                if (t === tab) {
+                    btn.className = `flex-1 py-3 rounded-xl font-bold shadow-md transition-all flex items-center justify-center gap-2 ${activeClasses[t]}`;
+                    form.classList.remove('hidden');
+                } else {
+                    btn.className = `flex-1 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${inactiveClass}`;
+                    form.classList.add('hidden');
+                }
+            });
+        };
+
+        document.getElementById('form-content').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prodVal = document.getElementById('content-product').value;
+            if(!prodVal) {
+                showModal('Perhatian', 'Silakan pilih produk dari katalog terlebih dahulu!');
+                return;
+            }
+
+            const newEntry = {
+                id: Date.now(),
+                type: 'content',
+                date: document.getElementById('content-date').value,
+                platform: document.getElementById('content-platform').value,
+                product: prodVal,
+                views: parseInt(document.getElementById('content-views').value) || 0,
+                content: document.getElementById('content-title').value,
+                sales: 0,
+                income: 0,
+                isTrendingVideo: document.getElementById('content-trending').checked,
+                isTopViews: document.getElementById('content-top-views').checked,
+                isTrendingSales: false,
+                isTopSales: false
+            };
+            
+            appData.unshift(newEntry);
+            const currDate = document.getElementById('content-date').value;
+            e.target.reset();
+            document.getElementById('content-date').value = currDate;
+            
+            await syncToAPI('saveLaporan', newEntry);
+            showModal('Berhasil', 'Data Kenaikan Konten berhasil disimpan!');
+            if(!document.getElementById('view-dashboard').classList.contains('hidden')) updateDashboard();
+        });
+
+        document.getElementById('form-sales').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prodVal = document.getElementById('sales-product').value;
+            if(!prodVal) {
+                showModal('Perhatian', 'Silakan pilih produk dari katalog terlebih dahulu!');
+                return;
+            }
+
+            const newEntry = {
+                id: Date.now(),
+                type: 'sales',
+                date: document.getElementById('sales-date').value,
+                platform: document.getElementById('sales-platform').value,
+                product: prodVal,
+                views: 0,
+                content: document.getElementById('sales-content').value,
+                sales: parseInt(document.getElementById('sales-qty').value) || 0,
+                income: parseInt(document.getElementById('sales-income').value) || 0,
+                isTrendingVideo: false,
+                isTopViews: false,
+                isTrendingSales: document.getElementById('sales-trending').checked,
+                isTopSales: document.getElementById('sales-top-sales').checked
+            };
+            appData.unshift(newEntry);
+            const currDate = document.getElementById('sales-date').value;
+            e.target.reset();
+            document.getElementById('sales-date').value = currDate;
+            
+            await syncToAPI('saveLaporan', newEntry);
+            showModal('Berhasil', 'Data Kenaikan Penjualan berhasil disimpan!');
+            if(!document.getElementById('view-dashboard').classList.contains('hidden')) updateDashboard();
+        });
+
+        document.getElementById('form-upload').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const checkboxes = document.querySelectorAll('#upload-products-container input[type="checkbox"]:checked');
+            const selectedProducts = Array.from(checkboxes).map(cb => cb.value).join(', ');
+
+            if (!selectedProducts) {
+                showModal('Peringatan', 'Silakan centang minimal satu produk yang di-upload!');
+                return;
+            }
+
+            const newEntry = {
+                id: Date.now(),
+                type: 'upload_log',
+                date: document.getElementById('upload-date').value,
+                platform: document.getElementById('upload-platform').value,
+                uploadCount: parseInt(document.getElementById('upload-count').value) || 0,
+                products: selectedProducts,
+                views: 0,
+                sales: 0,
+                income: 0
+            };
+            appData.unshift(newEntry);
+            const currDate = document.getElementById('upload-date').value;
+            e.target.reset();
+            document.getElementById('upload-date').value = currDate;
+            updateProductDatalist(); 
+            
+            await syncToAPI('saveLaporan', newEntry);
+            showModal('Berhasil', 'Log upload harian berhasil disimpan!');
+        });
+
+        const updateProductDatalist = () => {
+            const contentSelect = document.getElementById('content-product');
+            const salesSelect = document.getElementById('sales-product');
+            const uploadContainer = document.getElementById('upload-products-container');
+            
+            if (contentSelect) contentSelect.innerHTML = '<option value="">-- Pilih Produk --</option>';
+            if (salesSelect) salesSelect.innerHTML = '<option value="">-- Pilih Produk --</option>';
+            if (uploadContainer) uploadContainer.innerHTML = '';
+
+            if (productsData.length === 0) {
+                if (uploadContainer) uploadContainer.innerHTML = '<p class="text-sm text-gray-400 p-2">Katalog masih kosong. Tambah produk dulu di menu Produk & Sampel!</p>';
+                return;
+            }
+
+            productsData.forEach(p => {
+                if(!p.name) return;
+                
+                if (contentSelect) contentSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`;
+                if (salesSelect) salesSelect.innerHTML += `<option value="${p.name}">${p.name}</option>`;
+                
+                if (uploadContainer) {
+                    uploadContainer.innerHTML += `
+                        <label class="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded border border-gray-100">
+                            <input type="checkbox" value="${p.name}" class="w-4 h-4 text-purple-600 rounded border-gray-300">
+                            <span class="text-sm font-medium text-gray-700">${p.name}</span>
+                        </label>
+                    `;
+                }
+            });
+        };
+
+        const openProductModal = () => {
+            const modal = document.getElementById('modal-add-product');
+            const content = document.getElementById('modal-add-product-content');
+            modal.classList.remove('hidden');
+            void modal.offsetWidth;
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+        };
+
+        const closeProductModal = () => {
+            const modal = document.getElementById('modal-add-product');
+            const content = document.getElementById('modal-add-product-content');
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        };
+
+        const renderProducts = () => {
+            const tbody = document.getElementById('products-tbody');
+            const emptyState = document.getElementById('products-empty');
+            const tableElement = tbody.parentElement;
+            
+            if (productsData.length === 0) {
+                tableElement.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            tableElement.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            tbody.innerHTML = '';
+
+            const startInput = document.getElementById('filter-prod-start').value;
+            const endInput = document.getElementById('filter-prod-end').value;
+            const sortType = document.getElementById('filter-prod-sort').value;
+
+            const startDate = startInput ? new Date(startInput) : new Date(0);
+            const endDate = endInput ? new Date(endInput) : new Date();
+            endDate.setHours(23, 59, 59, 999);
+
+            let enrichedProducts = productsData.map(item => {
+                if(!item.name) return null;
+                let countTiktok = 0;
+                let countShopee = 0;
+                let lastUpload = null;
+                
+                appData.forEach(d => {
+                    const contentDate = new Date(d.date);
+                    const isInRange = contentDate >= startDate && contentDate <= endDate;
+
+                    if (d.type === 'content' && d.product && d.product.toLowerCase() === item.name.toLowerCase()) {
+                        if (isInRange) {
+                            if (d.platform === 'tiktok') countTiktok++;
+                            if (d.platform === 'shopee') countShopee++;
+                        }
+                        if (!lastUpload || contentDate > lastUpload) lastUpload = contentDate;
+                    }
+
+                    if (d.type === 'upload_log' && d.products) {
+                        const productArray = d.products.split(',').map(p => p.trim().toLowerCase());
+                        if (productArray.includes(item.name.toLowerCase())) {
+                            if (isInRange) {
+                                const addCount = parseInt(d.uploadCount) || 1;
+                                if (d.platform === 'tiktok') countTiktok += addCount;
+                                if (d.platform === 'shopee') countShopee += addCount;
+                            }
+                            if (!lastUpload || contentDate > lastUpload) lastUpload = contentDate;
+                        }
+                    }
+                });
+
+                return { 
+                    ...item, countTiktok, countShopee, 
+                    totalUpload: countTiktok + countShopee,
+                    lastUpload 
+                };
+            }).filter(Boolean);
+
+            if (sortType === 'sering') {
+                enrichedProducts.sort((a, b) => b.totalUpload - a.totalUpload);
+            } else if (sortType === 'jarang') {
+                enrichedProducts.sort((a, b) => {
+                    if (a.totalUpload !== b.totalUpload) return a.totalUpload - b.totalUpload;
+                    if (!a.lastUpload) return -1;
+                    if (!b.lastUpload) return 1;
+                    return a.lastUpload - b.lastUpload;
+                });
+            }
+
+            enrichedProducts.forEach(item => {
+                let badgeClass = 'bg-gray-100 text-gray-600 border-gray-200';
+                let badgeText = '<i class="fas fa-times-circle mr-1"></i> Tidak Ada';
+                
+                if (item.sampleSource === 'tiktok') {
+                    badgeClass = 'bg-black text-white border-black';
+                    badgeText = '<i class="fab fa-tiktok mr-1"></i> Sampel TikTok';
+                } else if (item.sampleSource === 'shopee') {
+                    badgeClass = 'bg-orange-100 text-orange-700 border-orange-200';
+                    badgeText = '<svg class="w-3 h-3 inline mr-1" viewBox="0 0 24 24" fill="currentColor"><path d="M16.44 5.314c-2.455-1.92-5.59-1.92-8.045 0A2.88 2.88 0 0 0 7.31 7.64l-.94 6.72a2.88 2.88 0 0 0 1.085 2.326c2.455 1.92 5.59 1.92 8.045 0a2.88 2.88 0 0 0 1.085-2.326l-.94-6.72a2.88 2.88 0 0 0-1.085-2.326zM12 14.5c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z"/></svg> Sampel Shopee';
+                } else if (item.sampleSource === 'other') {
+                    badgeClass = 'bg-blue-100 text-blue-700 border-blue-200';
+                    badgeText = '<i class="fas fa-box-open mr-1"></i> Beli Sendiri';
+                }
+
+                let lastUploadText = item.lastUpload ? `<p class="text-[10px] text-gray-400 mt-1">Terakhir: ${formatDate(item.lastUpload)}</p>` : `<p class="text-[10px] text-red-400 mt-1">Belum pernah diupload</p>`;
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="p-4"><p class="font-bold text-gray-800">${item.name}</p></td>
+                    <td class="p-4 text-center"><span class="px-3 py-1 rounded-full text-[11px] font-bold border ${badgeClass}">${badgeText}</span></td>
+                    <td class="p-4 text-center">
+                        <div class="flex flex-col items-center">
+                            <div class="flex gap-1 items-center">
+                                <span class="text-[10px] bg-black text-white px-2 py-0.5 rounded"><i class="fab fa-tiktok"></i> ${item.countTiktok}x</span>
+                                <span class="text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded"><i class="fas fa-shopping-bag"></i> ${item.countShopee}x</span>
+                            </div>
+                            ${lastUploadText}
+                        </div>
+                    </td>
+                    <td class="p-4 text-sm text-gray-600 line-clamp-2 mt-2 border-0">${item.notes || '-'}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="deleteProduct(${item.id})" class="text-red-400 hover:text-red-600 p-2 bg-red-50 rounded-lg transition-colors">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        };
+
+        document.getElementById('form-product').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newProd = {
+                id: Date.now(),
+                name: document.getElementById('prod-name').value,
+                sampleSource: document.getElementById('prod-sample-source').value,
+                notes: document.getElementById('prod-notes').value
+            };
+            productsData.unshift(newProd);
+            updateProductDatalist();
+            e.target.reset();
+            renderProducts();
+            closeProductModal(); 
+            
+            await syncToAPI('saveProduk', newProd);
+            showModal('Berhasil', 'Produk ditambahkan ke Database!');
+        });
+
+        const deleteProduct = async (id) => {
+            productsData = productsData.filter(item => item.id !== id);
+            updateProductDatalist();
+            renderProducts();
+            await syncToAPI('deleteProduk', { id: id });
+        };
+
+        const renderTable = () => {
+            const tbody = document.getElementById('history-tbody');
+            const emptyState = document.getElementById('empty-state');
+            const tableContainer = tbody.parentElement.parentElement;
+
+            if (appData.length === 0) {
+                tableContainer.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            tableContainer.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            tbody.innerHTML = '';
+
+            appData.forEach(item => {
+                const icon = item.platform === 'tiktok' 
+                    ? '<i class="fab fa-tiktok text-black"></i>' 
+                    : '<svg class="w-3 h-3 text-orange-500 inline" viewBox="0 0 24 24" fill="currentColor"><path d="M16.44 5.314c-2.455-1.92-5.59-1.92-8.045 0A2.88 2.88 0 0 0 7.31 7.64l-.94 6.72a2.88 2.88 0 0 0 1.085 2.326c2.455 1.92 5.59 1.92 8.045 0a2.88 2.88 0 0 0 1.085-2.326l-.94-6.72a2.88 2.88 0 0 0-1.085-2.326zM12 14.5c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z"/></svg>';
+                
+                const trendVideoBadge = item.isTrendingVideo ? '<span class="bg-orange-100 text-orange-800 text-[10px] px-1.5 py-0.5 rounded ml-1" title="Video Naik"><i class="fas fa-fire"></i></span>' : '';
+                const trendSalesBadge = item.isTrendingSales ? '<span class="bg-green-100 text-green-800 text-[10px] px-1.5 py-0.5 rounded ml-1" title="Penjualan Melonjak"><i class="fas fa-chart-line"></i></span>' : '';
+                const topViewsBadge = item.isTopViews ? '<span class="bg-yellow-100 text-yellow-800 text-[10px] px-1.5 py-0.5 rounded ml-1" title="Top Views Harian"><i class="fas fa-trophy"></i></span>' : '';
+                const topSalesBadge = item.isTopSales ? '<span class="bg-purple-100 text-purple-800 text-[10px] px-1.5 py-0.5 rounded ml-1" title="Top Penjualan Harian"><i class="fas fa-crown"></i></span>' : '';
+
+                const productName = item.product || '';
+                const productInfo = productsData.find(p => p.name && p.name.toLowerCase() === productName.toLowerCase());
+                const sampleBadge = (productInfo && productInfo.sampleSource && productInfo.sampleSource !== 'none') 
+                    ? '<span class="text-[10px] text-blue-600 border border-blue-200 px-1 py-0.5 rounded bg-blue-50 ml-1"><i class="fas fa-box-open"></i> Sampel</span>' 
+                    : '';
+
+                let typeBadge = '';
+                if (item.type === 'sales') {
+                    typeBadge = '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold border border-green-200 mt-1 inline-block">PENJUALAN</span>';
+                } else if (item.type === 'content') {
+                    typeBadge = '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold border border-blue-200 mt-1 inline-block">KONTEN</span>';
+                } else {
+                    typeBadge = '<span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[10px] font-bold border border-purple-200 mt-1 inline-block">LOG UPLOAD</span>';
+                }
+                
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50 transition-colors';
+                
+                if (item.type === 'upload_log') {
+                    tr.innerHTML = `
+                        <td class="p-4 whitespace-nowrap"><div class="mb-1">${item.date}</div>${typeBadge}</td>
+                        <td class="p-4 capitalize flex items-center gap-2 mt-2 border-0">${icon} ${item.platform}</td>
+                        <td class="p-4" colspan="4">
+                            <p class="font-bold text-gray-800"><i class="fas fa-upload text-purple-500 mr-1"></i> Upload ${item.uploadCount} Konten</p>
+                            <p class="text-xs text-gray-500 mt-1"><span class="font-semibold text-gray-600">Daftar Produk:</span> ${item.products}</p>
+                        </td>
+                        <td class="p-4 text-center">
+                            <button onclick="deleteData(${item.id})" class="text-red-400 hover:text-red-600 p-1"><i class="fas fa-trash-alt"></i></button>
+                        </td>
+                    `;
+                } else {
+                    tr.innerHTML = `
+                        <td class="p-4 whitespace-nowrap"><div class="mb-1">${item.date}</div>${typeBadge}</td>
+                        <td class="p-4 capitalize flex items-center gap-2">${icon} ${item.platform}</td>
+                        <td class="p-4">
+                            <p class="font-medium text-gray-800 line-clamp-1">${item.content || '-'} ${trendVideoBadge} ${trendSalesBadge} ${topViewsBadge} ${topSalesBadge}</p>
+                            <p class="text-xs text-gray-500">${productName} ${sampleBadge}</p>
+                        </td>
+                        <td class="p-4 text-right">${item.views > 0 ? item.views.toLocaleString('id-ID') : '-'}</td>
+                        <td class="p-4 text-right">${item.sales > 0 ? item.sales : '-'}</td>
+                        <td class="p-4 text-right text-green-600 font-medium">${item.income > 0 ? formatRupiah(item.income) : '-'}</td>
+                        <td class="p-4 text-center">
+                            <button onclick="deleteData(${item.id})" class="text-red-400 hover:text-red-600 p-1"><i class="fas fa-trash-alt"></i></button>
+                        </td>
+                    `;
+                }
+                tbody.appendChild(tr);
+            });
+        };
+
+        const deleteData = async (id) => {
+            appData = appData.filter(item => item.id !== id);
+            renderTable();
+            await syncToAPI('deleteLaporan', { id: id });
+        };
+
+        const clearAllData = () => {
+            showModal('Konfirmasi', 'Semua data laporan di Spreadsheet akan dihapus permanen. Lanjutkan?', true, async () => {
+                appData = [];
+                renderTable();
+                await syncToAPI('clearLaporan', {});
+            });
+        };
+
+        const showModal = (title, message, isConfirm = false, onConfirm = null) => {
+            const modal = document.getElementById('custom-modal');
+            const content = document.getElementById('modal-content');
+            
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            
+            const icon = document.getElementById('modal-icon');
+            if (isConfirm) {
+                icon.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4 text-yellow-600 text-xl';
+                icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+                
+                const btnContainer = icon.parentElement;
+                const existingBtns = btnContainer.querySelectorAll('button, div.flex');
+                existingBtns.forEach(btn => btn.remove());
+                
+                btnContainer.innerHTML += `
+                    <div class="flex gap-3 mt-5">
+                        <button onclick="closeModal()" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:text-sm">Batal</button>
+                        <button id="confirm-btn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:text-sm">Lanjutkan</button>
+                    </div>
+                `;
+                document.getElementById('confirm-btn').onclick = () => {
+                    if(onConfirm) onConfirm();
+                    closeModal();
+                };
+            } else {
+                icon.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4 text-green-600 text-xl';
+                icon.innerHTML = '<i class="fas fa-check"></i>';
+                
+                const btnContainer = icon.parentElement;
+                const existingBtns = btnContainer.querySelectorAll('div.flex, button');
+                existingBtns.forEach(btn => btn.remove());
+                
+                btnContainer.innerHTML += `
+                    <button onclick="closeModal()" class="mt-5 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:text-sm">Tutup</button>
+                `;
+            }
+
+            modal.classList.remove('hidden');
+            void modal.offsetWidth;
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+        };
+
+        const closeModal = () => {
+            const modal = document.getElementById('custom-modal');
+            const content = document.getElementById('modal-content');
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        };
+
+        window.onload = () => {
+            fetchDataFromAPI();
+        };
+
+    </script>
+</body>
+</html>
