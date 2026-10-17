@@ -113,14 +113,14 @@
             
             <div id="view-dashboard" class="fade-in space-y-6">
                 <!-- Mobile Filter -->
-                <div class="md:hidden bg-white p-2 rounded-xl border border-slate-200 shadow-sm mb-4 space-y-2">
+                <div class="md:hidden bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm mb-4 space-y-2.5">
                     <div class="flex text-sm">
                         <button onclick="setDashFilter('7')" id="mob-btn-filter-7" class="flex-1 px-2 py-1.5 rounded-md font-medium text-slate-500 transition-all text-xs">7 Hari</button>
                         <button onclick="setDashFilter('30')" id="mob-btn-filter-30" class="flex-1 px-2 py-1.5 rounded-md bg-slate-100 shadow-inner font-semibold text-slate-800 transition-all text-xs">30 Hari</button>
                         <button onclick="setDashFilter('all')" id="mob-btn-filter-all" class="flex-1 px-2 py-1.5 rounded-md font-medium text-slate-500 transition-all text-xs">Semua</button>
                     </div>
-                    <div class="flex items-center justify-between gap-1 pt-1 border-t border-slate-100">
-                        <span class="text-[10px] font-semibold text-slate-400">CUSTOM:</span>
+                    <div class="flex items-center justify-between gap-1 pt-2 border-t border-slate-100">
+                        <span class="text-[10px] font-semibold text-slate-400">KUSTOM:</span>
                         <input type="date" id="mob-dash-start-date" onchange="setCustomDashFilterMob()" class="text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1 text-slate-700 outline-none flex-1">
                         <span class="text-slate-400 text-xs">-</span>
                         <input type="date" id="mob-dash-end-date" onchange="setCustomDashFilterMob()" class="text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1 text-slate-700 outline-none flex-1">
@@ -133,7 +133,7 @@
                         <p class="text-sm text-slate-500 font-semibold mb-1 uppercase tracking-wider">Total Pendapatan</p>
                         <h3 class="text-3xl font-bold text-slate-800" id="summary-income">Rp 0</h3>
                         <div class="mt-4 flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 w-fit px-2 py-1 rounded-md font-medium">
-                            <i class="fas fa-money-bill-wave"></i> GMV / Omset Harian
+                            <i class="fas fa-wallet"></i> GMV / Omset Harian
                         </div>
                     </div>
                     <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
@@ -195,15 +195,23 @@
                         </div>
                     </div>
                     <div class="glass-card rounded-2xl overflow-hidden flex flex-col">
-                        <div class="bg-white px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                        <div class="bg-white px-6 py-4 border-b border-slate-100 flex justify-between items-center gap-2 flex-wrap">
                             <h4 class="font-bold text-slate-800">Produk Terlaris</h4>
-                            <select id="filter-top-product" onchange="updateDashboard()" class="text-sm border border-slate-200 text-slate-600 rounded-lg bg-slate-50 py-1.5 px-3 focus:ring-2 focus:ring-blue-500 outline-none">
-                                <option value="all">Semua</option>
-                                <option value="tiktok">TikTok</option>
-                                <option value="shopee">Shopee</option>
-                            </select>
+                            <div class="flex items-center gap-2">
+                                <select id="filter-top-limit" onchange="updateDashboard()" class="text-xs border border-slate-200 text-slate-600 rounded-lg bg-slate-50 py-1.5 px-2.5 focus:ring-2 focus:ring-blue-500 outline-none font-medium">
+                                    <option value="5">Top 5</option>
+                                    <option value="10">Top 10</option>
+                                    <option value="15">Top 15</option>
+                                    <option value="20" selected>Top 20</option>
+                                </select>
+                                <select id="filter-top-product" onchange="updateDashboard()" class="text-xs border border-slate-200 text-slate-600 rounded-lg bg-slate-50 py-1.5 px-2.5 focus:ring-2 focus:ring-blue-500 outline-none font-medium">
+                                    <option value="all">Semua Plat</option>
+                                    <option value="tiktok">TikTok</option>
+                                    <option value="shopee">Shopee</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="p-0 flex-1">
+                        <div class="p-0 flex-1 max-h-[380px] overflow-y-auto">
                             <ul id="list-top-products" class="divide-y divide-slate-100"></ul>
                         </div>
                     </div>
@@ -457,7 +465,7 @@
                         </button>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse min-w-[800px]">
+                        <table class="w-full text-left border-collapse min-w-[850px]">
                             <thead>
                                 <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-semibold border-b border-slate-200">
                                     <th class="p-4 w-28">Tanggal</th>
@@ -466,7 +474,7 @@
                                     <th class="p-4 text-right">Views</th>
                                     <th class="p-4 text-right">Sales / Conv.</th>
                                     <th class="p-4 text-right">Nominal (Rp)</th>
-                                    <th class="p-4 text-center w-16">Aksi</th>
+                                    <th class="p-4 text-center w-28">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="history-tbody" class="divide-y divide-slate-100 text-sm bg-white">
@@ -511,7 +519,7 @@
                                     <th class="p-4">Sumber Sampel</th>
                                     <th class="p-4 text-center">Frekuensi Upload</th>
                                     <th class="p-4">Catatan Khusus</th>
-                                    <th class="p-4 text-center w-16">Aksi</th>
+                                    <th class="p-4 text-center w-28">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="products-tbody" class="divide-y divide-slate-100 text-sm bg-white">
@@ -531,17 +539,18 @@
         </div>
     </main>
 
-    <!-- Modal Add Product -->
+    <!-- Modal Add / Edit Product -->
     <div id="modal-add-product" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95 transition-transform duration-300" id="modal-add-product-content">
             <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
-                <h3 class="text-lg font-bold text-slate-800">Tambah Katalog Produk</h3>
+                <h3 id="modal-prod-title" class="text-lg font-bold text-slate-800">Tambah Katalog Produk</h3>
                 <button onclick="closeProductModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300 hover:text-slate-700 transition-colors">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="p-6">
                 <form id="form-product" class="space-y-4">
+                    <input type="hidden" id="prod-edit-id">
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-1.5">Nama Produk</label>
                         <input type="text" id="prod-name" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none">
@@ -561,7 +570,7 @@
                     </div>
                     <div class="flex justify-end gap-3 mt-8">
                         <button type="button" onclick="closeProductModal()" class="px-5 py-2.5 rounded-xl font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">Batal</button>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2">
+                        <button type="submit" id="btn-submit-prod" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2">
                             <i class="fas fa-check"></i> Tambahkan
                         </button>
                     </div>
@@ -616,7 +625,7 @@
     <datalist id="product-options"></datalist>
 
     <!-- Progress Bar Loading -->
-    <div id="global-loader" class="fixed top-0 left-0 w-full h-1 bg-slate-100 z-[100] hidden">
+    <div id="global-loader" class="fixed top-0 left-0 w-1 h-1 bg-slate-100 z-[100] hidden">
         <div class="h-full bg-blue-600 w-1/3 animate-[slide_1.5s_ease-in-out_infinite]"></div>
     </div>
     <style>@keyframes slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }</style>
@@ -878,7 +887,7 @@
                 dateMap[item.date].gmv += (Number(item.gmv) || 0); 
                 dateMap[item.date].views += (Number(item.views) || 0);
 
-                const plat = (item.platform || '').toLowerCase();
+                const plat = (item.platform || '').toLowerCase().trim();
                 if (plat === 'tiktok' || plat === 'shopee') {
                     platformMap[plat].views += (Number(item.views) || 0);
                     platformMap[plat].gmv += (Number(item.gmv) || 0); 
@@ -895,7 +904,6 @@
             Chart.defaults.color = '#94a3b8';
             Chart.defaults.font.family = "'Inter', sans-serif";
 
-            // Render Line Chart
             const ctxTrend = document.getElementById('trendChart').getContext('2d');
             let gradient = ctxTrend.createLinearGradient(0, 0, 0, 400);
             gradient.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
@@ -947,7 +955,6 @@
                 }
             });
 
-            // Doughnut Chart berdasarkan GMV
             const totalPlatGMV = platformMap.tiktok.gmv + platformMap.shopee.gmv;
             const pctTiktok = totalPlatGMV ? Math.round((platformMap.tiktok.gmv / totalPlatGMV) * 100) : 0;
             const pctShopee = totalPlatGMV ? 100 - pctTiktok : 0;
@@ -989,6 +996,7 @@
 
         const renderTopProducts = (dataList) => {
             const filter = document.getElementById('filter-top-product').value;
+            const limit = parseInt(document.getElementById('filter-top-limit').value) || 5;
             const validData = dataList.filter(item => item.type === 'content' || item.type === 'sales');
             const filteredData = filter === 'all' ? validData : validData.filter(item => item.platform === filter);
             
@@ -1004,7 +1012,7 @@
             const topProducts = Object.entries(productMap)
                 .map(([name, stats]) => ({ name, ...stats }))
                 .sort((a, b) => b.sales - a.sales)
-                .slice(0, 5);
+                .slice(0, limit);
 
             const listEl = document.getElementById('list-top-products');
             listEl.innerHTML = '';
@@ -1015,7 +1023,7 @@
             }
 
             topProducts.forEach((prod, index) => {
-                const medalColors = ['text-yellow-500', 'text-slate-400', 'text-amber-700', 'text-slate-300', 'text-slate-300'];
+                const medalColors = ['text-yellow-500', 'text-slate-400', 'text-amber-700'];
                 const rankIcon = index < 3 ? `<i class="fas fa-medal ${medalColors[index]} text-lg"></i>` : `<span class="text-sm font-bold text-slate-400">#${index+1}</span>`;
                 
                 listEl.innerHTML += `
@@ -1282,11 +1290,11 @@
                     <td class="p-4 align-top text-right">${metricsSales}</td>
                     <td class="p-4 align-top text-right">${metricsIncome}</td>
                     <td class="p-4 align-top text-center">
-                        <div class="flex justify-center items-center gap-1 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
-                            <button onclick="${editAction}" class="text-slate-400 hover:text-blue-500 hover:bg-blue-50 p-2 rounded-lg transition-colors">
+                        <div class="flex justify-center items-center gap-1.5 flex-wrap">
+                            <button onclick="${editAction}" class="text-slate-600 bg-slate-100 hover:text-white hover:bg-blue-600 p-2 rounded-lg transition-colors shadow-sm" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button onclick="${delAction}" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                            <button onclick="${delAction}" class="text-slate-600 bg-slate-100 hover:text-white hover:bg-red-600 p-2 rounded-lg transition-colors shadow-sm" title="Hapus">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -1380,9 +1388,14 @@
                     </td>
                     <td class="p-4 align-top text-sm text-slate-600 max-w-[200px]"><p class="line-clamp-2">${item.notes || '-'}</p></td>
                     <td class="p-4 align-top text-center">
-                        <button onclick="deleteProduct(${item.id})" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="flex justify-center items-center gap-1.5 flex-wrap">
+                            <button onclick="openEditProductModal(${item.id})" class="text-slate-600 bg-slate-100 hover:text-white hover:bg-blue-600 p-2 rounded-lg transition-colors shadow-sm" title="Edit Produk">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteProduct(${item.id})" class="text-slate-600 bg-slate-100 hover:text-white hover:bg-red-600 p-2 rounded-lg transition-colors shadow-sm" title="Hapus Produk">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -1390,6 +1403,30 @@
         };
 
         const openProductModal = () => {
+            document.getElementById('modal-prod-title').innerText = 'Tambah Katalog Produk';
+            document.getElementById('btn-submit-prod').innerHTML = '<i class="fas fa-check"></i> Tambahkan';
+            document.getElementById('form-product').reset();
+            document.getElementById('prod-edit-id').value = '';
+
+            const modal = document.getElementById('modal-add-product');
+            const content = document.getElementById('modal-add-product-content');
+            modal.classList.remove('hidden');
+            void modal.offsetWidth;
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95');
+        };
+
+        const openEditProductModal = (id) => {
+            const prod = productsData.find(p => p.id === id);
+            if(!prod) return;
+
+            document.getElementById('modal-prod-title').innerText = 'Edit Katalog Produk';
+            document.getElementById('btn-submit-prod').innerHTML = '<i class="fas fa-save"></i> Simpan Perubahan';
+            document.getElementById('prod-edit-id').value = prod.id;
+            document.getElementById('prod-name').value = prod.name;
+            document.getElementById('prod-sample-source').value = prod.sampleSource || 'none';
+            document.getElementById('prod-notes').value = prod.notes || '';
+
             const modal = document.getElementById('modal-add-product');
             const content = document.getElementById('modal-add-product-content');
             modal.classList.remove('hidden');
@@ -1408,20 +1445,36 @@
 
         document.getElementById('form-product').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const newProd = {
-                id: Date.now(),
-                name: document.getElementById('prod-name').value,
-                sampleSource: document.getElementById('prod-sample-source').value,
-                notes: document.getElementById('prod-notes').value
-            };
-            productsData.unshift(newProd);
+            const editId = document.getElementById('prod-edit-id').value;
+            const name = document.getElementById('prod-name').value;
+            const sampleSource = document.getElementById('prod-sample-source').value;
+            const notes = document.getElementById('prod-notes').value;
+
+            if (editId) {
+                const prod = productsData.find(p => p.id == editId);
+                if (prod) {
+                    prod.name = name;
+                    prod.sampleSource = sampleSource;
+                    prod.notes = notes;
+                    showToast('Katalog Diperbarui', 'Perubahan produk berhasil disimpan.', 'success');
+                    syncToAPI('saveProduk', prod);
+                }
+            } else {
+                const newProd = {
+                    id: Date.now(),
+                    name: name,
+                    sampleSource: sampleSource,
+                    notes: notes
+                };
+                productsData.unshift(newProd);
+                showToast('Katalog Diperbarui', 'Produk berhasil ditambahkan!', 'success');
+                syncToAPI('saveProduk', newProd);
+            }
+
             updateProductDatalist();
             e.target.reset();
             renderProducts();
             closeProductModal(); 
-            
-            showToast('Katalog Diperbarui', 'Produk berhasil ditambahkan!', 'success');
-            syncToAPI('saveProduk', newProd);
         });
 
         const showConfirm = (title, message, onConfirm) => {
