@@ -400,6 +400,13 @@
                                 <input type="date" id="pendapatan-date" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none transition-all">
                             </div>
                             <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Platform</label>
+                                <select id="pendapatan-platform" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none transition-all">
+                                    <option value="tiktok">TikTok</option>
+                                    <option value="shopee">Shopee</option>
+                                </select>
+                            </div>
+                            <div>
                                 <label class="block text-sm font-semibold text-slate-700 mb-1.5">Total Views</label>
                                 <input type="number" id="pendapatan-views" min="0" placeholder="0" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none transition-all font-mono">
                             </div>
@@ -1007,10 +1014,7 @@
             e.preventDefault();
             
             let newEntry = { id: Date.now(), type: type, date: document.getElementById(`${type}-date`).value };
-            
-            if(type !== 'pendapatan') {
-                newEntry.platform = document.getElementById(`${type}-platform`).value;
-            }
+            newEntry.platform = document.getElementById(`${type}-platform`).value;
 
             if (type === 'content' || type === 'sales') {
                 const prodVal = document.getElementById(`${type}-product`).value;
@@ -1173,7 +1177,7 @@
                 } else if (item.type === 'pendapatan_harian') {
                     typeBadge = '<span class="bg-amber-100 text-amber-700 border border-amber-200 px-2 py-1 rounded text-[10px] font-bold"><i class="fas fa-wallet mr-1"></i> Rekap Harian</span>';
                     contentDetails = `
-                        <p class="font-bold text-slate-800 line-clamp-1 text-sm">Klik Produk: ${formatNumber(item.klik)}</p>
+                        <p class="font-bold text-slate-800 line-clamp-1 text-sm">${platIcon} Klik Produk: ${formatNumber(item.klik)}</p>
                         <p class="text-xs text-slate-500 mt-0.5">Omset/GMV: ${formatRupiah(item.gmv)}</p>
                     `;
                     metricsViews = `<span class="font-bold text-slate-700">${formatNumber(item.views)}</span>`;
