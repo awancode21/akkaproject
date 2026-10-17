@@ -24,12 +24,9 @@
             border: 1px solid rgba(226, 232, 240, 0.8);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         }
-        /* Toast Animation */
         .toast-enter { transform: translateX(100%); opacity: 0; }
         .toast-enter-active { transform: translateX(0); opacity: 1; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .toast-leave { transform: translateX(100%); opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -38,7 +35,6 @@
 </head>
 <body class="text-slate-800 h-screen flex overflow-hidden selection:bg-blue-200 selection:text-blue-900">
 
-    <!-- Sidebar -->
     <aside class="w-64 bg-slate-900 text-white flex flex-col hidden md:flex transition-all duration-300 z-50">
         <div class="p-6 flex items-center gap-3 border-b border-slate-800">
             <div class="bg-gradient-to-tr from-blue-500 to-purple-500 w-8 h-8 rounded-lg flex items-center justify-center shadow-lg">
@@ -69,7 +65,6 @@
         </div>
     </aside>
 
-    <!-- Mobile Nav -->
     <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200 z-50 flex justify-around p-1 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
         <button onclick="navigate('dashboard')" class="flex-1 flex flex-col items-center p-2 text-blue-600 rounded-lg transition-colors" id="mob-dashboard">
             <i class="fas fa-home text-xl mb-1"></i><span class="text-[10px] font-medium">Beranda</span>
@@ -85,9 +80,7 @@
         </button>
     </div>
 
-    <!-- Main Content -->
     <main class="flex-1 flex flex-col overflow-y-auto pb-20 md:pb-0 relative bg-slate-50/50">
-        <!-- Top Header -->
         <header class="bg-white/80 backdrop-blur-md px-6 py-4 flex justify-between items-center sticky top-0 z-40 border-b border-slate-200 shadow-sm">
             <div class="flex items-center gap-3">
                 <div class="md:hidden bg-gradient-to-tr from-blue-500 to-purple-500 w-8 h-8 rounded-lg flex items-center justify-center shadow-md">
@@ -96,15 +89,19 @@
                 <h2 id="page-title" class="text-xl md:text-2xl font-bold text-slate-800">Dashboard Analitik</h2>
             </div>
             
-            <!-- Dashboard Date Filter (Only shows on Dashboard) -->
             <div id="header-actions-dashboard" class="hidden md:flex items-center gap-2">
-                <div class="bg-slate-100 p-1 rounded-lg flex text-sm">
-                    <button onclick="setDashFilter('7')" id="btn-filter-7" class="px-3 py-1.5 rounded-md bg-white shadow-sm font-medium text-slate-700 transition-all">7 Hari</button>
-                    <button onclick="setDashFilter('30')" id="btn-filter-30" class="px-3 py-1.5 rounded-md font-medium text-slate-500 hover:text-slate-700 transition-all">30 Hari</button>
+                <div class="bg-slate-100 p-1 rounded-lg flex text-sm items-center gap-1">
+                    <button onclick="setDashFilter('7')" id="btn-filter-7" class="px-3 py-1.5 rounded-md font-medium text-slate-500 hover:text-slate-700 transition-all">7 Hari</button>
+                    <button onclick="setDashFilter('30')" id="btn-filter-30" class="px-3 py-1.5 rounded-md bg-white shadow-sm font-semibold text-slate-800 transition-all">30 Hari</button>
                     <button onclick="setDashFilter('all')" id="btn-filter-all" class="px-3 py-1.5 rounded-md font-medium text-slate-500 hover:text-slate-700 transition-all">Semua</button>
+                    <div class="h-4 w-[1px] bg-slate-300 mx-1"></div>
+                    <div class="flex items-center gap-1 px-1">
+                        <input type="date" id="dash-start-date" onchange="setCustomDashFilter()" class="text-xs bg-transparent border border-slate-200 rounded px-2 py-1 text-slate-700 outline-none">
+                        <span class="text-slate-400 text-xs">-</span>
+                        <input type="date" id="dash-end-date" onchange="setCustomDashFilter()" class="text-xs bg-transparent border border-slate-200 rounded px-2 py-1 text-slate-700 outline-none">
+                    </div>
                 </div>
             </div>
-            <!-- Export Button (Only shows on History) -->
             <div id="header-actions-history" class="hidden items-center gap-2">
                 <button onclick="exportToCSV()" class="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm">
                     <i class="fas fa-file-export"></i> <span class="hidden md:inline">Export CSV</span>
@@ -115,21 +112,28 @@
         <div class="p-4 md:p-8 max-w-7xl mx-auto w-full">
             
             <div id="view-dashboard" class="fade-in space-y-6">
-                <!-- Mobile Dashboard Filter -->
-                <div class="md:hidden bg-white p-1 rounded-lg flex text-sm border border-slate-200 shadow-sm mb-4">
-                    <button onclick="setDashFilter('7')" id="mob-btn-filter-7" class="flex-1 px-3 py-2 rounded-md bg-slate-100 shadow-inner font-medium text-slate-700 transition-all">7 Hari</button>
-                    <button onclick="setDashFilter('30')" id="mob-btn-filter-30" class="flex-1 px-3 py-2 rounded-md font-medium text-slate-500 hover:text-slate-700 transition-all">30 Hari</button>
-                    <button onclick="setDashFilter('all')" id="mob-btn-filter-all" class="flex-1 px-3 py-2 rounded-md font-medium text-slate-500 hover:text-slate-700 transition-all">Semua</button>
+                <!-- Mobile Filter -->
+                <div class="md:hidden bg-white p-2 rounded-xl border border-slate-200 shadow-sm mb-4 space-y-2">
+                    <div class="flex text-sm">
+                        <button onclick="setDashFilter('7')" id="mob-btn-filter-7" class="flex-1 px-2 py-1.5 rounded-md font-medium text-slate-500 transition-all text-xs">7 Hari</button>
+                        <button onclick="setDashFilter('30')" id="mob-btn-filter-30" class="flex-1 px-2 py-1.5 rounded-md bg-slate-100 shadow-inner font-semibold text-slate-800 transition-all text-xs">30 Hari</button>
+                        <button onclick="setDashFilter('all')" id="mob-btn-filter-all" class="flex-1 px-2 py-1.5 rounded-md font-medium text-slate-500 transition-all text-xs">Semua</button>
+                    </div>
+                    <div class="flex items-center justify-between gap-1 pt-1 border-t border-slate-100">
+                        <span class="text-[10px] font-semibold text-slate-400">CUSTOM:</span>
+                        <input type="date" id="mob-dash-start-date" onchange="setCustomDashFilterMob()" class="text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1 text-slate-700 outline-none flex-1">
+                        <span class="text-slate-400 text-xs">-</span>
+                        <input type="date" id="mob-dash-end-date" onchange="setCustomDashFilterMob()" class="text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1 text-slate-700 outline-none flex-1">
+                    </div>
                 </div>
 
-                <!-- Summary Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
                         <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-emerald-400 rounded-full opacity-10 group-hover:scale-150 transition-transform duration-500"></div>
                         <p class="text-sm text-slate-500 font-semibold mb-1 uppercase tracking-wider">Total Pendapatan</p>
                         <h3 class="text-3xl font-bold text-slate-800" id="summary-income">Rp 0</h3>
                         <div class="mt-4 flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 w-fit px-2 py-1 rounded-md font-medium">
-                            <i class="fas fa-money-bill-wave"></i> Komisi Diterima
+                            <i class="fas fa-money-bill-wave"></i> GMV / Omset Harian
                         </div>
                     </div>
                     <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
@@ -150,7 +154,6 @@
                     </div>
                 </div>
 
-                <!-- Charts Row -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2 glass-card p-6 rounded-2xl">
                         <div class="flex justify-between items-center mb-6">
@@ -168,19 +171,19 @@
                         <div class="mt-4 grid grid-cols-2 gap-2 text-center text-sm">
                             <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
                                 <p class="text-slate-500 text-xs mb-1">TikTok</p>
-                                <p class="font-bold text-slate-800" id="stat-tiktok">0%</p>
+                                <p class="font-bold text-slate-800 text-lg" id="stat-tiktok">0%</p>
+                                <p class="text-[10px] font-medium text-slate-500 mt-0.5" id="stat-tiktok-rp">Rp 0</p>
                             </div>
                             <div class="bg-orange-50 p-2 rounded-lg border border-orange-100">
                                 <p class="text-orange-600 text-xs mb-1">Shopee</p>
-                                <p class="font-bold text-orange-800" id="stat-shopee">0%</p>
+                                <p class="font-bold text-orange-800 text-lg" id="stat-shopee">0%</p>
+                                <p class="text-[10px] font-medium text-orange-500 mt-0.5" id="stat-shopee-rp">Rp 0</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Top Lists Row -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Trending Content -->
                     <div class="glass-card rounded-2xl overflow-hidden flex flex-col">
                         <div class="bg-gradient-to-r from-orange-500 to-rose-500 px-6 py-4 flex justify-between items-center">
                             <h4 class="font-bold text-white flex items-center gap-2">
@@ -191,8 +194,6 @@
                             <ul id="list-trending-content" class="divide-y divide-slate-100"></ul>
                         </div>
                     </div>
-
-                    <!-- Top Products -->
                     <div class="glass-card rounded-2xl overflow-hidden flex flex-col">
                         <div class="bg-white px-6 py-4 border-b border-slate-100 flex justify-between items-center">
                             <h4 class="font-bold text-slate-800">Produk Terlaris</h4>
@@ -225,7 +226,7 @@
                     </button>
                 </div>
 
-                <!-- Form 1: Konten -->
+                <!-- Form Konten -->
                 <div id="container-form-content" class="glass-card rounded-2xl p-6 md:p-8 relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-1 bg-blue-500 h-full"></div>
                     <div class="mb-6 pb-4 border-b border-slate-100">
@@ -247,7 +248,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-slate-700 mb-1.5">Produk dari Katalog</label>
-                                <input type="text" list="product-options" id="content-product" placeholder="Ketik untuk mencari produk..." required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                                <input type="text" list="product-options" id="content-product" placeholder="Ketik/Pilih produk..." autocomplete="off" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-slate-700 mb-1.5">Jumlah Views</label>
@@ -282,12 +283,12 @@
                     </form>
                 </div>
 
-                <!-- Form 2: Penjualan -->
+                <!-- Form Penjualan -->
                 <div id="container-form-sales" class="glass-card rounded-2xl p-6 md:p-8 hidden relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-1 bg-emerald-500 h-full"></div>
                     <div class="mb-6 pb-4 border-b border-slate-100">
                         <h3 class="text-xl font-bold text-slate-800">Catat Penjualan</h3>
-                        <p class="text-sm text-slate-500 mt-1">Masukkan data komisi dan kuantitas barang yang terjual.</p>
+                        <p class="text-sm text-slate-500 mt-1">Masukkan data GMV dan kuantitas barang yang terjual per produk.</p>
                     </div>
                     <form id="form-sales" class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -304,7 +305,7 @@
                             </div>
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-semibold text-slate-700 mb-1.5">Produk Terjual</label>
-                                <input type="text" list="product-options" id="sales-product" placeholder="Ketik untuk mencari produk..." required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                                <input type="text" list="product-options" id="sales-product" placeholder="Ketik/Pilih produk..." autocomplete="off" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
                             </div>
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-semibold text-slate-700 mb-1.5">Dari Konten / Video Mana?</label>
@@ -318,7 +319,7 @@
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">GMV / Omset</label>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">GMV / Omset Produk Ini</label>
                                 <div class="relative">
                                     <span class="absolute left-4 top-2.5 text-slate-500 font-bold">Rp</span>
                                     <input type="number" id="sales-income" min="0" placeholder="0" required class="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-mono">
@@ -349,7 +350,7 @@
                     </form>
                 </div>
 
-                <!-- Form 3: Upload Harian -->
+                <!-- Form Upload -->
                 <div id="container-form-upload" class="glass-card rounded-2xl p-6 md:p-8 hidden relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-1 bg-purple-500 h-full"></div>
                     <div class="mb-6 pb-4 border-b border-slate-100">
@@ -375,7 +376,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-slate-700 mb-1.5">Produk yang Diupload</label>
-                                <input type="text" list="product-options" id="upload-product" placeholder="Ketik untuk mencari produk..." required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-purple-500 outline-none transition-all">
+                                <input type="text" list="product-options" id="upload-product" placeholder="Ketik/Pilih produk..." autocomplete="off" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-purple-500 outline-none transition-all">
                             </div>
                         </div>
                         <div class="flex justify-end pt-2">
@@ -386,7 +387,7 @@
                     </form>
                 </div>
 
-                <!-- Form 4: Pendapatan Harian -->
+                <!-- Form Pendapatan Harian -->
                 <div id="container-form-pendapatan" class="glass-card rounded-2xl p-6 md:p-8 hidden relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-1 bg-amber-500 h-full"></div>
                     <div class="mb-6 pb-4 border-b border-slate-100">
@@ -469,7 +470,6 @@
                                 </tr>
                             </thead>
                             <tbody id="history-tbody" class="divide-y divide-slate-100 text-sm bg-white">
-                                <!-- Data injected here -->
                             </tbody>
                         </table>
                     </div>
@@ -488,7 +488,6 @@
                     <div class="p-5 border-b border-slate-100 bg-white/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                         <h3 class="text-lg font-bold text-slate-800">Manajemen Katalog</h3>
                         <div class="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-                            <!-- Filter Date -->
                             <div class="flex items-center bg-slate-100 rounded-lg p-1 w-full sm:w-auto">
                                 <input type="date" id="filter-prod-start" class="text-sm px-2 py-1.5 outline-none text-slate-700 bg-transparent rounded hover:bg-slate-200 cursor-pointer w-full" onchange="renderProducts()">
                                 <span class="text-slate-400 px-1"><i class="fas fa-arrow-right text-[10px]"></i></span>
@@ -516,7 +515,6 @@
                                 </tr>
                             </thead>
                             <tbody id="products-tbody" class="divide-y divide-slate-100 text-sm bg-white">
-                                <!-- Products injected here -->
                             </tbody>
                         </table>
                     </div>
@@ -533,7 +531,7 @@
         </div>
     </main>
 
-    <!-- Modal Tambah Produk -->
+    <!-- Modal Add Product -->
     <div id="modal-add-product" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95 transition-transform duration-300" id="modal-add-product-content">
             <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
@@ -572,7 +570,7 @@
         </div>
     </div>
 
-    <!-- Confirm Modal (Replacement for simple modal) -->
+    <!-- Confirm Modal -->
     <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 p-4">
         <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full text-center transform scale-95 transition-transform duration-300" id="confirm-content">
             <div class="w-16 h-16 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-3xl mx-auto mb-4">
@@ -581,7 +579,6 @@
             <h3 id="confirm-title" class="text-xl font-bold text-slate-800 mb-2">Konfirmasi</h3>
             <p id="confirm-message" class="text-slate-500 text-sm mb-6">Apakah Anda yakin ingin melakukan ini?</p>
             <div class="flex gap-3" id="confirm-actions">
-                <!-- Buttons injected here -->
             </div>
         </div>
     </div>
@@ -612,13 +609,13 @@
         </div>
     </div>
 
-    <!-- Toast Notification Container -->
+    <!-- Toast Notifications Container -->
     <div id="toast-container" class="fixed top-20 right-4 md:right-8 z-[70] flex flex-col gap-3 pointer-events-none"></div>
 
-    <!-- Datalist untuk Autocomplete Search Produk -->
+    <!-- Datalist untuk Autocomplete Produk -->
     <datalist id="product-options"></datalist>
 
-    <!-- Loading Skeleton Inline (replaces full screen overlay) -->
+    <!-- Progress Bar Loading -->
     <div id="global-loader" class="fixed top-0 left-0 w-full h-1 bg-slate-100 z-[100] hidden">
         <div class="h-full bg-blue-600 w-1/3 animate-[slide_1.5s_ease-in-out_infinite]"></div>
     </div>
@@ -627,14 +624,14 @@
     <script>
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzpFI35oRxPRKAVoWf-9lnwsXQHVhLslp7YZDmCuQ3L3T6WbCxQ3IJtyXzsU2EDQfxH/exec';
 
-        // State
         let appData = [];
         let productsData = [];
         let pendapatanData = [];
         let chartInstances = {};
-        let currentDashFilter = '30'; // Default 30 days
+        let currentDashFilter = '30'; 
+        let customStartDate = '';
+        let customEndDate = '';
 
-        // Toast Notification System
         const showToast = (title, message, type = 'success') => {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -654,13 +651,11 @@
             
             container.appendChild(toast);
             
-            // Trigger animation
             requestAnimationFrame(() => {
                 toast.classList.remove('toast-enter');
                 toast.classList.add('toast-enter-active');
             });
 
-            // Auto remove
             setTimeout(() => {
                 toast.classList.add('toast-leave');
                 toast.addEventListener('transitionend', () => toast.remove());
@@ -702,14 +697,18 @@
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             document.getElementById('filter-prod-start').value = formatDate(thirtyDaysAgo);
             document.getElementById('filter-prod-end').value = today;
+            
+            document.getElementById('dash-start-date').value = formatDate(thirtyDaysAgo);
+            document.getElementById('dash-end-date').value = today;
+            document.getElementById('mob-dash-start-date').value = formatDate(thirtyDaysAgo);
+            document.getElementById('mob-dash-end-date').value = today;
 
             updateProductDatalist();
-            setDashFilter('30'); // Will trigger updateDashboard
+            setDashFilter('30'); 
             hideLoading();
         };
 
         const syncToAPI = async (action, dataPayload) => {
-            showLoading();
             try {
                 const res = await fetch(SCRIPT_URL, {
                     method: 'POST',
@@ -720,9 +719,8 @@
                 if(result.status !== 'success') throw new Error('Gagal simpan di server');
             } catch (error) {
                 console.error("Sync error:", error);
-                showToast('Sinkronisasi Tertunda', 'Perubahan disimpan di perangkat sementara', 'info');
+                showToast('Sinkronisasi Gagal', 'Perubahan disimpan di perangkat sementara', 'error');
             }
-            hideLoading();
         };
 
         const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
@@ -757,7 +755,6 @@
             const titles = { 'dashboard': 'Dashboard Analitik', 'input': 'Input Data Harian', 'history': 'Data Riwayat', 'products': 'Katalog Produk' };
             document.getElementById('page-title').innerText = titles[viewId];
             
-            // Header Actions Logic
             document.getElementById('header-actions-dashboard').classList.toggle('hidden', viewId !== 'dashboard');
             document.getElementById('header-actions-history').classList.toggle('hidden', viewId !== 'history');
             document.getElementById('header-actions-history').classList.toggle('md:flex', viewId === 'history');
@@ -769,74 +766,137 @@
 
         const setDashFilter = (days) => {
             currentDashFilter = days;
+            customStartDate = '';
+            customEndDate = '';
             ['7', '30', 'all'].forEach(val => {
-                // Desktop
                 const btn = document.getElementById(`btn-filter-${val}`);
                 if(btn) btn.className = val === days 
                     ? 'px-3 py-1.5 rounded-md bg-white shadow-sm font-semibold text-slate-800 transition-all'
                     : 'px-3 py-1.5 rounded-md font-medium text-slate-500 hover:text-slate-700 transition-all';
-                // Mobile
                 const mBtn = document.getElementById(`mob-btn-filter-${val}`);
                 if(mBtn) mBtn.className = val === days 
-                    ? 'flex-1 px-3 py-2 rounded-md bg-slate-100 shadow-inner font-semibold text-slate-800 transition-all'
-                    : 'flex-1 px-3 py-2 rounded-md font-medium text-slate-500 hover:text-slate-700 transition-all';
+                    ? 'flex-1 px-2 py-1.5 rounded-md bg-slate-100 shadow-inner font-semibold text-slate-800 transition-all text-xs'
+                    : 'flex-1 px-2 py-1.5 rounded-md font-medium text-slate-500 transition-all text-xs';
             });
             updateDashboard();
         };
 
+        const setCustomDashFilter = () => {
+            const start = document.getElementById('dash-start-date').value;
+            const end = document.getElementById('dash-end-date').value;
+            if (start && end) {
+                currentDashFilter = 'custom';
+                customStartDate = start;
+                customEndDate = end;
+                document.getElementById('mob-dash-start-date').value = start;
+                document.getElementById('mob-dash-end-date').value = end;
+                clearFilterButtonsActive();
+                updateDashboard();
+            }
+        };
+
+        const setCustomDashFilterMob = () => {
+            const start = document.getElementById('mob-dash-start-date').value;
+            const end = document.getElementById('mob-dash-end-date').value;
+            if (start && end) {
+                currentDashFilter = 'custom';
+                customStartDate = start;
+                customEndDate = end;
+                document.getElementById('dash-start-date').value = start;
+                document.getElementById('dash-end-date').value = end;
+                clearFilterButtonsActive();
+                updateDashboard();
+            }
+        };
+
+        const clearFilterButtonsActive = () => {
+            ['7', '30', 'all'].forEach(val => {
+                const btn = document.getElementById(`btn-filter-${val}`);
+                if(btn) btn.className = 'px-3 py-1.5 rounded-md font-medium text-slate-500 hover:text-slate-700 transition-all';
+                const mBtn = document.getElementById(`mob-btn-filter-${val}`);
+                if(mBtn) mBtn.className = 'flex-1 px-2 py-1.5 rounded-md font-medium text-slate-500 transition-all text-xs';
+            });
+        };
+
         const getFilteredAppData = () => {
+            if (currentDashFilter === 'custom' && customStartDate && customEndDate) {
+                const start = new Date(customStartDate);
+                const end = new Date(customEndDate);
+                end.setHours(23, 59, 59, 999);
+                return appData.filter(item => {
+                    const d = new Date(item.date);
+                    return d >= start && d <= end;
+                });
+            }
             if (currentDashFilter === 'all') return appData;
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - parseInt(currentDashFilter));
             return appData.filter(item => new Date(item.date) >= cutoffDate);
         };
 
+        const getFilteredPendapatanData = () => {
+            if (currentDashFilter === 'custom' && customStartDate && customEndDate) {
+                const start = new Date(customStartDate);
+                const end = new Date(customEndDate);
+                end.setHours(23, 59, 59, 999);
+                return pendapatanData.filter(item => {
+                    const d = new Date(item.date);
+                    return d >= start && d <= end;
+                });
+            }
+            if (currentDashFilter === 'all') return pendapatanData;
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - parseInt(currentDashFilter));
+            return pendapatanData.filter(item => new Date(item.date) >= cutoffDate);
+        };
+
         const updateDashboard = () => {
             const filteredApp = getFilteredAppData();
-            const totalIncome = filteredApp.reduce((sum, item) => sum + item.income, 0);
-            const totalSales = filteredApp.reduce((sum, item) => sum + item.sales, 0);
-            const totalViews = filteredApp.reduce((sum, item) => sum + item.views, 0);
+            const filteredPendapatan = getFilteredPendapatanData();
+
+            const totalIncome = filteredPendapatan.reduce((sum, item) => sum + (Number(item.gmv) || 0), 0);
+            const totalSales = filteredPendapatan.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+            const totalViews = filteredPendapatan.reduce((sum, item) => sum + (Number(item.views) || 0), 0);
 
             document.getElementById('summary-income').innerText = formatRupiah(totalIncome);
             document.getElementById('summary-sales').innerHTML = `${totalSales.toLocaleString('id-ID')} <span class="text-base font-medium text-slate-400">pcs</span>`;
             document.getElementById('summary-views').innerText = formatNumber(totalViews);
 
-            renderCharts(filteredApp);
+            renderCharts(filteredPendapatan);
             renderTopProducts(filteredApp);
             renderTrendingContent(filteredApp);
         };
 
-        const renderCharts = (dataList) => {
+        const renderCharts = (pendapatanDataList) => {
             const dateMap = {};
-            const platformMap = { tiktok: { views: 0, sales: 0 }, shopee: { views: 0, sales: 0 } };
+            const platformMap = { tiktok: { views: 0, gmv: 0 }, shopee: { views: 0, gmv: 0 } };
 
-            const sortedData = [...dataList].sort((a, b) => new Date(a.date) - new Date(b.date));
+            const sortedData = [...pendapatanDataList].sort((a, b) => new Date(a.date) - new Date(b.date));
 
             sortedData.forEach(item => {
-                if (!dateMap[item.date]) dateMap[item.date] = { income: 0, views: 0 };
-                dateMap[item.date].income += item.income;
-                dateMap[item.date].views += item.views;
+                if (!dateMap[item.date]) dateMap[item.date] = { gmv: 0, views: 0 };
+                dateMap[item.date].gmv += (Number(item.gmv) || 0); 
+                dateMap[item.date].views += (Number(item.views) || 0);
 
-                if (platformMap[item.platform]) {
-                    platformMap[item.platform].views += item.views;
-                    platformMap[item.platform].sales += item.sales;
+                const plat = (item.platform || '').toLowerCase();
+                if (plat === 'tiktok' || plat === 'shopee') {
+                    platformMap[plat].views += (Number(item.views) || 0);
+                    platformMap[plat].gmv += (Number(item.gmv) || 0); 
                 }
             });
 
             const labels = Object.keys(dateMap);
-            const incomeData = labels.map(date => dateMap[date].income);
+            const gmvData = labels.map(date => dateMap[date].gmv);
             const viewsData = labels.map(date => dateMap[date].views);
 
             if (chartInstances.trend) chartInstances.trend.destroy();
             if (chartInstances.platform) chartInstances.platform.destroy();
 
-            // Setup chart colors based on styling
             Chart.defaults.color = '#94a3b8';
             Chart.defaults.font.family = "'Inter', sans-serif";
 
+            // Render Line Chart
             const ctxTrend = document.getElementById('trendChart').getContext('2d');
-            
-            // Gradient for income
             let gradient = ctxTrend.createLinearGradient(0, 0, 0, 400);
             gradient.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
             gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
@@ -850,9 +910,9 @@
                     }),
                     datasets: [
                         {
-                            label: 'Pendapatan (Rp)',
-                            data: incomeData,
-                            borderColor: '#10b981', // Emerald
+                            label: 'GMV / Omset (Rp)',
+                            data: gmvData,
+                            borderColor: '#10b981', 
                             backgroundColor: gradient,
                             borderWidth: 2,
                             pointBackgroundColor: '#fff',
@@ -864,7 +924,7 @@
                         {
                             label: 'Views',
                             data: viewsData,
-                            borderColor: '#6366f1', // Indigo
+                            borderColor: '#6366f1', 
                             borderWidth: 2,
                             borderDash: [5, 5],
                             pointBackgroundColor: '#fff',
@@ -878,7 +938,7 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
-                    plugins: { legend: { display: false } }, // Hide legend to make it cleaner, rely on custom UI
+                    plugins: { legend: { display: false } },
                     scales: {
                         x: { grid: { display: false } },
                         y: { type: 'linear', display: true, position: 'left', grid: { borderDash: [4,4] }, ticks: { callback: v => formatNumber(v) } },
@@ -887,30 +947,42 @@
                 }
             });
 
-            const totalPlatSales = platformMap.tiktok.sales + platformMap.shopee.sales;
-            const pctTiktok = totalPlatSales ? Math.round((platformMap.tiktok.sales / totalPlatSales) * 100) : 0;
-            const pctShopee = totalPlatSales ? 100 - pctTiktok : 0;
+            // Doughnut Chart berdasarkan GMV
+            const totalPlatGMV = platformMap.tiktok.gmv + platformMap.shopee.gmv;
+            const pctTiktok = totalPlatGMV ? Math.round((platformMap.tiktok.gmv / totalPlatGMV) * 100) : 0;
+            const pctShopee = totalPlatGMV ? 100 - pctTiktok : 0;
             
-            document.getElementById('stat-tiktok').innerText = `${pctTiktok}%`;
-            document.getElementById('stat-shopee').innerText = `${pctShopee}%`;
+            document.getElementById('stat-tiktok').innerHTML = `${pctTiktok}%`;
+            document.getElementById('stat-tiktok-rp').innerHTML = formatRupiah(platformMap.tiktok.gmv);
+            
+            document.getElementById('stat-shopee').innerHTML = `${pctShopee}%`;
+            document.getElementById('stat-shopee-rp').innerHTML = formatRupiah(platformMap.shopee.gmv);
 
             const ctxPlatform = document.getElementById('platformChart').getContext('2d');
+            
+            const doughnutData = totalPlatGMV > 0 ? [platformMap.tiktok.gmv, platformMap.shopee.gmv] : [1];
+            const doughnutColors = totalPlatGMV > 0 ? ['#0f172a', '#ea580c'] : ['#f1f5f9'];
+            const doughnutLabels = totalPlatGMV > 0 ? ['TikTok', 'Shopee'] : ['Belum ada data'];
+
             chartInstances.platform = new Chart(ctxPlatform, {
                 type: 'doughnut',
                 data: {
-                    labels: ['TikTok', 'Shopee'],
+                    labels: doughnutLabels,
                     datasets: [{
-                        data: [platformMap.tiktok.sales, platformMap.shopee.sales],
-                        backgroundColor: ['#0f172a', '#ea580c'], // Slate-900 and Orange-600
+                        data: doughnutData,
+                        backgroundColor: doughnutColors,
                         borderWidth: 0,
-                        hoverOffset: 5
+                        hoverOffset: totalPlatGMV > 0 ? 5 : 0
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     cutout: '75%',
-                    plugins: { legend: { display: false } }
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: { enabled: totalPlatGMV > 0 }
+                    }
                 }
             });
         };
@@ -1035,14 +1107,13 @@
             });
         };
 
-        // Forms Event Listeners
         const handleFormSubmit = async (e, type) => {
             e.preventDefault();
             
             let newEntry = { id: Date.now(), type: type, date: document.getElementById(`${type}-date`).value };
             newEntry.platform = document.getElementById(`${type}-platform`).value;
 
-            if (type === 'content' || type === 'sales') {
+            if (type === 'content' || type === 'sales' || type === 'upload') {
                 const prodVal = document.getElementById(`${type}-product`).value;
                 if(!prodVal) return showToast('Peringatan', 'Silakan pilih produk dari katalog!', 'error');
                 
@@ -1068,18 +1139,10 @@
                 newEntry.isTrendingSales = document.getElementById('sales-trending').checked;
                 newEntry.isTopSales = document.getElementById('sales-top-sales').checked;
             } else if (type === 'upload') {
-                const selectedProduct = document.getElementById('upload-product').value;
-                if (!selectedProduct) return showToast('Peringatan', 'Pilih produk yang diupload!', 'error');
-                
-                const productExists = productsData.some(p => p.name.toLowerCase() === selectedProduct.toLowerCase());
-                if (!productExists) return showToast('Peringatan', 'Produk tidak ditemukan di Katalog! Pastikan mengetik nama yang benar atau tambah di menu Katalog.', 'error');
-                
                 const uploadTime = document.getElementById('upload-time').value;
-                
                 newEntry.type = 'upload_log';
                 newEntry.uploadCount = 1;
-                newEntry.products = selectedProduct;
-                newEntry.product = selectedProduct;
+                newEntry.products = newEntry.product; 
                 newEntry.content = uploadTime ? uploadTime : '-';
                 newEntry.views = 0; newEntry.sales = 0; newEntry.income = 0;
             } else if (type === 'pendapatan') {
@@ -1111,9 +1174,9 @@
             if(!document.getElementById('view-dashboard').classList.contains('hidden')) updateDashboard();
             
             if(type === 'pendapatan') {
-                await syncToAPI('savePendapatan', newEntry);
+                syncToAPI('savePendapatan', newEntry);
             } else {
-                await syncToAPI('saveLaporan', newEntry);
+                syncToAPI('saveLaporan', newEntry);
             }
         };
 
@@ -1122,22 +1185,16 @@
         document.getElementById('form-upload').addEventListener('submit', e => handleFormSubmit(e, 'upload'));
         document.getElementById('form-pendapatan').addEventListener('submit', e => handleFormSubmit(e, 'pendapatan'));
 
-        // Products Datalist Update
         const updateProductDatalist = () => {
             const datalist = document.getElementById('product-options');
             if (datalist) datalist.innerHTML = '';
-
-            if (productsData.length === 0) {
-                return;
-            }
-
+            if (productsData.length === 0) return;
             productsData.forEach(p => {
                 if(!p.name) return;
                 if (datalist) datalist.innerHTML += `<option value="${p.name}">`;
             });
         };
 
-        // Table Render (History)
         const renderTable = () => {
             const tbody = document.getElementById('history-tbody');
             const emptyState = document.getElementById('empty-state');
@@ -1204,11 +1261,11 @@
                     typeBadge = '<span class="bg-amber-100 text-amber-700 border border-amber-200 px-2 py-1 rounded text-[10px] font-bold"><i class="fas fa-wallet mr-1"></i> Rekap Harian</span>';
                     contentDetails = `
                         <p class="font-bold text-slate-800 line-clamp-1 text-sm">${platIcon} Klik Produk: ${formatNumber(item.klik)}</p>
-                        <p class="text-xs text-slate-500 mt-0.5">Komisi: ${formatRupiah(item.komisi)}</p>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Komisi: ${formatRupiah(item.komisi)}</p>
                     `;
                     metricsViews = `<span class="font-bold text-slate-700">${formatNumber(item.views)}</span>`;
                     metricsSales = `<span class="font-bold text-emerald-600">${item.qty} pcs</span>`;
-                    metricsIncome = `<span class="font-semibold text-amber-600">${formatRupiah(item.gmv)}</span>`;
+                    metricsIncome = `<span class="font-bold text-slate-800">${formatRupiah(item.gmv)}</span>`;
                     delAction = `deletePendapatan(${item.id})`;
                 }
 
@@ -1239,7 +1296,6 @@
             });
         };
 
-        // Products Render
         const renderProducts = () => {
             const tbody = document.getElementById('products-tbody');
             const emptyState = document.getElementById('products-empty');
@@ -1333,7 +1389,6 @@
             });
         };
 
-        // Modal and Dialog Handlers
         const openProductModal = () => {
             const modal = document.getElementById('modal-add-product');
             const content = document.getElementById('modal-add-product-content');
@@ -1366,10 +1421,9 @@
             closeProductModal(); 
             
             showToast('Katalog Diperbarui', 'Produk berhasil ditambahkan!', 'success');
-            await syncToAPI('saveProduk', newProd);
+            syncToAPI('saveProduk', newProd);
         });
 
-        // Custom Confirm Dialog
         const showConfirm = (title, message, onConfirm) => {
             const modal = document.getElementById('confirm-modal');
             const content = document.getElementById('confirm-content');
@@ -1407,7 +1461,7 @@
                 updateProductDatalist();
                 renderProducts();
                 showToast('Terhapus', 'Produk berhasil dihapus dari katalog.', 'info');
-                await syncToAPI('deleteProduk', { id: id });
+                syncToAPI('deleteProduk', { id: id });
             });
         };
 
@@ -1417,7 +1471,7 @@
                 renderTable();
                 if(!document.getElementById('view-dashboard').classList.contains('hidden')) updateDashboard();
                 showToast('Terhapus', 'Data riwayat berhasil dihapus.', 'info');
-                await syncToAPI('deleteLaporan', { id: id });
+                syncToAPI('deleteLaporan', { id: id });
             });
         };
 
@@ -1425,8 +1479,9 @@
             showConfirm('Hapus Rekap', 'Data rekap pendapatan ini akan dihapus. Lanjutkan?', async () => {
                 pendapatanData = pendapatanData.filter(item => item.id !== id);
                 renderTable();
+                if(!document.getElementById('view-dashboard').classList.contains('hidden')) updateDashboard();
                 showToast('Terhapus', 'Data pendapatan berhasil dihapus.', 'info');
-                await syncToAPI('deletePendapatan', { id: id });
+                syncToAPI('deletePendapatan', { id: id });
             });
         };
 
@@ -1437,7 +1492,7 @@
                 renderTable();
                 updateDashboard();
                 showToast('Dibersihkan', 'Semua riwayat telah dihapus.', 'info');
-                await syncToAPI('clearLaporan', {});
+                syncToAPI('clearLaporan', {});
             });
         };
 
@@ -1544,7 +1599,6 @@
             }
 
             container.innerHTML = html;
-
             const modal = document.getElementById('modal-edit-data');
             const contentEl = document.getElementById('modal-edit-data-content');
             modal.classList.remove('hidden');
@@ -1595,24 +1649,22 @@
             showToast('Tersimpan', 'Data riwayat berhasil diperbarui.', 'success');
 
             const action = isPendapatan ? 'editPendapatan' : 'editLaporan';
-            await syncToAPI(action, item);
+            syncToAPI(action, item);
         });
 
-        // Export CSV Functionality
         const exportToCSV = () => {
             const combinedData = [...appData, ...pendapatanData].sort((a, b) => new Date(b.date) - new Date(a.date));
             if (combinedData.length === 0) return showToast('Export Gagal', 'Tidak ada data untuk diekspor.', 'error');
             
             let csvContent = "data:text/csv;charset=utf-8,";
-            // Header
-            csvContent += "ID,Tanggal,Tipe,Platform,Produk/Konten,Judul/Detail,Views,Sales Qty,Income (Rp)\r\n";
+            csvContent += "ID,Tanggal,Tipe,Platform,Produk/Konten,Judul/Detail,Views,Sales Qty,Income/GMV (Rp)\r\n";
             
             combinedData.forEach(row => {
                 let rDate = formatDateIndo(row.date);
                 let rProd = `"${row.product || row.products || 'Rekap Harian'}"`;
                 let rTitle = `"${row.content || `GMV: ${row.gmv || 0} Klik: ${row.klik || 0}`}"`;
                 
-                let rowStr = `${row.id},${rDate},${row.type},${row.platform || '-'},${rProd},${rTitle},${row.views || 0},${row.sales || row.qty || 0},${row.income || row.komisi || 0}`;
+                let rowStr = `${row.id},${rDate},${row.type},${row.platform || '-'},${rProd},${rTitle},${row.views || 0},${row.sales || row.qty || 0},${row.income || row.gmv || 0}`;
                 csvContent += rowStr + "\r\n";
             });
 
@@ -1626,7 +1678,6 @@
             showToast('Export Berhasil', 'File CSV berhasil diunduh.', 'success');
         };
 
-        // Init
         window.onload = () => fetchDataFromAPI();
 
     </script>
