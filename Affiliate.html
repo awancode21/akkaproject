@@ -586,6 +586,32 @@
         </div>
     </div>
 
+    <!-- Modal Edit Data -->
+    <div id="modal-edit-data" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[65] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95 transition-transform duration-300" id="modal-edit-data-content">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
+                <h3 class="text-lg font-bold text-slate-800">Edit Data</h3>
+                <button type="button" onclick="closeEditModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300 hover:text-slate-700 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6 max-h-[80vh] overflow-y-auto">
+                <form id="form-edit" class="space-y-4">
+                    <div id="edit-dynamic-fields" class="space-y-4"></div>
+                    <input type="hidden" id="edit-id">
+                    <input type="hidden" id="edit-type">
+                    <input type="hidden" id="edit-is-pendapatan">
+                    <div class="flex justify-end gap-3 mt-8">
+                        <button type="button" onclick="closeEditModal()" class="px-5 py-2.5 rounded-xl font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">Batal</button>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2">
+                            <i class="fas fa-save"></i> Simpan Perubahan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed top-20 right-4 md:right-8 z-[70] flex flex-col gap-3 pointer-events-none"></div>
 
@@ -1186,6 +1212,9 @@
                     delAction = `deletePendapatan(${item.id})`;
                 }
 
+                const isPendapatanType = item.type === 'pendapatan_harian';
+                const editAction = `openEditModal(${item.id}, ${isPendapatanType})`;
+
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/80 transition-colors group';
                 tr.innerHTML = `
@@ -1196,9 +1225,14 @@
                     <td class="p-4 align-top text-right">${metricsSales}</td>
                     <td class="p-4 align-top text-right">${metricsIncome}</td>
                     <td class="p-4 align-top text-center">
-                        <button onclick="${delAction}" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="flex justify-center items-center gap-1 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
+                            <button onclick="${editAction}" class="text-slate-400 hover:text-blue-500 hover:bg-blue-50 p-2 rounded-lg transition-colors">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="${delAction}" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -1406,6 +1440,163 @@
                 await syncToAPI('clearLaporan', {});
             });
         };
+
+        const closeEditModal = () => {
+            const modal = document.getElementById('modal-edit-data');
+            const content = document.getElementById('modal-edit-data-content');
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        };
+
+        const openEditModal = (id, isPendapatan) => {
+            const dataList = isPendapatan ? pendapatanData : appData;
+            const item = dataList.find(d => d.id === id);
+            if(!item) return;
+
+            document.getElementById('edit-id').value = item.id;
+            document.getElementById('edit-type').value = item.type;
+            document.getElementById('edit-is-pendapatan').value = isPendapatan;
+
+            const container = document.getElementById('edit-dynamic-fields');
+            let html = `
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label>
+                    <input type="date" id="edit-date" required value="${item.date}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Platform</label>
+                    <select id="edit-platform" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="tiktok" ${item.platform === 'tiktok' ? 'selected' : ''}>TikTok</option>
+                        <option value="shopee" ${item.platform === 'shopee' ? 'selected' : ''}>Shopee</option>
+                    </select>
+                </div>
+            `;
+
+            if (item.type === 'content') {
+                html += `
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Produk</label>
+                        <input type="text" list="product-options" id="edit-product" value="${item.product || ''}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Judul Konten</label>
+                        <input type="text" id="edit-content" value="${item.content || ''}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Views</label>
+                        <input type="number" id="edit-views" value="${item.views || 0}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono">
+                    </div>
+                `;
+            } else if (item.type === 'sales') {
+                html += `
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Produk</label>
+                        <input type="text" list="product-options" id="edit-product" value="${item.product || ''}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Dari Konten</label>
+                        <input type="text" id="edit-content" value="${item.content || ''}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Qty Terjual</label>
+                        <input type="number" id="edit-sales" value="${item.sales || 0}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">GMV / Omset</label>
+                        <input type="number" id="edit-income" value="${item.income || 0}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono">
+                    </div>
+                `;
+            } else if (item.type === 'upload_log') {
+                html += `
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Produk</label>
+                        <input type="text" list="product-options" id="edit-product" value="${item.product || item.products || ''}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Jam Upload</label>
+                        <input type="time" id="edit-content" value="${item.content || ''}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono">
+                    </div>
+                `;
+            } else if (item.type === 'pendapatan_harian') {
+                html += `
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Views</label>
+                        <input type="number" id="edit-views" value="${item.views || 0}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Klik Produk</label>
+                        <input type="number" id="edit-klik" value="${item.klik || 0}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Qty (Pesanan)</label>
+                        <input type="number" id="edit-qty" value="${item.qty || 0}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">GMV / Omset</label>
+                        <input type="number" id="edit-gmv" value="${item.gmv || 0}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Komisi</label>
+                        <input type="number" id="edit-komisi" value="${item.komisi || 0}" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none font-mono">
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+
+            const modal = document.getElementById('modal-edit-data');
+            const contentEl = document.getElementById('modal-edit-data-content');
+            modal.classList.remove('hidden');
+            void modal.offsetWidth;
+            modal.classList.remove('opacity-0');
+            contentEl.classList.remove('scale-95');
+        };
+
+        document.getElementById('form-edit').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = parseInt(document.getElementById('edit-id').value);
+            const type = document.getElementById('edit-type').value;
+            const isPendapatan = document.getElementById('edit-is-pendapatan').value === 'true';
+
+            const dataList = isPendapatan ? pendapatanData : appData;
+            const index = dataList.findIndex(d => d.id === id);
+            if(index === -1) return;
+
+            let item = dataList[index];
+            item.date = document.getElementById('edit-date').value;
+            item.platform = document.getElementById('edit-platform').value;
+
+            if (type === 'content') {
+                item.product = document.getElementById('edit-product').value;
+                item.views = parseInt(document.getElementById('edit-views').value) || 0;
+                item.content = document.getElementById('edit-content').value;
+            } else if (type === 'sales') {
+                item.product = document.getElementById('edit-product').value;
+                item.content = document.getElementById('edit-content').value;
+                item.sales = parseInt(document.getElementById('edit-sales').value) || 0;
+                item.income = parseInt(document.getElementById('edit-income').value) || 0;
+            } else if (type === 'upload_log') {
+                const prod = document.getElementById('edit-product').value;
+                item.product = prod;
+                item.products = prod;
+                item.content = document.getElementById('edit-content').value;
+            } else if (type === 'pendapatan_harian') {
+                item.views = parseInt(document.getElementById('edit-views').value) || 0;
+                item.klik = parseInt(document.getElementById('edit-klik').value) || 0;
+                item.qty = parseInt(document.getElementById('edit-qty').value) || 0;
+                item.gmv = parseInt(document.getElementById('edit-gmv').value) || 0;
+                item.komisi = parseInt(document.getElementById('edit-komisi').value) || 0;
+            }
+
+            closeEditModal();
+            renderTable();
+            if(!document.getElementById('view-dashboard').classList.contains('hidden')) updateDashboard();
+            showToast('Tersimpan', 'Data riwayat berhasil diperbarui.', 'success');
+
+            const action = isPendapatan ? 'editPendapatan' : 'editLaporan';
+            await syncToAPI(action, item);
+        });
 
         // Export CSV Functionality
         const exportToCSV = () => {
