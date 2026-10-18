@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>KasirKu - Supabase Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -22,8 +22,8 @@
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden relative">
 
     <!-- Custom Modal Dialog -->
-    <div id="custom-modal" class="hidden-el absolute inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm">
-        <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm text-center m-4 transform transition-all scale-100">
+    <div id="custom-modal" class="hidden-el absolute inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm text-center transform transition-all scale-100">
             <h3 id="modal-title" class="text-xl font-bold mb-2 text-gray-800">Peringatan</h3>
             <p id="modal-message" class="text-gray-600 mb-6 text-sm">Pesan akan tampil disini.</p>
             <div class="flex gap-3 justify-center" id="modal-actions"></div>
@@ -31,14 +31,15 @@
     </div>
 
     <!-- Modal Detail Transaksi (Struk) -->
-    <div id="detail-modal" class="hidden-el absolute inset-0 bg-black/60 z-[90] flex items-center justify-center backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg m-4 flex flex-col max-h-[85vh] overflow-hidden">
+    <div id="detail-modal" class="hidden-el absolute inset-0 bg-black/60 z-[90] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden">
             <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                 <h3 class="font-bold text-gray-800"><i class="fas fa-receipt text-blue-500 mr-2"></i> Detail Transaksi</h3>
                 <button onclick="closeDetailModal()" class="text-gray-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div class="p-4 bg-white text-sm flex justify-between text-gray-500 border-b border-dashed">
                 <span>Invoice: <b id="dtl-inv" class="text-gray-800">INV-XXX</b></span>
+                <span>User: <b id="dtl-cashier" class="text-blue-600">Admin</b></span>
                 <span>Waktu: <b id="dtl-time" class="text-gray-800">00:00</b></span>
             </div>
             <div class="overflow-y-auto p-4 bg-white flex-1">
@@ -66,86 +67,93 @@
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center mx-4">
             <i class="fas fa-store text-5xl text-blue-500 mb-4 drop-shadow-md"></i>
             <h1 class="text-2xl font-extrabold mb-6 text-gray-800 tracking-tight">Login KasirKu</h1>
-            <input type="password" id="pin-input" placeholder="Kosongkan utk Kasir, 1234 Admin" class="w-full p-4 border rounded-xl mb-4 text-center text-lg focus:ring-4 focus:ring-blue-200 focus:border-blue-500 outline-none transition-all">
-            <button onclick="login()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition shadow-lg active:scale-95">MASUK</button>
+            
+            <div class="mb-4 text-left">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Pilih / Nama User</label>
+                <select id="login-user-select" onchange="handleLoginUserChange()" class="w-full p-3 border rounded-xl bg-white text-sm font-semibold focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all">
+                    <option value="">-- Pilih User --</option>
+                </select>
+            </div>
+
+            <input type="password" id="pin-input" placeholder="PIN Akun" class="w-full p-3.5 border rounded-xl mb-4 text-center text-base focus:ring-4 focus:ring-blue-200 focus:border-blue-500 outline-none transition-all">
+            <button onclick="login()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-lg active:scale-95">MASUK</button>
         </div>
     </div>
 
     <!-- Header Navigation -->
     <header id="main-header" class="bg-white shadow-sm px-4 py-3 flex justify-between items-center hidden-el z-40 relative border-b border-gray-200">
         <div class="flex items-center gap-2 text-blue-600 font-bold text-xl tracking-tight">
-            <i class="fas fa-store text-blue-500"></i> KasirKu
+            <i class="fas fa-store text-blue-500"></i> KasirKu <span id="header-user-badge" class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-semibold ml-2"></span>
         </div>
         <nav class="flex gap-2" id="nav-menu">
             <button onclick="switchTab('pos')" id="nav-pos" class="nav-btn bg-blue-100 text-blue-700 px-3 md:px-4 py-2 rounded-lg font-bold shadow-sm transition-all text-sm"><i class="fas fa-cash-register mr-1"></i> POS</button>
             <button onclick="switchTab('laporan')" id="nav-laporan" class="nav-btn text-gray-500 hover:bg-gray-100 px-3 md:px-4 py-2 rounded-lg font-semibold transition-all text-sm"><i class="fas fa-chart-line mr-1"></i> Laporan</button>
             <button onclick="switchTab('admin')" id="nav-admin" class="nav-btn text-gray-500 hover:bg-gray-100 px-3 md:px-4 py-2 rounded-lg font-semibold hidden-el transition-all text-sm"><i class="fas fa-cog mr-1"></i> Admin</button>
         </nav>
-        <button onclick="logout()" class="text-red-500 font-bold hover:bg-red-50 px-3 py-2 rounded-lg transition-colors"><i class="fas fa-sign-out-alt"></i></button>
+        <button onclick="logout()" class="text-red-500 font-bold hover:bg-red-50 px-3 py-2 rounded-lg transition-colors" title="Keluar"><i class="fas fa-sign-out-alt"></i></button>
     </header>
 
     <!-- Tab POS (Kasir) -->
-    <main id="pos-view" class="flex-1 flex flex-col lg:flex-row overflow-hidden hidden-el relative pb-16 lg:pb-0">
+    <main id="pos-view" class="flex-1 flex flex-col lg:flex-row overflow-hidden hidden-el relative pb-20 lg:pb-0">
         <!-- Area Produk -->
         <div class="flex-1 flex flex-col bg-gray-50 h-full relative overflow-y-auto">
             <div class="p-4 bg-white shadow-sm z-10 flex gap-3 sticky top-0">
                 <div class="relative flex-1">
                     <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
-                    <input type="text" id="search-item" onkeyup="renderProducts()" placeholder="Cari nama, ID, atau kode original..." class="w-full pl-11 p-3 border-gray-200 bg-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm">
+                    <input type="text" id="search-item" onkeyup="renderProducts()" placeholder="Cari nama, ID, atau kode..." class="w-full pl-11 p-3 border-gray-200 bg-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm">
                 </div>
                 <button onclick="loadData()" class="bg-white border border-gray-200 text-gray-600 px-4 rounded-xl hover:bg-gray-50 shadow-sm transition-all" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
             </div>
-            <div id="product-grid" class="p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start pb-20">
+            <div id="product-grid" class="p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start pb-28 lg:pb-4">
                 <!-- Produk di-render disini -->
             </div>
         </div>
 
-        <!-- Floating Cart Trigger for Mobile -->
-        <div class="lg:hidden absolute bottom-3 left-3 right-3 z-30">
-            <button onclick="toggleMobileCart()" class="w-full bg-slate-900 text-white p-4 rounded-2xl shadow-xl flex justify-between items-center font-bold">
+        <!-- Floating Cart Bar for Mobile -->
+        <div class="lg:hidden fixed bottom-3 left-3 right-3 z-30">
+            <button onclick="toggleMobileCart()" class="w-full bg-slate-900 text-white p-3.5 rounded-2xl shadow-2xl flex justify-between items-center font-bold border border-slate-700">
                 <span class="flex items-center gap-2"><i class="fas fa-shopping-cart text-blue-400"></i> <span id="mobile-cart-count">0</span> Item</span>
                 <span id="mobile-cart-total" class="text-blue-400">Rp 0</span>
             </button>
         </div>
 
-        <!-- Area Keranjang (Responsive Overlay on Mobile, Sidebar on Desktop) -->
-        <div id="cart-sidebar" class="hidden lg:flex fixed lg:relative inset-0 lg:inset-auto z-40 lg:z-auto bg-black/60 lg:bg-white w-full lg:w-[420px] border-l border-gray-200 shadow-2xl flex-col h-full">
-            <div class="bg-white lg:bg-white w-full h-full lg:h-auto flex flex-col ml-auto max-w-md lg:max-w-none">
-                <div class="p-4 bg-slate-800 text-white flex justify-between items-center">
-                    <h2 class="font-bold text-lg"><i class="fas fa-shopping-cart text-blue-400"></i> Keranjang Belanja</h2>
-                    <button onclick="toggleMobileCart()" class="lg:hidden text-white hover:text-red-400"><i class="fas fa-times text-xl"></i></button>
+        <!-- Area Keranjang (Responsive Drawer on Mobile, Sidebar on Desktop) -->
+        <div id="cart-sidebar" class="hidden fixed inset-0 z-50 lg:relative lg:inset-auto bg-black/60 lg:bg-white w-full lg:w-[420px] border-l border-gray-200 shadow-2xl flex-col h-full justify-end lg:justify-start">
+            <div class="bg-white w-full max-h-[85vh] lg:max-h-none flex flex-col ml-auto rounded-t-3xl lg:rounded-none overflow-hidden h-full">
+                <div class="p-4 bg-slate-800 text-white flex justify-between items-center shrink-0">
+                    <h2 class="font-bold text-lg"><i class="fas fa-shopping-cart text-blue-400"></i> Keranjang</h2>
+                    <button onclick="toggleMobileCart()" class="lg:hidden text-white hover:text-red-400 p-2"><i class="fas fa-times text-xl"></i></button>
                     <span class="hidden lg:inline-block bg-blue-500 font-bold text-xs px-3 py-1 rounded-full" id="cart-count">0</span>
                 </div>
                 
-                <div id="cart-items" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50/50 max-h-[40vh] lg:max-h-none">
-                    <div class="text-center text-gray-400 mt-10 text-sm"><i class="fas fa-box-open text-3xl mb-2 block opacity-50"></i>Keranjang masih kosong</div>
+                <div id="cart-items" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50/50">
+                    <div class="text-center text-gray-400 mt-10 text-sm"><i class="fas fa-box-open text-3xl mb-2 block opacity-50"></i>Keranjang kosong</div>
                 </div>
 
-                <div class="p-4 border-t border-gray-200 bg-white">
+                <div class="p-4 border-t border-gray-200 bg-white shrink-0 pb-6 lg:pb-4">
                     <!-- Input Voucher dengan Datalist -->
-                    <div class="mb-4 bg-blue-50 p-3 rounded-xl border border-blue-100">
-                        <div class="flex gap-2">
-                            <input type="text" id="voucher-input" list="voucher-list" placeholder="Pilih / Ketik Voucher" class="w-full p-2 text-sm border rounded-lg uppercase outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white">
+                    <div class="mb-3 bg-blue-50 p-2.5 rounded-xl border border-blue-100">
+                        <div class="flex gap-2 relative">
+                            <input type="text" id="voucher-input" list="voucher-list" oninput="applyVoucher()" placeholder="Ketik/Pilih Voucher" class="w-full p-2.5 text-sm border rounded-lg uppercase outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white font-semibold">
                             <datalist id="voucher-list"></datalist>
-                            <button onclick="applyVoucher()" class="bg-blue-600 text-white px-4 rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow">Pakai</button>
                         </div>
                         <div id="voucher-info" class="text-xs mt-2 hidden-el font-medium"></div>
                     </div>
 
-                    <div class="flex justify-between mb-2 text-sm text-gray-600">
+                    <div class="flex justify-between mb-1.5 text-sm text-gray-600">
                         <span>Subtotal</span>
                         <span id="cart-subtotal" class="font-semibold text-gray-800">Rp 0</span>
                     </div>
-                    <div class="flex justify-between mb-4 text-sm text-green-600 font-medium">
+                    <div class="flex justify-between mb-2 text-sm text-green-600 font-medium">
                         <span>Diskon (Item + Voucher)</span>
                         <span id="cart-discount">- Rp 0</span>
                     </div>
-                    <div class="flex justify-between mb-4 text-2xl font-extrabold text-gray-900 border-t pt-2 border-dashed">
+                    <div class="flex justify-between mb-3 text-xl font-extrabold text-gray-900 border-t pt-2 border-dashed">
                         <span>Total</span>
                         <span id="cart-total">Rp 0</span>
                     </div>
-                    <button onclick="processCheckout()" id="btn-checkout" class="w-full bg-green-500 text-white font-bold py-4 rounded-xl hover:bg-green-600 transition shadow-lg shadow-green-500/30 flex justify-center items-center gap-2 active:scale-95">
-                        <i class="fas fa-check-circle text-xl"></i> BAYAR SEKARANG
+                    <button onclick="processCheckout()" id="btn-checkout" class="w-full bg-green-500 text-white font-bold py-3.5 rounded-xl hover:bg-green-600 transition shadow-lg shadow-green-500/30 flex justify-center items-center gap-2 active:scale-95 text-base">
+                        <i class="fas fa-check-circle text-xl"></i> BAYAR
                     </button>
                 </div>
             </div>
@@ -153,18 +161,50 @@
     </main>
 
     <!-- Tab Laporan -->
-    <main id="laporan-view" class="flex-1 overflow-y-auto p-6 hidden-el bg-gray-50">
+    <main id="laporan-view" class="flex-1 overflow-y-auto p-6 hidden-el bg-gray-50 pb-20">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-gray-200 pb-4">
-            <h2 class="text-2xl font-extrabold text-gray-800 tracking-tight">Laporan Harian</h2>
-            <div class="flex items-center gap-2 bg-white p-2 rounded-xl shadow-sm border border-gray-100">
-                <i class="fas fa-calendar-day text-blue-500 ml-2"></i>
-                <input type="date" id="filter-date" onchange="loadReport()" class="border-none outline-none text-gray-700 font-semibold bg-transparent cursor-pointer">
-                <button onclick="loadReport()" class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg text-sm font-bold transition">Tampilkan</button>
+            <h2 class="text-2xl font-extrabold text-gray-800 tracking-tight">Laporan Penjualan</h2>
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Filter Rentang Tanggal -->
+                <div class="bg-white p-2 rounded-xl shadow-sm border border-gray-100 flex items-center gap-2">
+                    <span class="text-xs font-bold text-gray-500 ml-1">DARI</span>
+                    <input type="date" id="filter-date-start" class="border-none outline-none text-gray-700 text-sm font-semibold bg-transparent cursor-pointer">
+                    <span class="text-xs font-bold text-gray-500 border-l pl-2">SAMPAI</span>
+                    <input type="date" id="filter-date-end" class="border-none outline-none text-gray-700 text-sm font-semibold bg-transparent cursor-pointer">
+                </div>
+                <!-- Filter User Dropdown -->
+                <select id="filter-user" class="bg-white p-2.5 rounded-xl shadow-sm border border-gray-100 outline-none text-gray-700 text-sm font-semibold cursor-pointer">
+                    <option value="">Semua User</option>
+                </select>
+                <!-- Tombol Cari & Export -->
+                <button onclick="loadReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm transition"><i class="fas fa-search"></i></button>
+                <button onclick="exportExcelReport()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm transition flex items-center gap-1"><i class="fas fa-file-excel"></i> Export</button>
             </div>
         </div>
 
+        <!-- Summary -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="report-summary"></div>
 
+        <!-- Laporan Klerek -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+            <h3 class="font-bold text-lg mb-4 border-b border-gray-50 pb-3"><i class="fas fa-users-cog text-purple-500 mr-2"></i> Laporan Klerek (Per User)</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm whitespace-nowrap">
+                    <thead class="bg-slate-50 text-slate-500">
+                        <tr>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider rounded-tl-xl">User / Kasir</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider text-center">Jml Transaksi</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Total Subtotal</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Total Diskon</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider text-right rounded-tr-xl">Pendapatan Bersih</th>
+                        </tr>
+                    </thead>
+                    <tbody id="report-klerek-table" class="divide-y divide-gray-50"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Daftar Transaksi -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-50">
                 <h3 class="font-bold text-lg"><i class="fas fa-list-ul text-blue-500 mr-2"></i> Daftar Transaksi</h3>
@@ -174,9 +214,9 @@
                 <table class="w-full text-left text-sm whitespace-nowrap">
                     <thead class="bg-slate-50 text-slate-500">
                         <tr>
-                            <th class="p-4 font-bold text-xs uppercase tracking-wider rounded-tl-xl">Jam</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider rounded-tl-xl">Tanggal & Jam</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider">No. Invoice</th>
-                            <th class="p-4 font-bold text-xs uppercase tracking-wider">Kasir</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider">User Kasir</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider">Voucher</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Diskon</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Total Bayar</th>
@@ -190,57 +230,84 @@
     </main>
 
     <!-- Tab Admin -->
-    <main id="admin-view" class="flex-1 overflow-y-auto p-6 hidden-el bg-gray-50">
+    <main id="admin-view" class="flex-1 overflow-y-auto p-6 hidden-el bg-gray-50 pb-20">
         <h2 class="text-2xl font-extrabold mb-6 text-gray-800 tracking-tight">Panel Administrator</h2>
         
-        <div class="grid md:grid-cols-2 gap-6 mb-6">
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-file-excel text-green-600 mr-2"></i> Upload Master Item (Excel)</h3>
-                <p class="text-sm text-gray-500 mb-4 leading-relaxed">Mendukung file Excel (.xlsx). ID Produk yang sama otomatis ter-update stoknya.</p>
-                
-                <div class="flex flex-col gap-3">
-                    <input type="file" id="excel-file" accept=".xlsx, .xls" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-gray-200 rounded-xl">
-                    <div class="flex gap-2 flex-wrap">
-                        <button onclick="handleBulkUpload()" class="bg-green-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-green-700 shadow-sm flex items-center gap-2 text-sm transition-all"><i class="fas fa-cloud-upload-alt"></i> Upload & Simpan</button>
-                        <button onclick="downloadTemplate()" class="bg-white border border-blue-200 text-blue-600 px-5 py-2.5 rounded-xl font-bold hover:bg-blue-50 shadow-sm flex items-center gap-2 text-sm transition-all"><i class="fas fa-download"></i> Format Kosong</button>
-                        <button onclick="resetDataMaster()" class="bg-red-50 text-red-600 px-5 py-2.5 rounded-xl font-bold hover:bg-red-100 flex items-center gap-2 text-sm ml-auto transition-all"><i class="fas fa-trash-alt"></i> Kosongkan DB</button>
-                    </div>
-                </div>
-                <div id="upload-status" class="mt-4 p-3 rounded-lg text-sm font-semibold hidden-el bg-gray-50 border"></div>
-            </div>
-
-            <!-- Card Setting Voucher -->
+        <div class="grid md:grid-cols-3 gap-6 mb-6">
+            <!-- Card Pengaturan User Kasir -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
-                <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-ticket-alt text-orange-500 mr-2"></i> Pengaturan Voucher Promo</h3>
-                
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                    <input type="text" id="v-nama" placeholder="Kode Voucher (Ex: EMINA5000)" class="p-2 border rounded-lg text-sm uppercase focus:ring-2 focus:ring-blue-400 outline-none font-bold">
-                    <select id="v-tipe" class="p-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-400 outline-none">
-                        <option value="rupiah">Potongan Rupiah (Rp)</option>
-                        <option value="persen">Diskon Persen (%)</option>
-                    </select>
+                <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-users text-blue-500 mr-2"></i> Pengaturan User</h3>
+                <div class="flex flex-col gap-2 mb-3">
+                    <input type="text" id="new-user-name" placeholder="Nama User Baru" class="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                    <div class="flex gap-2">
+                        <select id="new-user-role" class="w-1/2 p-2.5 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-400 outline-none">
+                            <option value="kasir">Kasir</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <input type="password" id="new-user-pin" placeholder="PIN (Opsional)" class="w-1/2 p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                    </div>
+                    <button onclick="saveCashierUser()" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition shadow text-sm mt-1"><i class="fas fa-plus"></i> Simpan User</button>
                 </div>
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                    <input type="number" id="v-nominal" placeholder="Nominal (Ex: 5000)" class="p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
-                    <input type="text" id="v-keterangan" placeholder="Keterangan Voucher" class="p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
-                </div>
-                <div class="mb-4">
-                    <button onclick="saveVoucher()" class="w-full bg-orange-500 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-orange-600 transition shadow"><i class="fas fa-plus mr-1"></i> Simpan Voucher Baru</button>
-                </div>
-                
                 <div class="flex-1 overflow-y-auto border rounded-xl bg-gray-50 max-h-48">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-gray-200/50 sticky top-0">
                             <tr>
-                                <th class="p-3 text-xs text-gray-500 font-bold uppercase">Kode</th>
-                                <th class="p-3 text-xs text-gray-500 font-bold uppercase">Nominal</th>
-                                <th class="p-3 text-xs text-gray-500 font-bold uppercase">Keterangan</th>
+                                <th class="p-3 text-xs text-gray-500 font-bold uppercase">Nama & Role</th>
                                 <th class="p-3 text-center text-xs text-gray-500 font-bold uppercase w-16">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-cashier-table" class="bg-white divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Card Setting Voucher -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
+                <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-ticket-alt text-orange-500 mr-2"></i> Voucher Promo</h3>
+                
+                <div class="space-y-2.5 mb-3">
+                    <input type="text" id="v-nama" placeholder="Kode Voucher (Ex: EMINA5000)" class="w-full p-2 border rounded-lg text-sm uppercase focus:ring-2 focus:ring-blue-400 outline-none font-bold">
+                    <div class="grid grid-cols-2 gap-2">
+                        <select id="v-tipe" class="p-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-400 outline-none">
+                            <option value="rupiah">Rupiah (Rp)</option>
+                            <option value="persen">Persen (%)</option>
+                        </select>
+                        <input type="number" id="v-nominal" placeholder="Nominal" class="p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                    </div>
+                    <input type="text" id="v-keterangan" placeholder="Keterangan Voucher" class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                </div>
+                <div class="mb-4">
+                    <button onclick="saveVoucher()" class="w-full bg-orange-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition shadow text-sm"><i class="fas fa-plus mr-1"></i> Simpan Voucher</button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto border rounded-xl bg-gray-50 max-h-36">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-gray-200/50 sticky top-0">
+                            <tr>
+                                <th class="p-2.5 text-xs text-gray-500 font-bold uppercase">Kode</th>
+                                <th class="p-2.5 text-xs text-gray-500 font-bold uppercase">Nominal</th>
+                                <th class="p-2.5 text-center text-xs text-gray-500 font-bold uppercase w-12">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="admin-voucher-table" class="bg-white divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
+            </div>
+
+            <!-- Card Upload Excel -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-file-excel text-green-600 mr-2"></i> Upload Master Item</h3>
+                <p class="text-xs text-gray-500 mb-3">Upload file Excel (.xlsx) data stok & harga.</p>
+                
+                <div class="flex flex-col gap-2.5">
+                    <input type="file" id="excel-file" accept=".xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-gray-200 rounded-xl">
+                    <div class="flex gap-2 flex-wrap">
+                        <button onclick="handleBulkUpload()" class="bg-green-600 text-white px-3 py-2 rounded-xl font-bold hover:bg-green-700 shadow-sm flex items-center gap-1.5 text-xs transition-all"><i class="fas fa-cloud-upload-alt"></i> Upload</button>
+                        <button onclick="downloadTemplate()" class="bg-white border border-blue-200 text-blue-600 px-3 py-2 rounded-xl font-bold hover:bg-blue-50 shadow-sm flex items-center gap-1.5 text-xs transition-all"><i class="fas fa-download"></i> Template</button>
+                        <button onclick="resetDataMaster()" class="bg-red-50 text-red-600 px-3 py-2 rounded-xl font-bold hover:bg-red-100 flex items-center gap-1.5 text-xs ml-auto transition-all"><i class="fas fa-trash-alt"></i> Kosongkan</button>
+                    </div>
+                </div>
+                <div id="upload-status" class="mt-3 p-2.5 rounded-lg text-xs font-semibold hidden-el bg-gray-50 border"></div>
             </div>
         </div>
 
@@ -256,7 +323,7 @@
                         <tr>
                             <th class="p-3 font-semibold text-xs uppercase tracking-wider">Kode (ID)</th>
                             <th class="p-3 font-semibold text-xs uppercase tracking-wider">Nama Barang</th>
-                            <th class="p-3 font-semibold text-xs uppercase tracking-wider">Family</th>
+                            <th class="p-3 font-semibold text-xs uppercase tracking-wider">Kelompok</th>
                             <th class="p-3 font-semibold text-xs uppercase tracking-wider text-center">Stok</th>
                             <th class="p-3 font-semibold text-xs uppercase tracking-wider text-right">Harga Jual</th>
                         </tr>
@@ -268,6 +335,7 @@
     </main>
 
     <script>
+        // INISIALISASI SUPABASE
         const SUPABASE_URL = 'https://gvhweyyxiitsqhfeuyxn.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2aHdleXl4aWl0c3FoZmV1eXhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3NTczMjksImV4cCI6MjEwNjMzMzMyOX0.tjqdbIbPRZ190xRj88mRcUv5Q_jgg7AzBhkW0-RFtL4';
         
@@ -282,11 +350,12 @@
 
         let state = {
             role: null, 
+            currentUser: null,
             items: [],
             cart: [],
             vouchers: [],
+            cashierUsers: [],
             appliedVoucher: null,
-            settings: { kelompok: {}, family: {} },
             reports: { transactions: [], details: [] }
         };
 
@@ -331,35 +400,88 @@
             }
         }
 
-        function login() {
+        async function initLoginOptions() {
+            if (!client) return;
+            try {
+                const { data } = await client.from('cashier_users').select('*').order('name');
+                state.cashierUsers = data || [];
+                const selectEl = document.getElementById('login-user-select');
+                
+                let html = '<option value="">-- Pilih User --</option>';
+                if(state.cashierUsers.length > 0) {
+                    state.cashierUsers.forEach(c => {
+                        const icon = c.role === 'admin' ? '🔐' : '👤';
+                        html += `<option value="${c.name}">${icon} ${c.name} (${c.role || 'kasir'})</option>`;
+                    });
+                }
+                selectEl.innerHTML = html;
+            } catch(e) {
+                console.error("Gagal memuat list user", e);
+            }
+        }
+
+        function handleLoginUserChange() {
+            const val = document.getElementById('login-user-select').value;
+            const pinInput = document.getElementById('pin-input');
+            const selectedUser = state.cashierUsers.find(u => u.name === val);
+            
+            if(selectedUser && selectedUser.pin) {
+                pinInput.placeholder = "Masukkan PIN";
+            } else {
+                pinInput.placeholder = "PIN (Kosongkan jika tidak ada)";
+            }
+        }
+
+        async function login() {
+            const userSelect = document.getElementById('login-user-select').value;
             const pin = document.getElementById('pin-input').value;
-            if (pin === '1234') {
-                state.role = 'admin';
+
+            if(!userSelect) {
+                showModal("Pilih User", "Silakan pilih nama user terlebih dahulu.");
+                return;
+            }
+
+            const selectedUser = state.cashierUsers.find(u => u.name === userSelect);
+            
+            if (selectedUser.pin && selectedUser.pin !== pin) {
+                showModal("PIN Salah", "PIN yang Anda masukkan salah.");
+                return;
+            }
+
+            state.role = selectedUser.role || 'kasir';
+            state.currentUser = selectedUser.name;
+            
+            if (state.role === 'admin') {
                 document.getElementById('nav-admin').classList.remove('hidden-el');
             } else {
-                state.role = 'kasir';
                 document.getElementById('nav-admin').classList.add('hidden-el');
             }
+
             document.getElementById('login-screen').classList.add('hidden-el');
             document.getElementById('main-header').classList.remove('hidden-el');
+            document.getElementById('header-user-badge').innerText = `${state.currentUser} (${state.role})`;
             
-            loadData();
+            await loadData();
             switchTab('pos');
         }
 
         function logout() {
             state.role = null;
+            state.currentUser = null;
             state.cart = [];
             state.appliedVoucher = null;
             state.reports = { transactions: [], details: [] };
             document.getElementById('pin-input').value = '';
             document.getElementById('voucher-input').value = '';
+            document.getElementById('login-user-select').value = '';
             
             document.getElementById('login-screen').classList.remove('hidden-el');
             document.getElementById('main-header').classList.add('hidden-el');
             document.getElementById('pos-view').classList.add('hidden-el');
             document.getElementById('admin-view').classList.add('hidden-el');
             document.getElementById('laporan-view').classList.add('hidden-el');
+            
+            initLoginOptions();
         }
 
         function switchTab(tab) {
@@ -385,15 +507,29 @@
                 document.getElementById('admin-view').classList.remove('hidden-el');
                 renderAdminTable();
                 renderVoucherTable();
+                renderCashierUserTable();
             } else if (tab === 'laporan') {
                 document.getElementById('laporan-view').classList.remove('hidden-el');
-                const dateInput = document.getElementById('filter-date');
-                if(!dateInput.value) {
-                    const now = new Date();
-                    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-                    dateInput.value = now.toISOString().split('T')[0];
-                    loadReport();
-                }
+                
+                // Isi Dropdown Filter User
+                const filterUser = document.getElementById('filter-user');
+                let userOptions = '<option value="">Semua User</option>';
+                state.cashierUsers.forEach(u => {
+                    userOptions += `<option value="${u.name}">${u.name} (${u.role || 'kasir'})</option>`;
+                });
+                filterUser.innerHTML = userOptions;
+
+                // Set Tanggal Default (Hari Ini)
+                const dateStart = document.getElementById('filter-date-start');
+                const dateEnd = document.getElementById('filter-date-end');
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                const todayStr = now.toISOString().split('T')[0];
+                
+                if(!dateStart.value) dateStart.value = todayStr;
+                if(!dateEnd.value) dateEnd.value = todayStr;
+                
+                loadReport();
             }
         }
 
@@ -407,6 +543,9 @@
                 const { data: voucherData } = await client.from('vouchers').select('*');
                 state.vouchers = voucherData || [];
 
+                const { data: cashierData } = await client.from('cashier_users').select('*').order('name');
+                state.cashierUsers = cashierData || [];
+
                 renderProducts();
                 renderCart();
                 renderVoucherList();
@@ -414,10 +553,21 @@
                 if(state.role === 'admin') {
                     renderAdminTable();
                     renderVoucherTable();
+                    renderCashierUserTable();
                 }
             } catch (err) {
                 console.error("Gagal memuat data: ", err.message);
                 showModal("Gagal Terhubung", "Tidak dapat mengambil data dari server.");
+            }
+        }
+
+        function renderVoucherList() {
+            const dataList = document.getElementById('voucher-list');
+            if (dataList && state.vouchers) {
+                dataList.innerHTML = state.vouchers.map(v => {
+                    const labelStr = v.tipe === 'persen' ? `Diskon ${v.nominal}%` : `Potongan ${formatRp(v.nominal)}`;
+                    return `<option value="${v.nama}">${v.keterangan ? v.keterangan + ' (' + labelStr + ')' : labelStr}</option>`;
+                }).join('');
             }
         }
 
@@ -479,16 +629,6 @@
                 }
             }
             renderCart();
-        }
-
-        function renderVoucherList() {
-            const dataList = document.getElementById('voucher-list');
-            if (dataList && state.vouchers) {
-                dataList.innerHTML = state.vouchers.map(v => {
-                    const labelStr = v.tipe === 'persen' ? `Diskon ${v.nominal}%` : `Potongan ${formatRp(v.nominal)}`;
-                    return `<option value="${v.nama}">${v.keterangan ? v.keterangan + ' (' + labelStr + ')' : labelStr}</option>`;
-                }).join('');
-            }
         }
 
         function applyVoucher() {
@@ -624,7 +764,7 @@
                         discount_amount: lineDiscAmount,
                         discount_percent: discPercent,
                         total: lineTotal,
-                        user_role: state.role
+                        user_role: state.currentUser
                     });
                 });
 
@@ -650,7 +790,7 @@
                     subtotal: subtotal,
                     discount: totalAllDiscount,
                     total: finalTotal,
-                    role: state.role,
+                    role: state.currentUser,
                     voucher_nama: state.appliedVoucher ? state.appliedVoucher.nama : null,
                     voucher_diskon: voucherDiscountAmount
                 });
@@ -692,7 +832,7 @@
                 <tr class="hover:bg-blue-50/50 transition-colors">
                     <td class="p-3 text-xs text-gray-500 font-mono">${item.id}</td>
                     <td class="p-3 font-semibold text-gray-800">${item.name}</td>
-                    <td class="p-3 text-gray-600">${item.family || '-'}</td>
+                    <td class="p-3 text-gray-600">${item.kelompok || '-'}</td>
                     <td class="p-3 text-center font-bold ${item.stock <= 5 ? 'text-red-600 bg-red-50 rounded-lg' : 'text-gray-700'}">${item.stock}</td>
                     <td class="p-3 text-right font-bold text-gray-800">${formatRp(item.price)}</td>
                 </tr>
@@ -706,21 +846,76 @@
         function renderVoucherTable() {
             const tbody = document.getElementById('admin-voucher-table');
             if(state.vouchers.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-gray-400 text-sm"><i class="fas fa-ticket-alt block text-3xl mb-2 opacity-50"></i> Belum ada voucher</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center p-4 text-gray-400 text-xs">Belum ada voucher</td></tr>`;
                 return;
             }
             tbody.innerHTML = state.vouchers.map(v => `
                 <tr class="hover:bg-orange-50/30 transition-colors">
-                    <td class="p-3 font-extrabold text-orange-600 tracking-wider">${v.nama}</td>
-                    <td class="p-3 text-sm font-bold text-gray-700">
-                        ${v.tipe === 'persen' ? `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded">${v.nominal}%</span>` : formatRp(v.nominal)}
+                    <td class="p-2.5 font-extrabold text-orange-600 text-xs tracking-wider">${v.nama}</td>
+                    <td class="p-2.5 text-xs font-bold text-gray-700">
+                        ${v.tipe === 'persen' ? `${v.nominal}%` : formatRp(v.nominal)}
                     </td>
-                    <td class="p-3 text-xs text-gray-600">${v.keterangan || '-'}</td>
-                    <td class="p-3 text-center">
-                        <button onclick="deleteVoucher('${v.nama}')" class="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-all" title="Hapus"><i class="fas fa-trash-alt"></i></button>
+                    <td class="p-2.5 text-center">
+                        <button onclick="deleteVoucher('${v.nama}')" class="text-red-500 hover:text-red-700 p-1 rounded transition-all" title="Hapus"><i class="fas fa-trash-alt text-xs"></i></button>
                     </td>
                 </tr>
             `).join('');
+        }
+
+        function renderCashierUserTable() {
+            const tbody = document.getElementById('admin-cashier-table');
+            if(state.cashierUsers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="2" class="text-center p-4 text-gray-400 text-xs">Belum ada user terdaftar</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = state.cashierUsers.map(c => `
+                <tr class="hover:bg-blue-50/30 transition-colors">
+                    <td class="p-2.5">
+                        <div class="font-semibold text-gray-700 text-sm">${c.name}</div>
+                        <div class="text-[10px] uppercase font-bold ${c.role === 'admin' ? 'text-blue-500' : 'text-gray-400'}">${c.role || 'kasir'} ${c.pin ? '(Ber-PIN)' : ''}</div>
+                    </td>
+                    <td class="p-2.5 text-center">
+                        <button onclick="deleteCashierUser('${c.name}')" class="text-red-500 hover:text-red-700 p-1 rounded transition-all" title="Hapus"><i class="fas fa-trash-alt text-sm"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function saveCashierUser() {
+            const name = document.getElementById('new-user-name').value.trim();
+            const role = document.getElementById('new-user-role').value;
+            const pin = document.getElementById('new-user-pin').value.trim();
+            
+            if(!name) {
+                showModal("Peringatan", "Masukkan nama user terlebih dahulu.");
+                return;
+            }
+            try {
+                const payload = { name: name, role: role };
+                if (pin) payload.pin = pin;
+                else payload.pin = null; 
+                
+                const { error } = await client.from('cashier_users').upsert(payload);
+                if(error) throw error;
+                
+                document.getElementById('new-user-name').value = '';
+                document.getElementById('new-user-pin').value = '';
+                await loadData();
+            } catch(err) {
+                showModal("Gagal Menyimpan", err.message);
+            }
+        }
+
+        async function deleteCashierUser(name) {
+            showModal("Konfirmasi", `Hapus user "${name}"?`, true, async () => {
+                try {
+                    const { error } = await client.from('cashier_users').delete().eq('name', name);
+                    if(error) throw error;
+                    await loadData();
+                } catch(err) {
+                    showModal("Gagal Menghapus", err.message);
+                }
+            });
         }
 
         async function saveVoucher() {
@@ -774,7 +969,7 @@
 
             statusEl.innerHTML = '<span class="text-blue-600"><i class="fas fa-spinner fa-spin mr-1"></i> Membaca file Excel...</span>';
             statusEl.classList.remove('hidden-el');
-            statusEl.className = 'mt-4 p-3 rounded-lg text-sm font-semibold bg-blue-50 border border-blue-100 block';
+            statusEl.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold bg-blue-50 border border-blue-100 block';
 
             const reader = new FileReader();
             reader.onload = async function(e) {
@@ -853,15 +1048,15 @@
                         if (error) throw error;
                     }
 
-                    statusEl.className = 'mt-4 p-3 rounded-lg text-sm font-semibold bg-green-50 border border-green-100 block';
-                    statusEl.innerHTML = `<span class="text-green-700"><i class="fas fa-check-circle mr-1"></i> Berhasil update/tambah ${finalDataToUpload.length} data.</span>`;
+                    statusEl.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold bg-green-50 border border-green-100 block';
+                    statusEl.innerHTML = `<span class="text-green-700"><i class="fas fa-check-circle mr-1"></i> Berhasil update ${finalDataToUpload.length} data.</span>`;
                     fileInput.value = ''; 
                     
                     await loadData();
 
                 } catch (err) {
                     console.error(err);
-                    statusEl.className = 'mt-4 p-3 rounded-lg text-sm font-semibold bg-red-50 border border-red-100 block';
+                    statusEl.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold bg-red-50 border border-red-100 block';
                     statusEl.innerHTML = `<span class="text-red-600"><i class="fas fa-exclamation-triangle mr-1"></i> Gagal: ${err.message}</span>`;
                 }
             };
@@ -871,8 +1066,7 @@
         function downloadTemplate() {
             const templateData = [
                 ["Kode Stock", "Nama Barang", "Kelompok", "Family", "Original Code", "Disc", "Qty Akhir", "Harga Beli Akhir", "Harga Jual"],
-                ["STK-001", "EMINA ACNE CLEAR EXPERT SERUM 17ml", "KOSMETIK", "EMINA", "EMN-001", 0, 16, 25000, 39000],
-                ["STK-002", "WARDAH LIGHTENING DAY CREAM 20ml", "KOSMETIK", "WARDAH", "WRD-001", 5, 10, 20000, 35000]
+                ["STK-001", "EMINA ACNE CLEAR EXPERT SERUM 17ml", "KOSMETIK", "EMINA", "EMN-001", 0, 16, 25000, 39000]
             ];
             const ws = XLSX.utils.aoa_to_sheet(templateData);
             const wb = XLSX.utils.book_new();
@@ -885,18 +1079,18 @@
             showModal("PERINGATAN BAHAYA!", "Anda akan menghapus SEMUA data produk di database secara permanen. Lanjutkan?", true, async () => {
                 const statusEl = document.getElementById('upload-status');
                 statusEl.classList.remove('hidden-el');
-                statusEl.className = 'mt-4 p-3 rounded-lg text-sm font-semibold border bg-yellow-50 border-yellow-200 text-yellow-700 block';
+                statusEl.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold border bg-yellow-50 border-yellow-200 text-yellow-700 block';
                 statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menghapus seluruh data...';
                 
                 try {
                     const { error } = await client.from('master_items').delete().neq('id', 'kosong');
                     if (error) throw error;
                     
-                    statusEl.className = 'mt-4 p-3 rounded-lg text-sm font-semibold border bg-green-50 border-green-200 text-green-700 block';
+                    statusEl.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold border bg-green-50 border-green-200 text-green-700 block';
                     statusEl.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Seluruh data berhasil dihapus!';
                     await loadData();
                 } catch (err) {
-                    statusEl.className = 'mt-4 p-3 rounded-lg text-sm font-semibold border bg-red-50 border-red-200 text-red-600 block';
+                    statusEl.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold border bg-red-50 border-red-200 text-red-600 block';
                     statusEl.innerHTML = `<i class="fas fa-times-circle mr-1"></i> Gagal: ${err.message}`;
                 }
             });
@@ -904,21 +1098,31 @@
 
         async function loadReport() {
             if (!client) return;
-            const dateStr = document.getElementById('filter-date').value;
-            if(!dateStr) return;
+            const startDate = document.getElementById('filter-date-start').value;
+            const endDate = document.getElementById('filter-date-end').value;
+            const userFilter = document.getElementById('filter-user').value;
+            
+            if(!startDate || !endDate) return;
 
             try {
-                const { data: tx, error: txError } = await client
-                    .from('transactions')
-                    .select('*')
-                    .eq('date', dateStr)
-                    .order('time', { ascending: false });
+                let txQuery = client.from('transactions').select('*')
+                                    .gte('date', startDate)
+                                    .lte('date', endDate)
+                                    .order('date', { ascending: false })
+                                    .order('time', { ascending: false });
+                
+                if (userFilter) txQuery = txQuery.eq('role', userFilter);
+
+                const { data: tx, error: txError } = await txQuery;
                 if (txError) throw txError;
 
-                const { data: dt, error: dtError } = await client
-                    .from('transaction_details')
-                    .select('*')
-                    .eq('date', dateStr);
+                let dtQuery = client.from('transaction_details').select('*')
+                                    .gte('date', startDate)
+                                    .lte('date', endDate);
+                
+                if (userFilter) dtQuery = dtQuery.eq('user_role', userFilter);
+
+                const { data: dt, error: dtError } = await dtQuery;
                 if (dtError) throw dtError;
 
                 state.reports.transactions = tx || [];
@@ -935,12 +1139,24 @@
             const txData = state.reports.transactions;
             const tbody = document.getElementById('report-table');
             const summaryEl = document.getElementById('report-summary');
+            const klerekTbody = document.getElementById('report-klerek-table');
             
             let sumTotal = 0;
             let sumDiscount = 0;
+            let klerekMap = {};
+
             txData.forEach(t => {
                 sumTotal += parseFloat(t.total) || 0;
                 sumDiscount += parseFloat(t.discount) || 0;
+                
+                // Kalkulasi Laporan Klerek per User
+                const user = t.role || 'Unknown';
+                if(!klerekMap[user]) klerekMap[user] = { count: 0, subtotal: 0, discount: 0, total: 0 };
+                
+                klerekMap[user].count += 1;
+                klerekMap[user].subtotal += parseFloat(t.subtotal) || 0;
+                klerekMap[user].discount += parseFloat(t.discount) || 0;
+                klerekMap[user].total += parseFloat(t.total) || 0;
             });
 
             summaryEl.innerHTML = `
@@ -960,8 +1176,23 @@
 
             document.getElementById('report-tx-count').innerText = `${txData.length} Transaksi`;
 
+            // Render Tabel Klerek
+            if(Object.keys(klerekMap).length === 0) {
+                klerekTbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-gray-400 font-medium"><i class="fas fa-folder-open text-3xl mb-3 block opacity-20"></i>Belum ada data klerek</td></tr>`;
+            } else {
+                klerekTbody.innerHTML = Object.keys(klerekMap).map(user => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="p-4 font-bold text-gray-800"><i class="fas fa-user-circle text-gray-400 mr-2"></i> ${user}</td>
+                    <td class="p-4 text-center font-bold text-gray-600 bg-gray-50/50">${klerekMap[user].count} <span class="text-xs font-normal">Struk</span></td>
+                    <td class="p-4 text-right text-gray-600 font-medium">${formatRp(klerekMap[user].subtotal)}</td>
+                    <td class="p-4 text-right text-orange-500 font-semibold">${formatRp(klerekMap[user].discount)}</td>
+                    <td class="p-4 text-right font-extrabold text-blue-600">${formatRp(klerekMap[user].total)}</td>
+                </tr>
+                `).join('');
+            }
+
             if(txData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-12 text-gray-400"><i class="fas fa-folder-open text-5xl mb-3 block opacity-20"></i><span class="font-medium">Belum ada transaksi di tanggal ini</span></td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-12 text-gray-400"><i class="fas fa-folder-open text-5xl mb-3 block opacity-20"></i><span class="font-medium">Belum ada transaksi di rentang tanggal ini</span></td></tr>`;
                 return;
             }
 
@@ -969,9 +1200,9 @@
                 const invNo = tx.order_id.replace("ORD", "INV");
                 return `
                 <tr class="hover:bg-slate-50 transition-colors group">
-                    <td class="p-4 text-gray-600 font-medium">${tx.time.substring(0,5)}</td>
+                    <td class="p-4 text-gray-600 font-medium whitespace-nowrap">${tx.date} <span class="text-xs ml-1 bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">${tx.time.substring(0,5)}</span></td>
                     <td class="p-4 font-bold text-gray-800 font-mono text-sm">${invNo}</td>
-                    <td class="p-4 text-gray-600 capitalize"><span class="bg-gray-100 px-2 py-1 rounded text-xs font-semibold">${tx.role}</span></td>
+                    <td class="p-4 text-gray-700 font-semibold"><span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md text-xs border border-blue-100">${tx.role || 'Admin'}</span></td>
                     <td class="p-4 text-gray-700 font-semibold">${tx.voucher_nama ? `<span class="bg-orange-50 text-orange-600 px-2 py-1 rounded text-xs border border-orange-100">${tx.voucher_nama}</span>` : '-'}</td>
                     <td class="p-4 text-right text-orange-500 font-semibold">${formatRp(tx.discount)}</td>
                     <td class="p-4 text-right font-extrabold text-blue-600">${formatRp(tx.total)}</td>
@@ -983,6 +1214,76 @@
             }).join('');
         }
 
+        function exportExcelReport() {
+            if (state.reports.transactions.length === 0) {
+                showModal("Data Kosong", "Tidak ada data transaksi untuk diekspor pada filter ini.");
+                return;
+            }
+
+            // 1. Data Transaksi Header
+            const txData = state.reports.transactions.map(t => ({
+                "Tanggal": t.date,
+                "Jam": t.time,
+                "No. Invoice": t.order_id.replace("ORD", "INV"),
+                "User / Kasir": t.role || 'Admin',
+                "Subtotal": t.subtotal,
+                "Nama Voucher": t.voucher_nama || '-',
+                "Diskon Voucher": t.voucher_diskon,
+                "Total Diskon": t.discount,
+                "Total Pendapatan": t.total
+            }));
+
+            // 2. Data Detail Item Terjual
+            const dtData = state.reports.details.map(d => ({
+                "Tanggal": d.date,
+                "No. Invoice": d.invoice_no,
+                "Kasir": d.user_role || 'Admin',
+                "ID Item": d.item_id,
+                "Nama Barang": d.name,
+                "Kelompok": d.kelompok || '-',
+                "Qty": d.qty,
+                "Harga Satuan": d.price,
+                "Subtotal": d.subtotal,
+                "Diskon Rp": d.discount_amount,
+                "Total Bersih": d.total
+            }));
+
+            // 3. Rekap Laporan Klerek
+            const klerekMap = {};
+            state.reports.transactions.forEach(t => {
+                const user = t.role || 'Admin';
+                if(!klerekMap[user]) klerekMap[user] = { user, jml_struk: 0, subtotal: 0, diskon: 0, pendapatan: 0 };
+                klerekMap[user].jml_struk += 1;
+                klerekMap[user].subtotal += parseFloat(t.subtotal) || 0;
+                klerekMap[user].diskon += parseFloat(t.discount) || 0;
+                klerekMap[user].pendapatan += parseFloat(t.total) || 0;
+            });
+            const klerekData = Object.values(klerekMap).map(k => ({
+                "Nama User / Kasir": k.user,
+                "Jumlah Transaksi": k.jml_struk,
+                "Subtotal Omzet": k.subtotal,
+                "Total Diskon": k.diskon,
+                "Pendapatan Bersih": k.pendapatan
+            }));
+
+            // Buat Workbook dan masukkan Sheet
+            const wb = XLSX.utils.book_new();
+            
+            const wsTx = XLSX.utils.json_to_sheet(txData);
+            XLSX.utils.book_append_sheet(wb, wsTx, "Transaksi Utama");
+            
+            const wsDt = XLSX.utils.json_to_sheet(dtData);
+            XLSX.utils.book_append_sheet(wb, wsDt, "Detail Barang");
+
+            const wsKlerek = XLSX.utils.json_to_sheet(klerekData);
+            XLSX.utils.book_append_sheet(wb, wsKlerek, "Laporan Klerek");
+
+            // Simpan File ke perangkat
+            const startDt = document.getElementById('filter-date-start').value;
+            const endDt = document.getElementById('filter-date-end').value;
+            XLSX.writeFile(wb, `Laporan_KasirKu_${startDt}_sd_${endDt}.xlsx`);
+        }
+
         function showDetailModal(orderId) {
             const tx = state.reports.transactions.find(t => t.order_id === orderId);
             const items = state.reports.details.filter(d => d.order_id === orderId);
@@ -990,6 +1291,7 @@
 
             document.getElementById('dtl-inv').innerText = orderId.replace("ORD", "INV");
             document.getElementById('dtl-time').innerText = tx.time.substring(0,5);
+            document.getElementById('dtl-cashier').innerText = tx.role || 'Admin';
 
             const vInfoEl = document.getElementById('dtl-voucher-info');
             if(tx.voucher_nama) {
@@ -1018,6 +1320,11 @@
         function closeDetailModal() {
             document.getElementById('detail-modal').classList.add('hidden-el');
         }
+
+        // Initialize application on load
+        window.onload = function() {
+            initLoginOptions();
+        };
     </script>
 </body>
 </html>
