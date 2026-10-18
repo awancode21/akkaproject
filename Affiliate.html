@@ -81,7 +81,7 @@
     </div>
 
     <main class="flex-1 flex flex-col overflow-y-auto pb-20 md:pb-0 relative bg-slate-50/50">
-        <header class="bg-white/80 backdrop-blur-md px-6 py-4 flex justify-between items-center sticky top-0 z-40 border-b border-slate-200 shadow-sm">
+        <header class="bg-white/80 backdrop-blur-md px-6 py-4 flex justify-between items-center sticky top-0 z-40 border-b border-slate-200 shadow-sm flex-wrap gap-3">
             <div class="flex items-center gap-3">
                 <div class="md:hidden bg-gradient-to-tr from-blue-500 to-purple-500 w-8 h-8 rounded-lg flex items-center justify-center shadow-md">
                     <i class="fas fa-chart-pie text-white text-xs"></i>
@@ -89,12 +89,12 @@
                 <h2 id="page-title" class="text-xl md:text-2xl font-bold text-slate-800">Dashboard Analitik</h2>
             </div>
             
-            <div id="header-actions-dashboard" class="hidden md:flex items-center gap-2">
-                <div class="bg-slate-100 p-1 rounded-lg flex text-sm items-center gap-1">
+            <div id="header-actions-dashboard" class="hidden md:flex items-center gap-2 flex-wrap">
+                <div class="bg-slate-100 p-1 rounded-lg flex text-sm items-center gap-1 flex-wrap">
                     <button onclick="setDashFilter('7')" id="btn-filter-7" class="px-3 py-1.5 rounded-md font-medium text-slate-500 hover:text-slate-700 transition-all">7 Hari</button>
                     <button onclick="setDashFilter('30')" id="btn-filter-30" class="px-3 py-1.5 rounded-md bg-white shadow-sm font-semibold text-slate-800 transition-all">30 Hari</button>
                     <button onclick="setDashFilter('all')" id="btn-filter-all" class="px-3 py-1.5 rounded-md font-medium text-slate-500 hover:text-slate-700 transition-all">Semua</button>
-                    <div class="h-4 w-[1px] bg-slate-300 mx-1"></div>
+                    <div class="h-4 w-[1px] bg-slate-300 mx-1 hidden lg:block"></div>
                     <div class="flex items-center gap-1 px-1">
                         <input type="date" id="dash-start-date" onchange="setCustomDashFilter()" class="text-xs bg-transparent border border-slate-200 rounded px-2 py-1 text-slate-700 outline-none">
                         <span class="text-slate-400 text-xs">-</span>
@@ -113,7 +113,7 @@
             
             <div id="view-dashboard" class="fade-in space-y-6">
                 <!-- Mobile Filter -->
-                <div class="md:hidden bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm mb-4 space-y-2.5">
+                <div class="md:hidden bg-white p-3 rounded-xl border border-slate-200 shadow-sm mb-4 space-y-3">
                     <div class="flex text-sm">
                         <button onclick="setDashFilter('7')" id="mob-btn-filter-7" class="flex-1 px-2 py-1.5 rounded-md font-medium text-slate-500 transition-all text-xs">7 Hari</button>
                         <button onclick="setDashFilter('30')" id="mob-btn-filter-30" class="flex-1 px-2 py-1.5 rounded-md bg-slate-100 shadow-inner font-semibold text-slate-800 transition-all text-xs">30 Hari</button>
@@ -131,7 +131,7 @@
                     <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
                         <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-emerald-400 rounded-full opacity-10 group-hover:scale-150 transition-transform duration-500"></div>
                         <p class="text-sm text-slate-500 font-semibold mb-1 uppercase tracking-wider">Total Pendapatan</p>
-                        <h3 class="text-3xl font-bold text-slate-800" id="summary-income">Rp 0</h3>
+                        <h3 class="text-2xl md:text-3xl font-bold text-slate-800 truncate" id="summary-income" title="Rp 0">Rp 0</h3>
                         <div class="mt-4 flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 w-fit px-2 py-1 rounded-md font-medium">
                             <i class="fas fa-wallet"></i> GMV / Omset Harian
                         </div>
@@ -195,9 +195,13 @@
                         </div>
                     </div>
                     <div class="glass-card rounded-2xl overflow-hidden flex flex-col">
-                        <div class="bg-white px-6 py-4 border-b border-slate-100 flex justify-between items-center gap-2 flex-wrap">
+                        <div class="bg-white p-4 border-b border-slate-100 flex justify-between items-center gap-2 flex-wrap">
                             <h4 class="font-bold text-slate-800">Produk Terlaris</h4>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <select id="filter-top-metric" onchange="updateDashboard()" class="text-xs border border-slate-200 text-slate-600 rounded-lg bg-slate-50 py-1.5 px-2.5 focus:ring-2 focus:ring-blue-500 outline-none font-medium">
+                                    <option value="qty">Berdasarkan Qty</option>
+                                    <option value="gmv">Berdasarkan GMV</option>
+                                </select>
                                 <select id="filter-top-limit" onchange="updateDashboard()" class="text-xs border border-slate-200 text-slate-600 rounded-lg bg-slate-50 py-1.5 px-2.5 focus:ring-2 focus:ring-blue-500 outline-none font-medium">
                                     <option value="5">Top 5</option>
                                     <option value="10">Top 10</option>
@@ -474,7 +478,7 @@
                                     <th class="p-4 text-right">Views</th>
                                     <th class="p-4 text-right">Sales / Conv.</th>
                                     <th class="p-4 text-right">Nominal (Rp)</th>
-                                    <th class="p-4 text-center w-28">Aksi</th>
+                                    <th class="p-4 text-center w-36">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="history-tbody" class="divide-y divide-slate-100 text-sm bg-white">
@@ -519,7 +523,7 @@
                                     <th class="p-4">Sumber Sampel</th>
                                     <th class="p-4 text-center">Frekuensi Upload</th>
                                     <th class="p-4">Catatan Khusus</th>
-                                    <th class="p-4 text-center w-28">Aksi</th>
+                                    <th class="p-4 text-center w-36">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="products-tbody" class="divide-y divide-slate-100 text-sm bg-white">
@@ -539,7 +543,6 @@
         </div>
     </main>
 
-    <!-- Modal Add / Edit Product -->
     <div id="modal-add-product" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95 transition-transform duration-300" id="modal-add-product-content">
             <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
@@ -618,13 +621,9 @@
         </div>
     </div>
 
-    <!-- Toast Notifications Container -->
     <div id="toast-container" class="fixed top-20 right-4 md:right-8 z-[70] flex flex-col gap-3 pointer-events-none"></div>
-
-    <!-- Datalist untuk Autocomplete Produk -->
     <datalist id="product-options"></datalist>
 
-    <!-- Progress Bar Loading -->
     <div id="global-loader" class="fixed top-0 left-0 w-1 h-1 bg-slate-100 z-[100] hidden">
         <div class="h-full bg-blue-600 w-1/3 animate-[slide_1.5s_ease-in-out_infinite]"></div>
     </div>
@@ -765,8 +764,9 @@
             document.getElementById('page-title').innerText = titles[viewId];
             
             document.getElementById('header-actions-dashboard').classList.toggle('hidden', viewId !== 'dashboard');
+            document.getElementById('header-actions-dashboard').classList.toggle('md:flex', viewId === 'dashboard');
             document.getElementById('header-actions-history').classList.toggle('hidden', viewId !== 'history');
-            document.getElementById('header-actions-history').classList.toggle('md:flex', viewId === 'history');
+            document.getElementById('header-actions-history').classList.toggle('flex', viewId === 'history');
 
             if (viewId === 'dashboard') updateDashboard();
             if (viewId === 'history') renderTable();
@@ -996,7 +996,9 @@
 
         const renderTopProducts = (dataList) => {
             const filter = document.getElementById('filter-top-product').value;
-            const limit = parseInt(document.getElementById('filter-top-limit').value) || 5;
+            const limit = parseInt(document.getElementById('filter-top-limit').value) || 20;
+            const metric = document.getElementById('filter-top-metric').value; // 'qty' or 'gmv'
+            
             const validData = dataList.filter(item => item.type === 'content' || item.type === 'sales');
             const filteredData = filter === 'all' ? validData : validData.filter(item => item.platform === filter);
             
@@ -1004,14 +1006,22 @@
             filteredData.forEach(item => {
                 if(!item.product) return;
                 if (!productMap[item.product]) productMap[item.product] = { sales: 0, income: 0, views: 0 };
-                productMap[item.product].sales += item.sales;
-                productMap[item.product].income += item.income;
-                productMap[item.product].views += item.views;
+                productMap[item.product].sales += (Number(item.sales) || 0);
+                productMap[item.product].income += (Number(item.income) || 0);
+                productMap[item.product].views += (Number(item.views) || 0);
             });
 
             const topProducts = Object.entries(productMap)
                 .map(([name, stats]) => ({ name, ...stats }))
-                .sort((a, b) => b.sales - a.sales)
+                .sort((a, b) => {
+                    if (metric === 'gmv') {
+                        if (b.income !== a.income) return b.income - a.income;
+                        return b.sales - a.sales;
+                    } else {
+                        if (b.sales !== a.sales) return b.sales - a.sales;
+                        return b.income - a.income;
+                    }
+                })
                 .slice(0, limit);
 
             const listEl = document.getElementById('list-top-products');
@@ -1026,6 +1036,19 @@
                 const medalColors = ['text-yellow-500', 'text-slate-400', 'text-amber-700'];
                 const rankIcon = index < 3 ? `<i class="fas fa-medal ${medalColors[index]} text-lg"></i>` : `<span class="text-sm font-bold text-slate-400">#${index+1}</span>`;
                 
+                let rightContent = '';
+                if (metric === 'gmv') {
+                    rightContent = `
+                        <p class="font-bold text-emerald-600 text-sm">${formatRupiah(prod.income)}</p>
+                        <p class="text-[11px] font-medium text-slate-500 mt-0.5">${prod.sales} Terjual</p>
+                    `;
+                } else {
+                    rightContent = `
+                        <p class="font-bold text-slate-800 text-sm">${prod.sales} <span class="text-xs font-normal text-slate-500">Terjual</span></p>
+                        <p class="text-[11px] font-semibold text-emerald-600 mt-0.5">${formatRupiah(prod.income)}</p>
+                    `;
+                }
+
                 listEl.innerHTML += `
                     <li class="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                         <div class="flex items-center gap-4">
@@ -1036,8 +1059,7 @@
                             </div>
                         </div>
                         <div class="text-right">
-                            <p class="font-bold text-slate-800 text-sm">${prod.sales} <span class="text-xs font-normal text-slate-500">Terjual</span></p>
-                            <p class="text-[11px] font-semibold text-emerald-600">${formatRupiah(prod.income)}</p>
+                            ${rightContent}
                         </div>
                     </li>
                 `;
