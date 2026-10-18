@@ -190,7 +190,7 @@
                                 <i class="fas fa-fire"></i> Top Konten Naik Daun
                             </h4>
                         </div>
-                        <div class="p-0 flex-1">
+                        <div class="p-0 flex-1 max-h-[380px] overflow-y-auto">
                             <ul id="list-trending-content" class="divide-y divide-slate-100"></ul>
                         </div>
                     </div>
@@ -458,11 +458,18 @@
             <div id="view-history" class="fade-in hidden">
                 <div class="glass-card rounded-2xl overflow-hidden flex flex-col shadow-sm">
                     <div class="p-5 border-b border-slate-100 bg-white/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div class="flex items-center gap-3 w-full sm:w-auto">
-                            <div class="relative flex-1 sm:w-64">
+                        <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                            <div class="relative w-full sm:w-64">
                                 <i class="fas fa-search absolute left-3 top-2.5 text-slate-400"></i>
                                 <input type="text" id="search-history" oninput="renderTable()" placeholder="Cari produk / konten..." class="w-full pl-9 pr-4 py-2 bg-slate-100 border-transparent rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none">
                             </div>
+                            <select id="filter-history-type" onchange="renderTable()" class="bg-slate-100 border-transparent rounded-lg px-3 py-2 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto text-slate-700 font-medium">
+                                <option value="all">Semua Jenis</option>
+                                <option value="content">Konten</option>
+                                <option value="sales">Penjualan</option>
+                                <option value="upload_log">Log Upload</option>
+                                <option value="pendapatan_harian">Rekap Harian</option>
+                            </select>
                         </div>
                         <button onclick="clearAllData()" class="text-red-500 hover:text-white hover:bg-red-500 text-sm font-semibold flex items-center gap-2 px-4 py-2 rounded-lg transition-colors border border-red-200 hover:border-red-500 w-full sm:w-auto justify-center">
                             <i class="fas fa-trash-alt"></i> Bersihkan Data
@@ -498,7 +505,12 @@
             <div id="view-products" class="fade-in hidden">
                 <div class="glass-card rounded-2xl overflow-hidden shadow-sm">
                     <div class="p-5 border-b border-slate-100 bg-white/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-                        <h3 class="text-lg font-bold text-slate-800">Manajemen Katalog</h3>
+                        <div class="flex items-center gap-3 w-full xl:w-72">
+                            <div class="relative w-full">
+                                <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+                                <input type="text" id="search-product-catalog" oninput="renderProducts()" placeholder="Cari nama produk..." class="w-full pl-9 pr-4 py-2 bg-slate-100 border-transparent rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none">
+                            </div>
+                        </div>
                         <div class="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
                             <div class="flex items-center bg-slate-100 rounded-lg p-1 w-full sm:w-auto">
                                 <input type="date" id="filter-prod-start" class="text-sm px-2 py-1.5 outline-none text-slate-700 bg-transparent rounded hover:bg-slate-200 cursor-pointer w-full" onchange="renderProducts()">
@@ -745,28 +757,37 @@
 
         const navigate = (viewId) => {
             ['dashboard', 'input', 'history', 'products'].forEach(id => {
-                document.getElementById(`view-${id}`).classList.add('hidden');
+                const el = document.getElementById(`view-${id}`);
+                if(el) el.classList.add('hidden');
                 
                 const desktopNav = document.getElementById(`nav-${id}`);
                 const mobNav = document.getElementById(`mob-${id}`);
                 
                 if (id === viewId) {
-                    document.getElementById(`view-${id}`).classList.remove('hidden');
-                    desktopNav.className = 'w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-600/10 text-blue-400 border border-blue-600/20 font-medium transition-all shadow-sm';
-                    mobNav.className = 'flex-1 flex flex-col items-center p-2 text-blue-600 rounded-lg transition-colors';
+                    if(el) el.classList.remove('hidden');
+                    if(desktopNav) desktopNav.className = 'w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-600/10 text-blue-400 border border-blue-600/20 font-medium transition-all shadow-sm';
+                    if(mobNav) mobNav.className = 'flex-1 flex flex-col items-center p-2 text-blue-600 rounded-lg transition-colors';
                 } else {
-                    desktopNav.className = 'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all font-medium border border-transparent';
-                    mobNav.className = 'flex-1 flex flex-col items-center p-2 text-slate-400 hover:text-slate-600 rounded-lg transition-colors';
+                    if(desktopNav) desktopNav.className = 'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all font-medium border border-transparent';
+                    if(mobNav) mobNav.className = 'flex-1 flex flex-col items-center p-2 text-slate-400 hover:text-slate-600 rounded-lg transition-colors';
                 }
             });
 
             const titles = { 'dashboard': 'Dashboard Analitik', 'input': 'Input Data Harian', 'history': 'Data Riwayat', 'products': 'Katalog Produk' };
-            document.getElementById('page-title').innerText = titles[viewId];
+            const pageTitle = document.getElementById('page-title');
+            if(pageTitle) pageTitle.innerText = titles[viewId];
             
-            document.getElementById('header-actions-dashboard').classList.toggle('hidden', viewId !== 'dashboard');
-            document.getElementById('header-actions-dashboard').classList.toggle('md:flex', viewId === 'dashboard');
-            document.getElementById('header-actions-history').classList.toggle('hidden', viewId !== 'history');
-            document.getElementById('header-actions-history').classList.toggle('flex', viewId === 'history');
+            const dashActions = document.getElementById('header-actions-dashboard');
+            const histActions = document.getElementById('header-actions-history');
+            
+            if(dashActions) {
+                dashActions.classList.toggle('hidden', viewId !== 'dashboard');
+                dashActions.classList.toggle('md:flex', viewId === 'dashboard');
+            }
+            if(histActions) {
+                histActions.classList.toggle('hidden', viewId !== 'history');
+                histActions.classList.toggle('flex', viewId === 'history');
+            }
 
             if (viewId === 'dashboard') updateDashboard();
             if (viewId === 'history') renderTable();
@@ -797,8 +818,10 @@
                 currentDashFilter = 'custom';
                 customStartDate = start;
                 customEndDate = end;
-                document.getElementById('mob-dash-start-date').value = start;
-                document.getElementById('mob-dash-end-date').value = end;
+                const mobStart = document.getElementById('mob-dash-start-date');
+                const mobEnd = document.getElementById('mob-dash-end-date');
+                if(mobStart) mobStart.value = start;
+                if(mobEnd) mobEnd.value = end;
                 clearFilterButtonsActive();
                 updateDashboard();
             }
@@ -811,8 +834,10 @@
                 currentDashFilter = 'custom';
                 customStartDate = start;
                 customEndDate = end;
-                document.getElementById('dash-start-date').value = start;
-                document.getElementById('dash-end-date').value = end;
+                const deskStart = document.getElementById('dash-start-date');
+                const deskEnd = document.getElementById('dash-end-date');
+                if(deskStart) deskStart.value = start;
+                if(deskEnd) deskEnd.value = end;
                 clearFilterButtonsActive();
                 updateDashboard();
             }
@@ -867,9 +892,13 @@
             const totalSales = filteredPendapatan.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
             const totalViews = filteredPendapatan.reduce((sum, item) => sum + (Number(item.views) || 0), 0);
 
-            document.getElementById('summary-income').innerText = formatRupiah(totalIncome);
-            document.getElementById('summary-sales').innerHTML = `${totalSales.toLocaleString('id-ID')} <span class="text-base font-medium text-slate-400">pcs</span>`;
-            document.getElementById('summary-views').innerText = formatNumber(totalViews);
+            const incEl = document.getElementById('summary-income');
+            const salesEl = document.getElementById('summary-sales');
+            const viewsEl = document.getElementById('summary-views');
+
+            if(incEl) incEl.innerText = formatRupiah(totalIncome);
+            if(salesEl) salesEl.innerHTML = `${totalSales.toLocaleString('id-ID')} <span class="text-base font-medium text-slate-400">pcs</span>`;
+            if(viewsEl) viewsEl.innerText = formatNumber(totalViews);
 
             renderCharts(filteredPendapatan);
             renderTopProducts(filteredApp);
@@ -904,100 +933,113 @@
             Chart.defaults.color = '#94a3b8';
             Chart.defaults.font.family = "'Inter', sans-serif";
 
-            const ctxTrend = document.getElementById('trendChart').getContext('2d');
-            let gradient = ctxTrend.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
-            gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
+            const trendCanvas = document.getElementById('trendChart');
+            if (trendCanvas) {
+                const ctxTrend = trendCanvas.getContext('2d');
+                let gradient = ctxTrend.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
+                gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
 
-            chartInstances.trend = new Chart(ctxTrend, {
-                type: 'line',
-                data: {
-                    labels: labels.map(d => {
-                        const dateObj = new Date(d);
-                        return `${dateObj.getDate()}/${dateObj.getMonth()+1}`;
-                    }),
-                    datasets: [
-                        {
-                            label: 'GMV / Omset (Rp)',
-                            data: gmvData,
-                            borderColor: '#10b981', 
-                            backgroundColor: gradient,
-                            borderWidth: 2,
-                            pointBackgroundColor: '#fff',
-                            pointBorderColor: '#10b981',
-                            fill: true,
-                            tension: 0.4,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: 'Views',
-                            data: viewsData,
-                            borderColor: '#6366f1', 
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            pointBackgroundColor: '#fff',
-                            pointBorderColor: '#6366f1',
-                            tension: 0.4,
-                            yAxisID: 'y1'
+                chartInstances.trend = new Chart(ctxTrend, {
+                    type: 'line',
+                    data: {
+                        labels: labels.map(d => {
+                            const dateObj = new Date(d);
+                            return `${dateObj.getDate()}/${dateObj.getMonth()+1}`;
+                        }),
+                        datasets: [
+                            {
+                                label: 'GMV / Omset (Rp)',
+                                data: gmvData,
+                                borderColor: '#10b981', 
+                                backgroundColor: gradient,
+                                borderWidth: 2,
+                                pointBackgroundColor: '#fff',
+                                pointBorderColor: '#10b981',
+                                fill: true,
+                                tension: 0.4,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Views',
+                                data: viewsData,
+                                borderColor: '#6366f1', 
+                                borderWidth: 2,
+                                borderDash: [5, 5],
+                                pointBackgroundColor: '#fff',
+                                pointBorderColor: '#6366f1',
+                                tension: 0.4,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: { type: 'linear', display: true, position: 'left', grid: { borderDash: [4,4] }, ticks: { callback: v => formatNumber(v) } },
+                            y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => formatNumber(v) } }
                         }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: { type: 'linear', display: true, position: 'left', grid: { borderDash: [4,4] }, ticks: { callback: v => formatNumber(v) } },
-                        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => formatNumber(v) } }
                     }
-                }
-            });
+                });
+            }
 
             const totalPlatGMV = platformMap.tiktok.gmv + platformMap.shopee.gmv;
             const pctTiktok = totalPlatGMV ? Math.round((platformMap.tiktok.gmv / totalPlatGMV) * 100) : 0;
             const pctShopee = totalPlatGMV ? 100 - pctTiktok : 0;
             
-            document.getElementById('stat-tiktok').innerHTML = `${pctTiktok}%`;
-            document.getElementById('stat-tiktok-rp').innerHTML = formatRupiah(platformMap.tiktok.gmv);
-            
-            document.getElementById('stat-shopee').innerHTML = `${pctShopee}%`;
-            document.getElementById('stat-shopee-rp').innerHTML = formatRupiah(platformMap.shopee.gmv);
+            const statTk = document.getElementById('stat-tiktok');
+            const statTkRp = document.getElementById('stat-tiktok-rp');
+            const statSh = document.getElementById('stat-shopee');
+            const statShRp = document.getElementById('stat-shopee-rp');
 
-            const ctxPlatform = document.getElementById('platformChart').getContext('2d');
-            
-            const doughnutData = totalPlatGMV > 0 ? [platformMap.tiktok.gmv, platformMap.shopee.gmv] : [1];
-            const doughnutColors = totalPlatGMV > 0 ? ['#0f172a', '#ea580c'] : ['#f1f5f9'];
-            const doughnutLabels = totalPlatGMV > 0 ? ['TikTok', 'Shopee'] : ['Belum ada data'];
+            if(statTk) statTk.innerHTML = `${pctTiktok}%`;
+            if(statTkRp) statTkRp.innerHTML = formatRupiah(platformMap.tiktok.gmv);
+            if(statSh) statSh.innerHTML = `${pctShopee}%`;
+            if(statShRp) statShRp.innerHTML = formatRupiah(platformMap.shopee.gmv);
 
-            chartInstances.platform = new Chart(ctxPlatform, {
-                type: 'doughnut',
-                data: {
-                    labels: doughnutLabels,
-                    datasets: [{
-                        data: doughnutData,
-                        backgroundColor: doughnutColors,
-                        borderWidth: 0,
-                        hoverOffset: totalPlatGMV > 0 ? 5 : 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '75%',
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: { enabled: totalPlatGMV > 0 }
+            const platCanvas = document.getElementById('platformChart');
+            if(platCanvas) {
+                const ctxPlatform = platCanvas.getContext('2d');
+                const doughnutData = totalPlatGMV > 0 ? [platformMap.tiktok.gmv, platformMap.shopee.gmv] : [1];
+                const doughnutColors = totalPlatGMV > 0 ? ['#0f172a', '#ea580c'] : ['#f1f5f9'];
+                const doughnutLabels = totalPlatGMV > 0 ? ['TikTok', 'Shopee'] : ['Belum ada data'];
+
+                chartInstances.platform = new Chart(ctxPlatform, {
+                    type: 'doughnut',
+                    data: {
+                        labels: doughnutLabels,
+                        datasets: [{
+                            data: doughnutData,
+                            backgroundColor: doughnutColors,
+                            borderWidth: 0,
+                            hoverOffset: totalPlatGMV > 0 ? 5 : 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '75%',
+                        plugins: { 
+                            legend: { display: false },
+                            tooltip: { enabled: totalPlatGMV > 0 }
+                        }
                     }
-                }
-            });
+                });
+            }
         };
 
         const renderTopProducts = (dataList) => {
-            const filter = document.getElementById('filter-top-product').value;
-            const limit = parseInt(document.getElementById('filter-top-limit').value) || 20;
-            const metric = document.getElementById('filter-top-metric').value; // 'qty' or 'gmv'
+            const filterEl = document.getElementById('filter-top-product');
+            const limitEl = document.getElementById('filter-top-limit');
+            const metricEl = document.getElementById('filter-top-metric');
+            
+            const filter = filterEl ? filterEl.value : 'all';
+            const limit = limitEl ? (parseInt(limitEl.value) || 20) : 20;
+            const metric = metricEl ? metricEl.value : 'qty';
             
             const validData = dataList.filter(item => item.type === 'content' || item.type === 'sales');
             const filteredData = filter === 'all' ? validData : validData.filter(item => item.platform === filter);
@@ -1025,6 +1067,7 @@
                 .slice(0, limit);
 
             const listEl = document.getElementById('list-top-products');
+            if(!listEl) return;
             listEl.innerHTML = '';
 
             if (topProducts.length === 0) {
@@ -1068,13 +1111,24 @@
 
         const renderTrendingContent = (dataList) => {
             const validData = dataList.filter(item => item.type === 'content' || item.type === 'sales');
-            const trending = validData.sort((a, b) => {
-                if (a.isTrendingVideo && !b.isTrendingVideo) return -1;
-                if (!a.isTrendingVideo && b.isTrendingVideo) return 1;
-                return b.views - a.views;
-            }).slice(0, 5);
+            const groupedMap = {};
+
+            validData.forEach(item => {
+                const prod = item.product || 'Lainnya';
+                const plat = item.platform || 'tiktok';
+                const key = `${prod}_${plat}`;
+                if(!groupedMap[key]) {
+                    groupedMap[key] = { product: prod, platform: plat, views: 0 };
+                }
+                groupedMap[key].views += (Number(item.views) || 0);
+            });
+
+            const trending = Object.values(groupedMap)
+                .sort((a, b) => b.views - a.views)
+                .slice(0, 20);
             
             const listEl = document.getElementById('list-trending-content');
+            if(!listEl) return;
             listEl.innerHTML = '';
 
             if (trending.length === 0) {
@@ -1086,10 +1140,7 @@
                 const isTiktok = item.platform === 'tiktok';
                 const iconBg = isTiktok ? 'bg-slate-900' : 'bg-orange-500';
                 const iconClass = isTiktok ? 'fab fa-tiktok' : 'fas fa-shopping-bag';
-                
-                const productName = item.product || '';
-                const trendVideoBadge = item.isTrendingVideo ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-600 border border-orange-200">🔥 NAIK</span>' : '';
-                const trendSalesBadge = item.isTrendingSales ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-600 border border-emerald-200">🚀 LAKU</span>' : '';
+                const platLabel = isTiktok ? 'TikTok' : 'Shopee';
 
                 listEl.innerHTML += `
                     <li class="p-4 hover:bg-slate-50 transition-colors flex gap-3 items-center">
@@ -1098,11 +1149,10 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-1">
-                                <h5 class="font-bold text-slate-800 text-sm truncate">${item.content || '-'}</h5>
+                                <h5 class="font-bold text-slate-800 text-sm truncate">${item.product}</h5>
                             </div>
-                            <div class="flex items-center gap-2 text-xs text-slate-500">
-                                <span class="truncate">${productName}</span>
-                                ${trendVideoBadge} ${trendSalesBadge}
+                            <div class="flex items-center gap-2 text-xs uppercase font-semibold text-slate-400">
+                                <span>${platLabel}</span>
                             </div>
                         </div>
                         <div class="text-right shrink-0 bg-slate-100/50 p-2 rounded-lg">
@@ -1128,11 +1178,11 @@
                 const btn = document.getElementById(`tab-${t}`);
                 const form = document.getElementById(`container-form-${t}`);
                 if (t === tab) {
-                    btn.className = `flex-1 py-3 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${activeClasses[t]}`;
-                    form.classList.remove('hidden');
+                    if(btn) btn.className = `flex-1 py-3 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${activeClasses[t]}`;
+                    if(form) form.classList.remove('hidden');
                 } else {
-                    btn.className = `flex-1 py-3 px-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${inactiveClass}`;
-                    form.classList.add('hidden');
+                    if(btn) btn.className = `flex-1 py-3 px-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${inactiveClass}`;
+                    if(form) form.classList.add('hidden');
                 }
             });
         };
@@ -1228,13 +1278,16 @@
         const renderTable = () => {
             const tbody = document.getElementById('history-tbody');
             const emptyState = document.getElementById('empty-state');
+            if(!tbody) return;
             const tableElement = tbody.parentElement.parentElement;
             
             const searchTerm = (document.getElementById('search-history').value || '').toLowerCase();
+            const filterType = document.getElementById('filter-history-type').value;
             
             const combinedData = [...appData, ...pendapatanData].sort((a, b) => new Date(b.date) - new Date(a.date));
 
             const filteredData = combinedData.filter(item => {
+                if (filterType !== 'all' && item.type !== filterType) return false;
                 if(!searchTerm) return true;
                 const pName = (item.product || item.products || '').toLowerCase();
                 const cTitle = (item.content || '').toLowerCase();
@@ -1329,6 +1382,7 @@
         const renderProducts = () => {
             const tbody = document.getElementById('products-tbody');
             const emptyState = document.getElementById('products-empty');
+            if(!tbody) return;
             const tableElement = tbody.parentElement.parentElement;
             
             if (productsData.length === 0) {
@@ -1337,10 +1391,7 @@
                 return;
             }
 
-            tableElement.classList.remove('hidden');
-            emptyState.classList.add('hidden');
-            tbody.innerHTML = '';
-
+            const searchCatalogQuery = (document.getElementById('search-product-catalog').value || '').toLowerCase();
             const startInput = document.getElementById('filter-prod-start').value;
             const endInput = document.getElementById('filter-prod-end').value;
             const sortType = document.getElementById('filter-prod-sort').value;
@@ -1358,14 +1409,9 @@
                     const isInRange = contentDate >= startDate && contentDate <= endDate;
                     if (!isInRange) return;
 
-                    if (d.type === 'content' && d.product && d.product.toLowerCase() === item.name.toLowerCase()) {
-                        if (d.platform === 'tiktok') countTiktok++;
-                        if (d.platform === 'shopee') countShopee++;
-                        if (!lastUpload || contentDate > lastUpload) lastUpload = contentDate;
-                    }
-                    if (d.type === 'upload_log' && d.products) {
-                        const productArray = d.products.split(',').map(p => p.trim().toLowerCase());
-                        if (productArray.includes(item.name.toLowerCase())) {
+                    if (d.type === 'upload_log' && (d.product || d.products)) {
+                        const productStr = (d.product || d.products || '').toLowerCase();
+                        if (productStr.includes(item.name.toLowerCase())) {
                             const addCount = parseInt(d.uploadCount) || 1;
                             if (d.platform === 'tiktok') countTiktok += addCount;
                             if (d.platform === 'shopee') countShopee += addCount;
@@ -1375,6 +1421,20 @@
                 });
                 return { ...item, countTiktok, countShopee, totalUpload: countTiktok + countShopee, lastUpload };
             }).filter(Boolean);
+
+            if (searchCatalogQuery) {
+                enrichedProducts = enrichedProducts.filter(p => p.name.toLowerCase().includes(searchCatalogQuery));
+            }
+
+            if (enrichedProducts.length === 0) {
+                tableElement.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            tableElement.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            tbody.innerHTML = '';
 
             if (sortType === 'sering') enrichedProducts.sort((a, b) => b.totalUpload - a.totalUpload);
             else if (sortType === 'jarang') {
