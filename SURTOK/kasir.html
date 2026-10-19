@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KasirKu - Supabase Edition</title>
+    <title>Suryatokoku - Supabase Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -21,6 +21,7 @@
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden relative">
 
+    <!-- Custom Modal Dialog -->
     <div id="custom-modal" class="hidden-el absolute inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm text-center transform transition-all scale-100">
             <h3 id="modal-title" class="text-xl font-bold mb-2 text-gray-800">Peringatan</h3>
@@ -29,6 +30,7 @@
         </div>
     </div>
 
+    <!-- Modal Pembayaran (Cash/Kembalian) -->
     <div id="payment-modal" class="hidden-el absolute inset-0 bg-black/60 z-[105] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden transform transition-all scale-100">
             <div class="p-4 bg-slate-900 text-white flex justify-between items-center">
@@ -64,6 +66,7 @@
         </div>
     </div>
 
+    <!-- Modal Detail Transaksi (Struk / Sukses Bayar) -->
     <div id="detail-modal" class="hidden-el absolute inset-0 bg-black/60 z-[90] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden">
             <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
@@ -96,10 +99,11 @@
         </div>
     </div>
 
+    <!-- Login Screen -->
     <div id="login-screen" class="absolute inset-0 bg-blue-600 flex items-center justify-center z-50">
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center mx-4">
             <i class="fas fa-store text-5xl text-blue-500 mb-4 drop-shadow-md"></i>
-            <h1 class="text-2xl font-extrabold mb-6 text-gray-800 tracking-tight">Login KasirKu</h1>
+            <h1 class="text-2xl font-extrabold mb-6 text-gray-800 tracking-tight">Login Suryatokoku</h1>
             
             <div class="mb-4 text-left">
                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Pilih / Nama User</label>
@@ -113,9 +117,10 @@
         </div>
     </div>
 
+    <!-- Header Navigation -->
     <header id="main-header" class="bg-white shadow-sm px-4 py-3 flex justify-between items-center hidden-el z-40 relative border-b border-gray-200">
         <div class="flex items-center gap-2 text-blue-600 font-bold text-xl tracking-tight">
-            <i class="fas fa-store text-blue-500"></i> KasirKu <span id="header-user-badge" class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-semibold ml-2"></span>
+            <i class="fas fa-store text-blue-500"></i> Suryatokoku <span id="header-user-badge" class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-semibold ml-2"></span>
         </div>
         <nav class="flex gap-2" id="nav-menu">
             <button onclick="switchTab('pos')" id="nav-pos" class="nav-btn bg-blue-100 text-blue-700 px-3 md:px-4 py-2 rounded-lg font-bold shadow-sm transition-all text-sm"><i class="fas fa-cash-register mr-1"></i> POS</button>
@@ -125,7 +130,9 @@
         <button onclick="logout()" class="text-red-500 font-bold hover:bg-red-50 px-3 py-2 rounded-lg transition-colors" title="Keluar"><i class="fas fa-sign-out-alt"></i></button>
     </header>
 
+    <!-- Tab POS (Kasir) -->
     <main id="pos-view" class="flex-1 flex flex-col lg:flex-row overflow-hidden hidden-el relative pb-20 lg:pb-0">
+        <!-- Area Produk -->
         <div class="flex-1 flex flex-col bg-gray-50 h-full relative overflow-y-auto">
             <div class="p-4 bg-white shadow-sm z-10 flex gap-3 sticky top-0">
                 <div class="relative flex-1">
@@ -134,9 +141,12 @@
                 </div>
                 <button onclick="loadData()" class="bg-white border border-gray-200 text-gray-600 px-4 rounded-xl hover:bg-gray-50 shadow-sm transition-all" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
             </div>
-            <div id="product-grid" class="p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start pb-28 lg:pb-4"></div>
+            <div id="product-grid" class="p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start pb-28 lg:pb-4">
+                <!-- Produk di-render disini -->
+            </div>
         </div>
 
+        <!-- Floating Cart Bar for Mobile -->
         <div class="lg:hidden fixed bottom-3 left-3 right-3 z-30">
             <button onclick="toggleMobileCart()" class="w-full bg-slate-900 text-white p-3.5 rounded-2xl shadow-2xl flex justify-between items-center font-bold border border-slate-700">
                 <span class="flex items-center gap-2"><i class="fas fa-shopping-cart text-blue-400"></i> <span id="mobile-cart-count">0</span> Item</span>
@@ -144,6 +154,7 @@
             </button>
         </div>
 
+        <!-- Area Keranjang (Responsive Drawer on Mobile, Sidebar on Desktop) -->
         <div id="cart-sidebar" class="hidden fixed inset-0 z-50 lg:relative lg:inset-auto bg-black/60 lg:bg-white w-full lg:w-[420px] border-l border-gray-200 shadow-2xl flex-col h-full justify-end lg:justify-start">
             <div class="bg-white w-full max-h-[85vh] lg:max-h-none flex flex-col ml-auto rounded-t-3xl lg:rounded-none overflow-hidden h-full">
                 <div class="p-4 bg-slate-800 text-white flex justify-between items-center shrink-0">
@@ -157,6 +168,7 @@
                 </div>
 
                 <div class="p-4 border-t border-gray-200 bg-white shrink-0 pb-6 lg:pb-4">
+                    <!-- Input Voucher dengan Datalist -->
                     <div class="mb-3 bg-blue-50 p-2.5 rounded-xl border border-blue-100">
                         <div class="flex gap-2 relative">
                             <input type="text" id="voucher-input" list="voucher-list" oninput="applyVoucher()" placeholder="Ketik/Pilih Voucher" class="w-full p-2.5 text-sm border rounded-lg uppercase outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white font-semibold">
@@ -185,26 +197,32 @@
         </div>
     </main>
 
+    <!-- Tab Laporan -->
     <main id="laporan-view" class="flex-1 overflow-y-auto p-6 hidden-el bg-gray-50 pb-20">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-gray-200 pb-4">
             <h2 class="text-2xl font-extrabold text-gray-800 tracking-tight">Laporan Penjualan</h2>
             <div class="flex flex-wrap items-center gap-2">
+                <!-- Filter Rentang Tanggal -->
                 <div class="bg-white p-2 rounded-xl shadow-sm border border-gray-100 flex items-center gap-2">
                     <span class="text-xs font-bold text-gray-500 ml-1">DARI</span>
                     <input type="date" id="filter-date-start" class="border-none outline-none text-gray-700 text-sm font-semibold bg-transparent cursor-pointer">
                     <span class="text-xs font-bold text-gray-500 border-l pl-2">SAMPAI</span>
                     <input type="date" id="filter-date-end" class="border-none outline-none text-gray-700 text-sm font-semibold bg-transparent cursor-pointer">
                 </div>
+                <!-- Filter User Dropdown -->
                 <select id="filter-user" class="bg-white p-2.5 rounded-xl shadow-sm border border-gray-100 outline-none text-gray-700 text-sm font-semibold cursor-pointer">
                     <option value="">Semua User</option>
                 </select>
+                <!-- Tombol Cari & Export -->
                 <button onclick="loadReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm transition"><i class="fas fa-search"></i></button>
                 <button onclick="exportExcelReport()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm transition flex items-center gap-1"><i class="fas fa-file-excel"></i> Export</button>
             </div>
         </div>
 
+        <!-- Summary -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="report-summary"></div>
 
+        <!-- Laporan Klerek -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
             <h3 class="font-bold text-lg mb-4 border-b border-gray-50 pb-3"><i class="fas fa-users-cog text-purple-500 mr-2"></i> Laporan Klerek (Per User)</h3>
             <div class="overflow-x-auto">
@@ -223,6 +241,7 @@
             </div>
         </div>
 
+        <!-- Daftar Transaksi -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-50">
                 <h3 class="font-bold text-lg"><i class="fas fa-list-ul text-blue-500 mr-2"></i> Daftar Transaksi</h3>
@@ -247,10 +266,12 @@
         </div>
     </main>
 
+    <!-- Tab Admin -->
     <main id="admin-view" class="flex-1 overflow-y-auto p-6 hidden-el bg-gray-50 pb-20">
         <h2 class="text-2xl font-extrabold mb-6 text-gray-800 tracking-tight">Panel Administrator</h2>
         
         <div class="grid md:grid-cols-3 gap-6 mb-6">
+            <!-- Card Pengaturan User Kasir -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
                 <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-users text-blue-500 mr-2"></i> Pengaturan User</h3>
                 <div class="flex flex-col gap-2 mb-3">
@@ -277,8 +298,10 @@
                 </div>
             </div>
 
+            <!-- Card Setting Voucher -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
                 <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-ticket-alt text-orange-500 mr-2"></i> Voucher Promo</h3>
+                
                 <div class="space-y-2.5 mb-3">
                     <input type="text" id="v-nama" placeholder="Kode Voucher (Ex: EMINA5000)" class="w-full p-2 border rounded-lg text-sm uppercase focus:ring-2 focus:ring-blue-400 outline-none font-bold">
                     <div class="grid grid-cols-2 gap-2">
@@ -293,6 +316,7 @@
                 <div class="mb-4">
                     <button onclick="saveVoucher()" class="w-full bg-orange-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition shadow text-sm"><i class="fas fa-plus mr-1"></i> Simpan Voucher</button>
                 </div>
+                
                 <div class="flex-1 overflow-y-auto border rounded-xl bg-gray-50 max-h-36">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-gray-200/50 sticky top-0">
@@ -307,21 +331,24 @@
                 </div>
             </div>
 
+            <!-- Card Upload Excel -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-file-excel text-green-600 mr-2"></i> Upload Master Item</h3>
                 <p class="text-xs text-gray-500 mb-3">Upload file Excel (.xlsx) data stok & harga.</p>
+                
                 <div class="flex flex-col gap-2.5">
                     <input type="file" id="excel-file" accept=".xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-gray-200 rounded-xl">
                     <div class="flex gap-2 flex-wrap">
                         <button onclick="handleBulkUpload()" class="bg-green-600 text-white px-3 py-2 rounded-xl font-bold hover:bg-green-700 shadow-sm flex items-center gap-1.5 text-xs transition-all"><i class="fas fa-cloud-upload-alt"></i> Upload</button>
                         <button onclick="downloadTemplate()" class="bg-white border border-blue-200 text-blue-600 px-3 py-2 rounded-xl font-bold hover:bg-blue-50 shadow-sm flex items-center gap-1.5 text-xs transition-all"><i class="fas fa-download"></i> Template</button>
-                        <button onclick="resetDataMaster()" class="bg-red-50 text-red-600 px-3 py-2 rounded-xl font-bold hover:bg-red-100 flex items-center gap-1.5 text-xs ml-auto transition-all"><i class="fas fa-trash-alt"></i> Kosongkan</button>
+                        <button onclick="resetDataMaster()" class="bg-red-600 text-white px-3 py-2 rounded-xl font-bold hover:bg-red-700 shadow-sm flex items-center gap-1.5 text-xs ml-auto transition-all"><i class="fas fa-trash-alt"></i> Hapus Semua Item</button>
                     </div>
                 </div>
                 <div id="upload-status" class="mt-3 p-2.5 rounded-lg text-xs font-semibold hidden-el bg-gray-50 border"></div>
             </div>
         </div>
 
+        <!-- Tabel Data Master -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
                 <h3 class="font-bold text-lg"><i class="fas fa-box text-blue-500 mr-2"></i> Data Master Item</h3>
@@ -333,7 +360,7 @@
                         <tr>
                             <th class="p-3 font-semibold text-xs uppercase tracking-wider">Kode (ID)</th>
                             <th class="p-3 font-semibold text-xs uppercase tracking-wider">Nama Barang</th>
-                            <th class="p-3 font-semibold text-xs uppercase tracking-wider">Kelompok</th>
+                            <th class="p-3 font-semibold text-xs uppercase tracking-wider">Family</th>
                             <th class="p-3 font-semibold text-xs uppercase tracking-wider text-center">Stok</th>
                             <th class="p-3 font-semibold text-xs uppercase tracking-wider text-right">Harga Jual</th>
                         </tr>
@@ -345,6 +372,7 @@
     </main>
 
     <script>
+        // INISIALISASI SUPABASE
         const SUPABASE_URL = 'https://gvhweyyxiitsqhfeuyxn.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2aHdleXl4aWl0c3FoZmV1eXhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3NTczMjksImV4cCI6MjEwNjMzMzMyOX0.tjqdbIbPRZ190xRj88mRcUv5Q_jgg7AzBhkW0-RFtL4';
         
@@ -521,6 +549,7 @@
             } else if (tab === 'laporan') {
                 document.getElementById('laporan-view').classList.remove('hidden-el');
                 
+                // Isi Dropdown Filter User
                 const filterUser = document.getElementById('filter-user');
                 let userOptions = '<option value="">Semua User</option>';
                 state.cashierUsers.forEach(u => {
@@ -528,6 +557,7 @@
                 });
                 filterUser.innerHTML = userOptions;
 
+                // Set Tanggal Default (Hari Ini)
                 const dateStart = document.getElementById('filter-date-start');
                 const dateEnd = document.getElementById('filter-date-end');
                 const now = new Date();
@@ -733,6 +763,7 @@
                 return;
             }
             
+            // Tampilkan Modal Pembayaran
             document.getElementById('pay-modal-total').innerText = formatRp(state.currentCalculatedTotal);
             document.getElementById('pay-cash-input').value = '';
             document.getElementById('pay-modal-change').innerText = formatRp(0);
@@ -778,7 +809,7 @@
             const changeAmount = cashVal - state.currentCalculatedTotal;
             closePaymentModal();
 
-            const btn = document.getElementById('btn-checkout');
+            const btn = document.getElementById('btn-confirm-pay');
             const oriHtml = btn.innerHTML;
             btn.innerHTML = '<div class="loader mr-2"></div> Memproses...';
             btn.disabled = true;
@@ -837,6 +868,7 @@
                 const finalTotal = finalSubtotal - voucherDiscountAmount;
                 const totalAllDiscount = totalItemDiscount + voucherDiscountAmount;
 
+                // Insert into Supabase
                 const { error: txError } = await client.from('transactions').insert({
                     order_id: orderId,
                     date: dateStr,
@@ -853,12 +885,14 @@
                 const { error: dtError } = await client.from('transaction_details').insert(detailsToInsert);
                 if(dtError) throw dtError;
 
+                // Update Stock
                 for(let item of state.cart) {
                     const dbItem = state.items.find(i => i.id === item.id);
                     const newStock = dbItem.stock - item.qty;
                     await client.from('master_items').update({ stock: newStock }).eq('id', item.id);
                 }
 
+                // Simpan data untuk struk pop-up sebelum cart dikosongkan
                 const paidItems = [...state.cart];
                 const paidVoucher = state.appliedVoucher ? state.appliedVoucher.nama : null;
                 const paidVoucherDisc = voucherDiscountAmount;
@@ -921,6 +955,7 @@
                 return `
                 <tr class="hover:bg-gray-50/50">
                     <td class="p-3">
+                        <div class="text-[10px] text-gray-400 font-mono mb-0.5">${item.id}</div>
                         <div class="font-bold text-gray-800 text-sm leading-tight">${item.name}</div>
                         ${item.disc > 0 ? `<div class="text-[11px] text-orange-500 mt-1 font-semibold"><i class="fas fa-tag"></i> Diskon: -${formatRp(lineDisc)}</div>` : ''}
                     </td>
@@ -949,7 +984,7 @@
                 <tr class="hover:bg-blue-50/50 transition-colors">
                     <td class="p-3 text-xs text-gray-500 font-mono">${item.id}</td>
                     <td class="p-3 font-semibold text-gray-800">${item.name}</td>
-                    <td class="p-3 text-gray-600">${item.kelompok || '-'}</td>
+                    <td class="p-3 text-gray-600">${item.family || '-'}</td>
                     <td class="p-3 text-center font-bold ${item.stock <= 5 ? 'text-red-600 bg-red-50 rounded-lg' : 'text-gray-700'}">${item.stock}</td>
                     <td class="p-3 text-right font-bold text-gray-800">${formatRp(item.price)}</td>
                 </tr>
@@ -1188,7 +1223,7 @@
             const ws = XLSX.utils.aoa_to_sheet(templateData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Master Item");
-            XLSX.writeFile(wb, "Template_Upload_KasirKu.xlsx");
+            XLSX.writeFile(wb, "Template_Upload_Suryatokoku.xlsx");
         }
 
         function resetDataMaster() {
@@ -1266,6 +1301,7 @@
                 sumTotal += parseFloat(t.total) || 0;
                 sumDiscount += parseFloat(t.discount) || 0;
                 
+                // Kalkulasi Laporan Klerek per User
                 const user = t.role || 'Unknown';
                 if(!klerekMap[user]) klerekMap[user] = { count: 0, subtotal: 0, discount: 0, total: 0 };
                 
@@ -1292,6 +1328,7 @@
 
             document.getElementById('report-tx-count').innerText = `${txData.length} Transaksi`;
 
+            // Render Tabel Klerek
             if(Object.keys(klerekMap).length === 0) {
                 klerekTbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-gray-400 font-medium"><i class="fas fa-folder-open text-3xl mb-3 block opacity-20"></i>Belum ada data klerek</td></tr>`;
             } else {
@@ -1335,6 +1372,7 @@
                 return;
             }
 
+            // 1. Data Transaksi Header
             const txData = state.reports.transactions.map(t => ({
                 "Tanggal": t.date,
                 "Jam": t.time,
@@ -1347,6 +1385,7 @@
                 "Total Pendapatan": t.total
             }));
 
+            // 2. Data Detail Item Terjual
             const dtData = state.reports.details.map(d => ({
                 "Tanggal": d.date,
                 "No. Invoice": d.invoice_no,
@@ -1361,6 +1400,7 @@
                 "Total Bersih": d.total
             }));
 
+            // 3. Rekap Laporan Klerek
             const klerekMap = {};
             state.reports.transactions.forEach(t => {
                 const user = t.role || 'Admin';
@@ -1378,6 +1418,7 @@
                 "Pendapatan Bersih": k.pendapatan
             }));
 
+            // Buat Workbook dan masukkan Sheet
             const wb = XLSX.utils.book_new();
             
             const wsTx = XLSX.utils.json_to_sheet(txData);
@@ -1389,9 +1430,10 @@
             const wsKlerek = XLSX.utils.json_to_sheet(klerekData);
             XLSX.utils.book_append_sheet(wb, wsKlerek, "Laporan Klerek");
 
+            // Simpan File ke perangkat
             const startDt = document.getElementById('filter-date-start').value;
             const endDt = document.getElementById('filter-date-end').value;
-            XLSX.writeFile(wb, `Laporan_KasirKu_${startDt}_sd_${endDt}.xlsx`);
+            XLSX.writeFile(wb, `Laporan_Suryatokoku_${startDt}_sd_${endDt}.xlsx`);
         }
 
         function showDetailModal(orderId) {
@@ -1415,6 +1457,7 @@
             tbody.innerHTML = items.map(item => `
                 <tr class="hover:bg-gray-50/50">
                     <td class="p-3">
+                        <div class="text-[10px] text-gray-400 font-mono mb-0.5">${item.item_id}</div>
                         <div class="font-bold text-gray-800 text-sm leading-tight">${item.name}</div>
                         ${item.discount_amount > 0 ? `<div class="text-[11px] text-orange-500 mt-1 font-semibold"><i class="fas fa-tag"></i> Diskon: -${formatRp(item.discount_amount)}</div>` : ''}
                     </td>
@@ -1438,6 +1481,7 @@
             document.getElementById('detail-modal').classList.add('hidden-el');
         }
 
+        // Initialize application on load
         window.onload = function() {
             initLoginOptions();
         };
