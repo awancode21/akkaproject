@@ -3,6 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Meta tag agar menjadi aplikasi mandiri di Android (Fullscreen PWA) -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiU3VyeWF0b2tva3UiLCJzaG9ydF9uYW1lIjoiU3VyeWF0b2tva3UiLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjZjNmNGY2IiwidGhlbWVfY29sb3IiOiIjMjU2M2ViIiwic3RhcnRfdXJsIjoiLyIsImljb25zIjpbeyJzcmMiOiJodHRwczovL2Nkbi1pY29ucy1wbmcuZmxhdGljb24uY29tLzUxMi8xMDU1LzEwNTU2ODUucG5nIiwic2l6ZXMiOiI1MTJ4NTEyIiwidHlwZSI6ImltYWdlL3BuZyJ9XX0=">
+    
     <title>Suryatokoku - Multi-Payment Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -35,7 +42,7 @@
     <div id="scanner-modal" class="hidden-el absolute inset-0 bg-black/80 z-[110] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden transform transition-all scale-100">
             <div class="p-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
-                <h3 class="font-bold text-lg"><i class="fas fa-camera text-blue-400 mr-2"></i> Scan Barcode / QR</h3>
+                <h3 class="font-bold text-lg"><i class="fas fa-barcode text-blue-400 mr-2"></i> Scan Barcode / QR</h3>
                 <button onclick="closeScannerModal()" class="text-gray-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div class="p-4 bg-black flex-1 flex flex-col items-center justify-center relative min-h-[300px]">
@@ -99,8 +106,8 @@
                 <div id="payment-transfer-section" class="hidden-el space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                     <div class="text-xs font-bold text-gray-500 uppercase">Informasi Rekening Tujuan</div>
                     <div class="bg-white p-3 rounded-xl border border-gray-200 text-left space-y-1">
-                        <div class="text-xs text-gray-400 font-semibold">BCA - 1234567890</div>
-                        <div class="text-sm font-bold text-gray-800">A/N Suryatokoku Official</div>
+                        <div id="transfer-bank-info" class="text-xs text-gray-400 font-semibold">BCA - 1234567890</div>
+                        <div id="transfer-owner-info" class="text-sm font-bold text-gray-800">A/N Suryatokoku Official</div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Catatan / No. Ref Transfer (Opsional)</label>
@@ -180,13 +187,13 @@
 
     <main id="pos-view" class="flex-1 flex flex-col lg:flex-row overflow-hidden hidden-el relative pb-20 lg:pb-0">
         <div class="flex-1 flex flex-col bg-gray-50 h-full relative overflow-y-auto">
-            <div class="p-4 bg-white shadow-sm z-10 flex gap-3 sticky top-0">
-                <div class="relative flex-1">
-                    <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
-                    <input type="text" id="search-item" onkeyup="renderProducts()" placeholder="Cari nama, ID, atau kode..." class="w-full pl-11 pr-11 p-3 border-gray-200 bg-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm">
-                    <button onclick="openScannerModal()" class="absolute right-3 top-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm" title="Scan Barcode / QR"><i class="fas fa-camera text-base"></i></button>
+            <div class="p-4 bg-white shadow-sm z-10 flex gap-3 sticky top-0 items-center">
+                <div class="relative flex-1 flex items-center">
+                    <i class="fas fa-search absolute left-4 text-gray-400"></i>
+                    <input type="text" id="search-item" onkeyup="renderProducts()" placeholder="Cari nama, ID, atau kode..." class="w-full pl-11 pr-12 py-3 border border-gray-200 bg-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm">
+                    <button onclick="openScannerModal()" class="absolute right-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm shrink-0" title="Scan Barcode / QR"><i class="fas fa-barcode text-base"></i></button>
                 </div>
-                <button onclick="loadData()" class="bg-white border border-gray-200 text-gray-600 px-4 rounded-xl hover:bg-gray-50 shadow-sm transition-all" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
+                <button onclick="loadData()" class="bg-white border border-gray-200 text-gray-600 w-11 h-11 rounded-xl hover:bg-gray-50 shadow-sm transition-all flex items-center justify-center shrink-0" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
             </div>
             <div id="product-grid" class="p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start pb-28 lg:pb-4"></div>
         </div>
@@ -308,6 +315,26 @@
         <h2 class="text-2xl font-extrabold mb-6 text-gray-800 tracking-tight">Panel Administrator</h2>
         
         <div class="grid md:grid-cols-3 gap-6 mb-6">
+            <!-- Card Pengaturan Rekening -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
+                <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-university text-green-500 mr-2"></i> Info Rekening (Transfer)</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nama Bank / E-Wallet</label>
+                        <input type="text" id="setting-bank-name" placeholder="Contoh: BCA / DANA" class="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nomor Rekening</label>
+                        <input type="text" id="setting-bank-acc" placeholder="Contoh: 1234567890" class="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Atas Nama (A/N)</label>
+                        <input type="text" id="setting-bank-owner" placeholder="Contoh: Suryatokoku" class="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none font-semibold">
+                    </div>
+                    <button onclick="saveBankSettings()" class="w-full bg-green-500 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-green-600 transition shadow text-sm mt-2"><i class="fas fa-save mr-1"></i> Simpan Rekening</button>
+                </div>
+            </div>
+
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
                 <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-users text-blue-500 mr-2"></i> Pengaturan User</h3>
                 <div class="flex flex-col gap-2 mb-3">
@@ -424,6 +451,7 @@
             cart: [],
             vouchers: [],
             cashierUsers: [],
+            storeSettings: { bankName: 'BCA', bankAcc: '1234567890', bankOwner: 'Suryatokoku Official' },
             appliedVoucher: null,
             reports: { transactions: [], details: [] },
             currentCalculatedTotal: 0,
@@ -461,7 +489,6 @@
             document.getElementById('custom-modal').classList.add('hidden-el');
         }
 
-        // --- BARCODE SCANNER FUNCTIONS ---
         function openScannerModal() {
             document.getElementById('scanner-modal').classList.remove('hidden-el');
             setTimeout(() => {
@@ -623,6 +650,11 @@
                 renderProducts();
             } else if (tab === 'admin') {
                 document.getElementById('admin-view').classList.remove('hidden-el');
+                
+                document.getElementById('setting-bank-name').value = state.storeSettings.bankName;
+                document.getElementById('setting-bank-acc').value = state.storeSettings.bankAcc;
+                document.getElementById('setting-bank-owner').value = state.storeSettings.bankOwner;
+
                 renderAdminTable();
                 renderVoucherTable();
                 renderCashierUserTable();
@@ -661,6 +693,19 @@
 
                 const { data: cashierData } = await client.from('cashier_users').select('*').order('name');
                 state.cashierUsers = cashierData || [];
+
+                try {
+                    const { data: settingsData } = await client.from('store_settings').select('*');
+                    if (settingsData && settingsData.length > 0) {
+                        const bankName = settingsData.find(s => s.setting_key === 'bank_name')?.setting_value;
+                        const bankAcc = settingsData.find(s => s.setting_key === 'bank_account')?.setting_value;
+                        const bankOwner = settingsData.find(s => s.setting_key === 'bank_owner')?.setting_value;
+                        
+                        if (bankName) state.storeSettings.bankName = bankName;
+                        if (bankAcc) state.storeSettings.bankAcc = bankAcc;
+                        if (bankOwner) state.storeSettings.bankOwner = bankOwner;
+                    }
+                } catch(e) { console.warn("Tabel store_settings belum disetup atau error baca."); }
 
                 renderProducts();
                 renderCart();
@@ -878,6 +923,9 @@
                 btnQris.className = "py-2.5 px-3 rounded-xl font-bold text-xs border border-blue-500 bg-blue-50 text-blue-700 transition flex items-center justify-center gap-1.5";
                 secQris.classList.remove('hidden-el');
             } else if (method === 'transfer') {
+                document.getElementById('transfer-bank-info').innerText = `${state.storeSettings.bankName} - ${state.storeSettings.bankAcc}`;
+                document.getElementById('transfer-owner-info').innerText = `A/N ${state.storeSettings.bankOwner}`;
+
                 btnTransfer.className = "py-2.5 px-3 rounded-xl font-bold text-xs border border-blue-500 bg-blue-50 text-blue-700 transition flex items-center justify-center gap-1.5";
                 secTransfer.classList.remove('hidden-el');
                 setTimeout(() => document.getElementById('pay-transfer-ref').focus(), 50);
@@ -1148,14 +1196,43 @@
             tbody.innerHTML = state.cashierUsers.map(c => `
                 <tr class="hover:bg-blue-50/30 transition-colors">
                     <td class="p-2.5">
-                        <div class="font-semibold text-gray-700 text-sm">${c.name}</div>
+                        <div class="font-semibold text-gray-700 text-xs">${c.name}</div>
                         <div class="text-[10px] uppercase font-bold ${c.role === 'admin' ? 'text-blue-500' : 'text-gray-400'}">${c.role || 'kasir'} ${c.pin ? '(Ber-PIN)' : ''}</div>
                     </td>
                     <td class="p-2.5 text-center">
-                        <button onclick="deleteCashierUser('${c.name}')" class="text-red-500 hover:text-red-700 p-1 rounded transition-all" title="Hapus"><i class="fas fa-trash-alt text-sm"></i></button>
+                        <button onclick="deleteCashierUser('${c.name}')" class="text-red-500 hover:text-red-700 p-1 rounded transition-all" title="Hapus"><i class="fas fa-trash-alt text-xs"></i></button>
                     </td>
                 </tr>
             `).join('');
+        }
+
+        async function saveBankSettings() {
+            const bName = document.getElementById('setting-bank-name').value.trim();
+            const bAcc = document.getElementById('setting-bank-acc').value.trim();
+            const bOwner = document.getElementById('setting-bank-owner').value.trim();
+
+            if(!bName || !bAcc) {
+                showModal("Peringatan", "Nama Bank dan Nomor Rekening wajib diisi.");
+                return;
+            }
+
+            try {
+                const payloads = [
+                    { setting_key: 'bank_name', setting_value: bName },
+                    { setting_key: 'bank_account', setting_value: bAcc },
+                    { setting_key: 'bank_owner', setting_value: bOwner }
+                ];
+                const { error } = await client.from('store_settings').upsert(payloads, { onConflict: 'setting_key' });
+                if(error) throw error;
+
+                state.storeSettings.bankName = bName;
+                state.storeSettings.bankAcc = bAcc;
+                state.storeSettings.bankOwner = bOwner;
+
+                showModal("Berhasil", "Informasi rekening transfer berhasil disimpan.");
+            } catch (err) {
+                showModal("Gagal Menyimpan", "Pastikan Anda sudah menjalankan SQL Setup untuk tabel store_settings. Error: " + err.message);
+            }
         }
 
         async function saveCashierUser() {
