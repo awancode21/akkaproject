@@ -266,6 +266,9 @@
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-center">Jml Transaksi</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Total Subtotal</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Total Diskon</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Cash (Tunai)</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">QRIS</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Transfer</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right rounded-tr-xl">Pendapatan Bersih</th>
                         </tr>
                     </thead>
@@ -286,6 +289,7 @@
                             <th class="p-4 font-bold text-xs uppercase tracking-wider rounded-tl-xl">Tanggal & Jam</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider">No. Invoice</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider">User Kasir</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider">Metode</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider">Voucher</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Diskon</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Total Bayar</th>
@@ -897,7 +901,8 @@
                         discount_amount: lineDiscAmount,
                         discount_percent: discPercent,
                         total: lineTotal,
-                        user_role: state.currentUser
+                        user_role: state.currentUser,
+                        payment_method: state.selectedPaymentMethod
                     });
                 });
                 
@@ -924,7 +929,8 @@
                     total: finalTotal,
                     role: state.currentUser,
                     voucher_nama: state.appliedVoucher ? state.appliedVoucher.nama : null,
-                    voucher_diskon: voucherDiscountAmount
+                    voucher_diskon: voucherDiscountAmount,
+                    payment_method: state.selectedPaymentMethod
                 });
                 if(txError) throw txError;
                 
@@ -1328,12 +1334,18 @@
                 sumDiscount += parseFloat(t.discount) || 0;
                 
                 const user = t.role || 'Unknown';
-                if(!klerekMap[user]) klerekMap[user] = { count: 0, subtotal: 0, discount: 0, total: 0 };
+                if(!klerekMap[user]) klerekMap[user] = { count: 0, subtotal: 0, discount: 0, total: 0, cash: 0, qris: 0, transfer: 0 };
                 
                 klerekMap[user].count += 1;
                 klerekMap[user].subtotal += parseFloat(t.subtotal) || 0;
                 klerekMap[user].discount += parseFloat(t.discount) || 0;
                 klerekMap[user].total += parseFloat(t.total) || 0;
+
+                const pm = (t.payment_method || 'cash').toLowerCase();
+                if (pm === 'cash') klerekMap[user].cash += parseFloat(t.total) || 0;
+                else if (pm === 'qris') klerekMap[user].qris += parseFloat(t.total) || 0;
+                else if (pm === 'transfer') klerekMap[user].transfer += parseFloat(t.total) || 0;
+                else klerekMap[user].cash += parseFloat(t.total) || 0;
             });
 
             summaryEl.innerHTML = `
@@ -1353,30 +1365,39 @@
             document.getElementById('report-tx-count').innerText = `${txData.length} Transaksi`;
 
             if(Object.keys(klerekMap).length === 0) {
-                klerekTbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-gray-400 font-medium"><i class="fas fa-folder-open text-3xl mb-3 block opacity-20"></i>Belum ada data klerek</td></tr>`;
+                klerekTbody.innerHTML = `<tr><td colspan="8" class="text-center p-8 text-gray-400 font-medium"><i class="fas fa-folder-open text-3xl mb-3 block opacity-20"></i>Belum ada data klerek</td></tr>`;
             } else {
                 klerekTbody.innerHTML = Object.keys(klerekMap).map(user => `
                 <tr class="hover:bg-slate-50 transition-colors">
                     <td class="p-4 font-bold text-gray-800"><i class="fas fa-user-circle text-gray-400 mr-2"></i> ${user}</td>
-                    <td class="p-4 text-center font-bold text-gray-600 bg-gray-50/50">${klerekMap[user].count} <span class="text-xs font-normal">Struk</span></td>
+                    <td class="p-4 text-center font-bold text-gray-600">${klerekMap[user].count} <span class="text-xs font-normal">Struk</span></td>
                     <td class="p-4 text-right text-gray-600 font-medium">${formatRp(klerekMap[user].subtotal)}</td>
-                    <td class="p-4 text-right text-orange-500 font-semibold">${formatRp(klerekMap[user].discount)}</td>
-                    <td class="p-4 text-right font-extrabold text-blue-600">${formatRp(klerekMap[user].total)}</td>
+                    <td class="p-4 text-right text-orange-500 font-bold">${formatRp(klerekMap[user].discount)}</td>
+                    <td class="p-4 text-right text-green-600 font-bold">${formatRp(klerekMap[user].cash)}</td>
+                    <td class="p-4 text-right text-purple-600 font-bold">${formatRp(klerekMap[user].qris)}</td>
+                    <td class="p-4 text-right text-blue-600 font-bold">${formatRp(klerekMap[user].transfer)}</td>
+                    <td class="p-4 text-right font-extrabold text-blue-700">${formatRp(klerekMap[user].total)}</td>
                 </tr>
                 `).join('');
             }
 
             if(txData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-12 text-gray-400"><i class="fas fa-folder-open text-5xl mb-3 block opacity-20"></i><span class="font-medium">Belum ada transaksi di rentang tanggal ini</span></td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center p-12 text-gray-400"><i class="fas fa-folder-open text-5xl mb-3 block opacity-20"></i><span class="font-medium">Belum ada transaksi di rentang tanggal ini</span></td></tr>`;
                 return;
             }
             tbody.innerHTML = txData.map(tx => {
                 const invNo = tx.order_id.replace("ORD", "INV");
+                let pmBadge = '';
+                if(tx.payment_method === 'qris') pmBadge = '<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-bold border border-blue-200">QRIS</span>';
+                else if(tx.payment_method === 'transfer') pmBadge = '<span class="bg-purple-50 text-purple-600 px-2 py-0.5 rounded text-[10px] font-bold border border-purple-200">TRANSFER</span>';
+                else pmBadge = '<span class="bg-green-50 text-green-600 px-2 py-0.5 rounded text-[10px] font-bold border border-green-200">CASH</span>';
+
                 return `
                 <tr class="hover:bg-slate-50 transition-colors group">
                     <td class="p-4 text-gray-600 font-medium whitespace-nowrap">${tx.date} <span class="text-xs ml-1 bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">${tx.time.substring(0,5)}</span></td>
                     <td class="p-4 font-bold text-gray-800 font-mono text-sm">${invNo}</td>
                     <td class="p-4 text-gray-700 font-semibold"><span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md text-xs border border-blue-100">${tx.role || 'Admin'}</span></td>
+                    <td class="p-4">${pmBadge}</td>
                     <td class="p-4 text-gray-700 font-semibold">${tx.voucher_nama ? `<span class="bg-orange-50 text-orange-600 px-2 py-1 rounded text-xs border border-orange-100">${tx.voucher_nama}</span>` : '-'}</td>
                     <td class="p-4 text-right text-orange-500 font-semibold">${formatRp(tx.discount)}</td>
                     <td class="p-4 text-right font-extrabold text-blue-600">${formatRp(tx.total)}</td>
@@ -1398,6 +1419,7 @@
                 "Jam": t.time,
                 "No. Invoice": t.order_id.replace("ORD", "INV"),
                 "User / Kasir": t.role || 'Admin',
+                "Metode Bayar": (t.payment_method || 'cash').toUpperCase(),
                 "Subtotal": t.subtotal,
                 "Nama Voucher": t.voucher_nama || '-',
                 "Diskon Voucher": t.voucher_diskon,
@@ -1408,6 +1430,7 @@
                 "Tanggal": d.date,
                 "No. Invoice": d.invoice_no,
                 "Kasir": d.user_role || 'Admin',
+                "Metode Bayar": (d.payment_method || 'cash').toUpperCase(),
                 "ID Item": d.item_id,
                 "Nama Barang": d.name,
                 "Family": d.family || '-',
@@ -1420,16 +1443,24 @@
             const klerekMap = {};
             state.reports.transactions.forEach(t => {
                 const user = t.role || 'Admin';
-                if(!klerekMap[user]) klerekMap[user] = { user, jml_struk: 0, subtotal: 0, diskon: 0, pendapatan: 0 };
+                if(!klerekMap[user]) klerekMap[user] = { user, jml_struk: 0, subtotal: 0, diskon: 0, pendapatan: 0, cash: 0, qris: 0, transfer: 0 };
                 klerekMap[user].jml_struk += 1;
                 klerekMap[user].subtotal += parseFloat(t.subtotal) || 0;
                 klerekMap[user].diskon += parseFloat(t.discount) || 0;
                 klerekMap[user].pendapatan += parseFloat(t.total) || 0;
+                
+                const pm = (t.payment_method || 'cash').toLowerCase();
+                if (pm === 'cash') klerekMap[user].cash += parseFloat(t.total) || 0;
+                else if (pm === 'qris') klerekMap[user].qris += parseFloat(t.total) || 0;
+                else if (pm === 'transfer') klerekMap[user].transfer += parseFloat(t.total) || 0;
+                else klerekMap[user].cash += parseFloat(t.total) || 0;
             });
             const klerekData = Object.values(klerekMap).map(k => ({
                 "Nama User / Kasir": k.user,
                 "Jumlah Transaksi": k.jml_struk,
-                "Subtotal Omzet": k.subtotal,
+                "Tunai (Cash)": k.cash,
+                "QRIS": k.qris,
+                "Transfer": k.transfer,
                 "Total Diskon": k.diskon,
                 "Pendapatan Bersih": k.pendapatan
             }));
