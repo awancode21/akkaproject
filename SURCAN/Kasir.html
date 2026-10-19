@@ -4,9 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SURCAN - Supabase Edition</title>
+    
+    <meta name="theme-color" content="#2563eb">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" id="manifest-link">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -27,6 +35,22 @@
             <h3 id="modal-title" class="text-xl font-bold mb-2 text-gray-800">Peringatan</h3>
             <p id="modal-message" class="text-gray-600 mb-6 text-sm">Pesan akan tampil disini.</p>
             <div class="flex gap-3 justify-center" id="modal-actions"></div>
+        </div>
+    </div>
+
+    <!-- Modal Scanner Barcode -->
+    <div id="scanner-modal" class="hidden-el absolute inset-0 bg-black/80 z-[110] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
+            <div class="p-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
+                <h3 class="font-bold text-lg"><i class="fas fa-camera text-blue-400 mr-2"></i> Scan Barcode</h3>
+                <button onclick="stopScanner()" class="text-gray-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-4 bg-black relative flex justify-center w-full">
+                <div id="reader" style="width: 100%; max-width: 400px; min-height: 250px;"></div>
+            </div>
+            <div class="p-4 bg-gray-50 text-center text-sm text-gray-500 font-medium border-t border-gray-200">
+                <i class="fas fa-info-circle text-blue-500 mr-1"></i> Arahkan kamera ke barcode/QR Code produk.
+            </div>
         </div>
     </div>
 
@@ -87,8 +111,8 @@
                 <div id="payment-transfer-section" class="hidden-el space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                     <div class="text-xs font-bold text-gray-500 uppercase">Informasi Rekening Tujuan</div>
                     <div class="bg-white p-3 rounded-xl border border-gray-200 text-left space-y-1">
-                        <div class="text-xs text-gray-400 font-semibold">BCA - 1234567890</div>
-                        <div class="text-sm font-bold text-gray-800">A/N SURCAN Official</div>
+                        <div id="transfer-bank-info" class="text-xs text-gray-400 font-semibold">BCA - 1234567890</div>
+                        <div id="transfer-bank-owner" class="text-sm font-bold text-gray-800">A/N SURCAN Official</div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Catatan / No. Ref Transfer (Opsional)</label>
@@ -172,9 +196,10 @@
         <!-- Area Produk -->
         <div class="flex-1 flex flex-col bg-gray-50 h-full relative overflow-y-auto">
             <div class="p-4 bg-white shadow-sm z-10 flex gap-3 sticky top-0">
-                <div class="relative flex-1">
+                <div class="relative flex-1 flex">
                     <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
-                    <input type="text" id="search-item" onkeyup="renderProducts()" placeholder="Cari nama, ID, atau kode..." class="w-full pl-11 p-3 border-gray-200 bg-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm">
+                    <input type="text" id="search-item" onkeyup="renderProducts()" placeholder="Cari nama, ID, atau kode..." class="w-full pl-11 p-3 border-y border-l border-gray-200 bg-gray-100 rounded-l-xl focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm">
+                    <button onclick="startScanner()" class="bg-blue-50 border-y border-r border-gray-200 text-blue-600 px-4 rounded-r-xl hover:bg-blue-100 transition-all font-bold" title="Scan Barcode"><i class="fas fa-barcode text-lg"></i></button>
                 </div>
                 <button onclick="loadData()" class="bg-white border border-gray-200 text-gray-600 px-4 rounded-xl hover:bg-gray-50 shadow-sm transition-all" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
             </div>
@@ -378,6 +403,28 @@
             </div>
         </div>
 
+        <div class="grid md:grid-cols-3 gap-6 mb-6">
+            <!-- Card Pengaturan Rekening Transfer -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
+                <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-university text-purple-500 mr-2"></i> Pengaturan Rekening Transfer</h3>
+                <div class="space-y-3 mb-3 flex-1">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nama Bank / E-Wallet</label>
+                        <input type="text" id="set-bank-name" placeholder="Contoh: BCA / Mandiri / DANA" class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nomor Rekening</label>
+                        <input type="text" id="set-bank-account" placeholder="Contoh: 1234567890" class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Atas Nama (A/N)</label>
+                        <input type="text" id="set-bank-owner" placeholder="Contoh: SURCAN Official" class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                    </div>
+                </div>
+                <button onclick="saveBankSettings()" class="w-full bg-purple-600 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-purple-700 transition shadow text-sm mt-auto"><i class="fas fa-save mr-1"></i> Simpan Pengaturan</button>
+            </div>
+        </div>
+
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
                 <h3 class="font-bold text-lg"><i class="fas fa-box text-blue-500 mr-2"></i> Data Master Item</h3>
@@ -420,6 +467,7 @@
             cart: [],
             vouchers: [],
             cashierUsers: [],
+            settings: { bank_name: 'BCA', bank_account: '1234567890', bank_owner: 'SURCAN Official' },
             appliedVoucher: null,
             reports: { transactions: [], details: [] },
             currentCalculatedTotal: 0,
@@ -596,6 +644,28 @@
         async function loadData() {
             if (!client) return;
             try {
+                // Fetch settings
+                const { data: settingsData } = await client.from('store_settings').select('*');
+                if (settingsData && settingsData.length > 0) {
+                    settingsData.forEach(s => {
+                        state.settings[s.setting_key] = s.setting_value;
+                    });
+                }
+                
+                // Update tampilan rekening di Modal POS
+                const bankInfoEl = document.getElementById('transfer-bank-info');
+                const bankOwnerEl = document.getElementById('transfer-bank-owner');
+                if (bankInfoEl) bankInfoEl.innerText = `${state.settings.bank_name} - ${state.settings.bank_account}`;
+                if (bankOwnerEl) bankOwnerEl.innerText = `A/N ${state.settings.bank_owner}`;
+                
+                // Update tampilan form di Admin
+                const inputBankName = document.getElementById('set-bank-name');
+                if (inputBankName) {
+                    inputBankName.value = state.settings.bank_name || '';
+                    document.getElementById('set-bank-account').value = state.settings.bank_account || '';
+                    document.getElementById('set-bank-owner').value = state.settings.bank_owner || '';
+                }
+
                 const { data: items, error } = await client.from('master_items').select('*').order('name');
                 if (error) throw error;
                 state.items = items || [];
@@ -1158,6 +1228,41 @@
             });
         }
 
+        async function saveBankSettings() {
+            const bankName = document.getElementById('set-bank-name').value.trim();
+            const bankAcc = document.getElementById('set-bank-account').value.trim();
+            const bankOwner = document.getElementById('set-bank-owner').value.trim();
+            
+            if(!bankName || !bankAcc || !bankOwner) {
+                showModal("Form Tidak Lengkap", "Silakan lengkapi semua data rekening.");
+                return;
+            }
+            
+            const btn = document.querySelector('button[onclick="saveBankSettings()"]');
+            const oriHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...';
+            btn.disabled = true;
+            
+            try {
+                const updates = [
+                    { setting_key: 'bank_name', setting_value: bankName },
+                    { setting_key: 'bank_account', setting_value: bankAcc },
+                    { setting_key: 'bank_owner', setting_value: bankOwner }
+                ];
+                
+                const { error } = await client.from('store_settings').upsert(updates);
+                if(error) throw error;
+                
+                await loadData();
+                showModal("Berhasil", "Pengaturan rekening berhasil disimpan!");
+            } catch(err) {
+                showModal("Gagal Menyimpan", err.message);
+            } finally {
+                btn.innerHTML = oriHtml;
+                btn.disabled = false;
+            }
+        }
+
         async function handleBulkUpload() {
             const fileInput = document.getElementById('excel-file');
             const statusEl = document.getElementById('upload-status');
@@ -1523,7 +1628,85 @@
 
         window.onload = function() {
             initLoginOptions();
+            initPWA();
         };
+
+        function initPWA() {
+            const manifestData = {
+                "name": "SURCAN POS Application",
+                "short_name": "SURCAN",
+                "start_url": window.location.pathname || ".",
+                "display": "standalone",
+                "orientation": "portrait",
+                "background_color": "#f3f4f6",
+                "theme_color": "#2563eb",
+                "icons": [
+                    {
+                        "src": "https://cdn-icons-png.flaticon.com/512/3050/3050244.png",
+                        "sizes": "512x512",
+                        "type": "image/png",
+                        "purpose": "any maskable"
+                    }
+                ]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/manifest+json' });
+            const manifestLink = document.getElementById('manifest-link');
+            if(manifestLink) {
+                manifestLink.href = URL.createObjectURL(manifestBlob);
+            }
+        }
+
+        // Variabel penampung instans scanner
+        let html5QrCode = null;
+        let isScanning = false;
+
+        function startScanner() {
+            // Tampilkan modal
+            document.getElementById('scanner-modal').classList.remove('hidden-el');
+            
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            
+            // Callback jika scan berhasil
+            const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+                // 1. Matikan scanner
+                stopScanner();
+                
+                // 2. Isi kotak pencarian dengan hasil scan
+                const searchInput = document.getElementById('search-item');
+                searchInput.value = decodedText;
+                
+                // 3. Panggil fungsi render produk agar otomatis difilter
+                renderProducts();
+            };
+            
+            const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+            
+            // Mulai scanner dengan kamera belakang (environment)
+            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+            .then(() => {
+                isScanning = true;
+            })
+            .catch((err) => {
+                console.error("Gagal memulai kamera", err);
+                isScanning = false;
+                stopScanner();
+                showModal("Akses Kamera Gagal", "Sistem tidak dapat mengakses kamera. Pastikan Anda menggunakan koneksi aman (HTTPS) dan telah memberikan izin akses kamera di browser.");
+            });
+        }
+
+        function stopScanner() {
+            document.getElementById('scanner-modal').classList.add('hidden-el');
+            if (html5QrCode && isScanning) {
+                html5QrCode.stop().then((ignore) => {
+                    isScanning = false;
+                    html5QrCode.clear();
+                }).catch((err) => {
+                    console.log("Scanner belum berjalan sepenuhnya atau sudah terhenti.", err);
+                });
+            }
+        }
     </script>
 </body>
 </html>
