@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -27,6 +28,22 @@
             <h3 id="modal-title" class="text-xl font-bold mb-2 text-gray-800">Peringatan</h3>
             <p id="modal-message" class="text-gray-600 mb-6 text-sm">Pesan akan tampil disini.</p>
             <div class="flex gap-3 justify-center" id="modal-actions"></div>
+        </div>
+    </div>
+
+    <!-- Modal Scanner Barcode -->
+    <div id="scanner-modal" class="hidden-el absolute inset-0 bg-black/80 z-[110] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
+            <div class="p-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
+                <h3 class="font-bold text-lg"><i class="fas fa-camera text-blue-400 mr-2"></i> Scan Barcode</h3>
+                <button onclick="stopScanner()" class="text-gray-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-4 bg-black relative flex justify-center w-full">
+                <div id="reader" style="width: 100%; max-width: 400px; min-height: 250px;"></div>
+            </div>
+            <div class="p-4 bg-gray-50 text-center text-sm text-gray-500 font-medium border-t border-gray-200">
+                <i class="fas fa-info-circle text-blue-500 mr-1"></i> Arahkan kamera ke barcode/QR Code produk.
+            </div>
         </div>
     </div>
 
@@ -172,9 +189,10 @@
         <!-- Area Produk -->
         <div class="flex-1 flex flex-col bg-gray-50 h-full relative overflow-y-auto">
             <div class="p-4 bg-white shadow-sm z-10 flex gap-3 sticky top-0">
-                <div class="relative flex-1">
+                <div class="relative flex-1 flex">
                     <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
-                    <input type="text" id="search-item" onkeyup="renderProducts()" placeholder="Cari nama, ID, atau kode..." class="w-full pl-11 p-3 border-gray-200 bg-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm">
+                    <input type="text" id="search-item" onkeyup="renderProducts()" placeholder="Cari nama, ID, atau kode..." class="w-full pl-11 p-3 border-y border-l border-gray-200 bg-gray-100 rounded-l-xl focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm">
+                    <button onclick="startScanner()" class="bg-blue-50 border-y border-r border-gray-200 text-blue-600 px-4 rounded-r-xl hover:bg-blue-100 transition-all font-bold" title="Scan Barcode"><i class="fas fa-barcode text-lg"></i></button>
                 </div>
                 <button onclick="loadData()" class="bg-white border border-gray-200 text-gray-600 px-4 rounded-xl hover:bg-gray-50 shadow-sm transition-all" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
             </div>
@@ -1524,6 +1542,58 @@
         window.onload = function() {
             initLoginOptions();
         };
+
+        // Variabel penampung instans scanner
+        let html5QrCode = null;
+
+        function startScanner() {
+            // Tampilkan modal
+            document.getElementById('scanner-modal').classList.remove('hidden-el');
+            
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            
+            // Callback jika scan berhasil
+            const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+                // Mainkan suara beep kecil jika diperlukan (opsional, ditiadakan agar support semua browser)
+                
+                // 1. Matikan scanner
+                stopScanner();
+                
+                // 2. Isi kotak pencarian dengan hasil scan
+                const searchInput = document.getElementById('search-item');
+                searchInput.value = decodedText;
+                
+                // 3. Panggil fungsi render produk agar otomatis difilter
+                renderProducts();
+            };
+            
+            const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+            
+            // Mulai scanner dengan kamera belakang (environment)
+            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+            .catch((err) => {
+                console.error("Gagal memulai kamera", err);
+                stopScanner();
+                showModal("Akses Kamera Gagal", "Sistem tidak dapat mengakses kamera. Pastikan Anda telah memberikan izin (permissions) kamera untuk situs ini melalui pengaturan browser Anda.");
+            });
+        }
+
+        function stopScanner() {
+            document.getElementById('scanner-modal').classList.add('hidden-el');
+            if (html5QrCode) {
+                try {
+                    html5QrCode.stop().then((ignore) => {
+                        // Scanner berhasil dimatikan
+                    }).catch((err) => {
+                        console.log("Scanner mungkin belum berjalan sepenuhnya.", err);
+                    });
+                } catch (e) {
+                    // Abaikan error jika instans dipaksa berhenti
+                }
+            }
+        }
     </script>
 </body>
 </html>
