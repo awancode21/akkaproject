@@ -4,10 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SURCAN - Supabase Edition</title>
+    
+    <meta name="theme-color" content="#2563eb">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" id="manifest-link">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -104,8 +111,8 @@
                 <div id="payment-transfer-section" class="hidden-el space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                     <div class="text-xs font-bold text-gray-500 uppercase">Informasi Rekening Tujuan</div>
                     <div class="bg-white p-3 rounded-xl border border-gray-200 text-left space-y-1">
-                        <div class="text-xs text-gray-400 font-semibold">BCA - 1234567890</div>
-                        <div class="text-sm font-bold text-gray-800">A/N SURCAN Official</div>
+                        <div id="transfer-bank-info" class="text-xs text-gray-400 font-semibold">BCA - 1234567890</div>
+                        <div id="transfer-bank-owner" class="text-sm font-bold text-gray-800">A/N SURCAN Official</div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Catatan / No. Ref Transfer (Opsional)</label>
@@ -396,6 +403,28 @@
             </div>
         </div>
 
+        <div class="grid md:grid-cols-3 gap-6 mb-6">
+            <!-- Card Pengaturan Rekening Transfer -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
+                <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-university text-purple-500 mr-2"></i> Pengaturan Rekening Transfer</h3>
+                <div class="space-y-3 mb-3 flex-1">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nama Bank / E-Wallet</label>
+                        <input type="text" id="set-bank-name" placeholder="Contoh: BCA / Mandiri / DANA" class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nomor Rekening</label>
+                        <input type="text" id="set-bank-account" placeholder="Contoh: 1234567890" class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Atas Nama (A/N)</label>
+                        <input type="text" id="set-bank-owner" placeholder="Contoh: SURCAN Official" class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                    </div>
+                </div>
+                <button onclick="saveBankSettings()" class="w-full bg-purple-600 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-purple-700 transition shadow text-sm mt-auto"><i class="fas fa-save mr-1"></i> Simpan Pengaturan</button>
+            </div>
+        </div>
+
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
                 <h3 class="font-bold text-lg"><i class="fas fa-box text-blue-500 mr-2"></i> Data Master Item</h3>
@@ -438,6 +467,7 @@
             cart: [],
             vouchers: [],
             cashierUsers: [],
+            settings: { bank_name: 'BCA', bank_account: '1234567890', bank_owner: 'SURCAN Official' },
             appliedVoucher: null,
             reports: { transactions: [], details: [] },
             currentCalculatedTotal: 0,
@@ -614,6 +644,28 @@
         async function loadData() {
             if (!client) return;
             try {
+                // Fetch settings
+                const { data: settingsData } = await client.from('store_settings').select('*');
+                if (settingsData && settingsData.length > 0) {
+                    settingsData.forEach(s => {
+                        state.settings[s.setting_key] = s.setting_value;
+                    });
+                }
+                
+                // Update tampilan rekening di Modal POS
+                const bankInfoEl = document.getElementById('transfer-bank-info');
+                const bankOwnerEl = document.getElementById('transfer-bank-owner');
+                if (bankInfoEl) bankInfoEl.innerText = `${state.settings.bank_name} - ${state.settings.bank_account}`;
+                if (bankOwnerEl) bankOwnerEl.innerText = `A/N ${state.settings.bank_owner}`;
+                
+                // Update tampilan form di Admin
+                const inputBankName = document.getElementById('set-bank-name');
+                if (inputBankName) {
+                    inputBankName.value = state.settings.bank_name || '';
+                    document.getElementById('set-bank-account').value = state.settings.bank_account || '';
+                    document.getElementById('set-bank-owner').value = state.settings.bank_owner || '';
+                }
+
                 const { data: items, error } = await client.from('master_items').select('*').order('name');
                 if (error) throw error;
                 state.items = items || [];
@@ -1176,6 +1228,41 @@
             });
         }
 
+        async function saveBankSettings() {
+            const bankName = document.getElementById('set-bank-name').value.trim();
+            const bankAcc = document.getElementById('set-bank-account').value.trim();
+            const bankOwner = document.getElementById('set-bank-owner').value.trim();
+            
+            if(!bankName || !bankAcc || !bankOwner) {
+                showModal("Form Tidak Lengkap", "Silakan lengkapi semua data rekening.");
+                return;
+            }
+            
+            const btn = document.querySelector('button[onclick="saveBankSettings()"]');
+            const oriHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...';
+            btn.disabled = true;
+            
+            try {
+                const updates = [
+                    { setting_key: 'bank_name', setting_value: bankName },
+                    { setting_key: 'bank_account', setting_value: bankAcc },
+                    { setting_key: 'bank_owner', setting_value: bankOwner }
+                ];
+                
+                const { error } = await client.from('store_settings').upsert(updates);
+                if(error) throw error;
+                
+                await loadData();
+                showModal("Berhasil", "Pengaturan rekening berhasil disimpan!");
+            } catch(err) {
+                showModal("Gagal Menyimpan", err.message);
+            } finally {
+                btn.innerHTML = oriHtml;
+                btn.disabled = false;
+            }
+        }
+
         async function handleBulkUpload() {
             const fileInput = document.getElementById('excel-file');
             const statusEl = document.getElementById('upload-status');
@@ -1541,10 +1628,37 @@
 
         window.onload = function() {
             initLoginOptions();
+            initPWA();
         };
+
+        function initPWA() {
+            const manifestData = {
+                "name": "SURCAN POS Application",
+                "short_name": "SURCAN",
+                "start_url": window.location.pathname || ".",
+                "display": "standalone",
+                "orientation": "portrait",
+                "background_color": "#f3f4f6",
+                "theme_color": "#2563eb",
+                "icons": [
+                    {
+                        "src": "https://cdn-icons-png.flaticon.com/512/3050/3050244.png",
+                        "sizes": "512x512",
+                        "type": "image/png",
+                        "purpose": "any maskable"
+                    }
+                ]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/manifest+json' });
+            const manifestLink = document.getElementById('manifest-link');
+            if(manifestLink) {
+                manifestLink.href = URL.createObjectURL(manifestBlob);
+            }
+        }
 
         // Variabel penampung instans scanner
         let html5QrCode = null;
+        let isScanning = false;
 
         function startScanner() {
             // Tampilkan modal
@@ -1556,8 +1670,6 @@
             
             // Callback jika scan berhasil
             const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-                // Mainkan suara beep kecil jika diperlukan (opsional, ditiadakan agar support semua browser)
-                
                 // 1. Matikan scanner
                 stopScanner();
                 
@@ -1573,25 +1685,26 @@
             
             // Mulai scanner dengan kamera belakang (environment)
             html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+            .then(() => {
+                isScanning = true;
+            })
             .catch((err) => {
                 console.error("Gagal memulai kamera", err);
+                isScanning = false;
                 stopScanner();
-                showModal("Akses Kamera Gagal", "Sistem tidak dapat mengakses kamera. Pastikan Anda telah memberikan izin (permissions) kamera untuk situs ini melalui pengaturan browser Anda.");
+                showModal("Akses Kamera Gagal", "Sistem tidak dapat mengakses kamera. Pastikan Anda menggunakan koneksi aman (HTTPS) dan telah memberikan izin akses kamera di browser.");
             });
         }
 
         function stopScanner() {
             document.getElementById('scanner-modal').classList.add('hidden-el');
-            if (html5QrCode) {
-                try {
-                    html5QrCode.stop().then((ignore) => {
-                        // Scanner berhasil dimatikan
-                    }).catch((err) => {
-                        console.log("Scanner mungkin belum berjalan sepenuhnya.", err);
-                    });
-                } catch (e) {
-                    // Abaikan error jika instans dipaksa berhenti
-                }
+            if (html5QrCode && isScanning) {
+                html5QrCode.stop().then((ignore) => {
+                    isScanning = false;
+                    html5QrCode.clear();
+                }).catch((err) => {
+                    console.log("Scanner belum berjalan sepenuhnya atau sudah terhenti.", err);
+                });
             }
         }
     </script>
