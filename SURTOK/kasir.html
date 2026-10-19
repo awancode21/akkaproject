@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- HTML5-QRCode Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -26,6 +28,22 @@
             <h3 id="modal-title" class="text-xl font-bold mb-2 text-gray-800">Peringatan</h3>
             <p id="modal-message" class="text-gray-600 mb-6 text-sm">Pesan akan tampil disini.</p>
             <div class="flex gap-3 justify-center" id="modal-actions"></div>
+        </div>
+    </div>
+
+    <!-- Scanner Modal -->
+    <div id="scanner-modal" class="hidden-el absolute inset-0 bg-black/80 z-[110] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden transform transition-all scale-100">
+            <div class="p-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
+                <h3 class="font-bold text-lg"><i class="fas fa-camera text-blue-400 mr-2"></i> Scan Barcode / QR</h3>
+                <button onclick="closeScannerModal()" class="text-gray-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-4 bg-black flex-1 flex flex-col items-center justify-center relative min-h-[300px]">
+                <div id="reader" class="w-full rounded-xl overflow-hidden"></div>
+            </div>
+            <div class="p-4 bg-gray-50 border-t border-gray-100 flex justify-center">
+                <button onclick="closeScannerModal()" class="bg-gray-200 text-gray-700 font-bold py-2.5 px-6 rounded-xl hover:bg-gray-300 transition text-sm">Tutup Kamera</button>
+            </div>
         </div>
     </div>
 
@@ -165,7 +183,8 @@
             <div class="p-4 bg-white shadow-sm z-10 flex gap-3 sticky top-0">
                 <div class="relative flex-1">
                     <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
-                    <input type="text" id="search-item" onkeyup="renderProducts()" placeholder="Cari nama, ID, atau kode..." class="w-full pl-11 p-3 border-gray-200 bg-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm">
+                    <input type="text" id="search-item" onkeyup="renderProducts()" placeholder="Cari nama, ID, atau kode..." class="w-full pl-11 pr-11 p-3 border-gray-200 bg-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm">
+                    <button onclick="openScannerModal()" class="absolute right-3 top-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm" title="Scan Barcode / QR"><i class="fas fa-camera text-base"></i></button>
                 </div>
                 <button onclick="loadData()" class="bg-white border border-gray-200 text-gray-600 px-4 rounded-xl hover:bg-gray-50 shadow-sm transition-all" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
             </div>
@@ -408,7 +427,8 @@
             appliedVoucher: null,
             reports: { transactions: [], details: [] },
             currentCalculatedTotal: 0,
-            selectedPaymentMethod: 'cash'
+            selectedPaymentMethod: 'cash',
+            html5QrCode: null
         };
 
         const formatRp = (angka) => {
@@ -439,6 +459,52 @@
 
         function closeModal() {
             document.getElementById('custom-modal').classList.add('hidden-el');
+        }
+
+        // --- BARCODE SCANNER FUNCTIONS ---
+        function openScannerModal() {
+            document.getElementById('scanner-modal').classList.remove('hidden-el');
+            setTimeout(() => {
+                if (!state.html5QrCode) {
+                    state.html5QrCode = new Html5Qrcode("reader");
+                }
+                const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+                    handleScannedCode(decodedText);
+                    closeScannerModal();
+                };
+                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+                state.html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+                .catch(err => {
+                    console.error("Gagal memulai kamera scanner:", err);
+                    showModal("Kamera Gagal", "Tidak dapat mengakses kamera perangkat. Pastikan izin kamera aktif.");
+                    closeScannerModal();
+                });
+            }, 300);
+        }
+
+        function closeScannerModal() {
+            if (state.html5QrCode && state.html5QrCode.isScanning) {
+                state.html5QrCode.stop().then(() => {
+                    document.getElementById('scanner-modal').classList.add('hidden-el');
+                }).catch(err => {
+                    console.error("Gagal menghentikan scanner:", err);
+                    document.getElementById('scanner-modal').classList.add('hidden-el');
+                });
+            } else {
+                document.getElementById('scanner-modal').classList.add('hidden-el');
+            }
+        }
+
+        function handleScannedCode(code) {
+            const searchInput = document.getElementById('search-item');
+            if(searchInput) {
+                searchInput.value = code;
+                renderProducts();
+            }
+            const foundItem = state.items.find(i => (i.id || '').toString().toLowerCase() === code.toLowerCase() || (i.orig_code || '').toLowerCase() === code.toLowerCase());
+            if(foundItem) {
+                addToCart(foundItem.id);
+            }
         }
 
         function toggleMobileCart() {
