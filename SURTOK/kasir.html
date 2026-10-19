@@ -2,15 +2,37 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Tambahan viewport-fit=cover agar bisa tembus sampai ke area poni/notch HP -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- Meta tag agar menjadi aplikasi mandiri di Android (Fullscreen PWA) -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2563eb">
-    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiU3VyeWF0b2tva3UiLCJzaG9ydF9uYW1lIjoiU3VyeWF0b2tva3UiLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjZjNmNGY2IiwidGhlbWVfY29sb3IiOiIjMjU2M2ViIiwic3RhcnRfdXJsIjoiLyIsImljb25zIjpbeyJzcmMiOiJodHRwczovL2Nkbi1pY29ucy1wbmcuZmxhdGljb24uY29tLzUxMi8xMDU1LzEwNTU2ODUucG5nIiwic2l6ZXMiOiI1MTJ4NTEyIiwidHlwZSI6ImltYWdlL3BuZyJ9XX0=">
     
     <title>Suryatokoku - Multi-Payment Edition</title>
+
+    <script>
+        // Generate Manifest Dinamis agar pasti terbaca sebagai aplikasi oleh Chrome Android
+        const manifest = {
+            name: "Suryatokoku POS",
+            short_name: "Suryatokoku",
+            start_url: window.location.href.split('?')[0], // Otomatis menyesuaikan URL saat ini
+            display: "standalone", // Wajib 'standalone' atau 'fullscreen' agar layaknya aplikasi
+            background_color: "#f3f4f6",
+            theme_color: "#2563eb",
+            icons: [{
+                src: "https://cdn-icons-png.flaticon.com/512/1055/1055685.png",
+                sizes: "512x512",
+                type: "image/png",
+                purpose: "any maskable"
+            }]
+        };
+        const blob = new Blob([JSON.stringify(manifest)], {type: 'application/manifest+json'});
+        const manifestURL = URL.createObjectURL(blob);
+        document.write('<link rel="manifest" href="' + manifestURL + '">');
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
