@@ -2,22 +2,42 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SURCAN - Supabase Edition</title>
-    
-    <meta name="theme-color" content="#2563eb">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="manifest" id="manifest-link">
+    <meta name="theme-color" content="#2563eb">
+    
+    <title>SURCAN - Multi-Payment Edition</title>
 
+    <script>
+        const manifestJSON = {
+            "name": "SURCAN POS",
+            "short_name": "SURCAN",
+            "start_url": window.location.href.split('?')[0],
+            "display": "fullscreen",
+            "background_color": "#f3f4f6",
+            "theme_color": "#2563eb",
+            "icons": [{
+                "src": "https://cdn-icons-png.flaticon.com/512/1055/1055685.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any maskable"
+            }]
+        };
+        const encodedManifest = encodeURIComponent(JSON.stringify(manifestJSON));
+        document.write('<link rel="manifest" href="data:application/manifest+json;charset=utf-8,' + encodedManifest + '">');
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
         .hidden-el { display: none !important; }
         .loader {
@@ -25,12 +45,20 @@
             border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            #printable-receipt, #printable-receipt * { visibility: visible; }
+            #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 10px; background: white; z-index: 9999; }
+        }
     </style>
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden relative">
-    
-    <!-- Custom Modal Dialog -->
-    <div id="custom-modal" class="hidden-el absolute inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4">
+
+    <div id="custom-modal" class="hidden-el absolute inset-0 bg-black/60 z-[200] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm text-center transform transition-all scale-100">
             <h3 id="modal-title" class="text-xl font-bold mb-2 text-gray-800">Peringatan</h3>
             <p id="modal-message" class="text-gray-600 mb-6 text-sm">Pesan akan tampil disini.</p>
@@ -38,24 +66,22 @@
         </div>
     </div>
 
-    <!-- Modal Scanner Barcode -->
-    <div id="scanner-modal" class="hidden-el absolute inset-0 bg-black/80 z-[110] flex items-center justify-center backdrop-blur-sm p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
+    <div id="scanner-modal" class="hidden-el absolute inset-0 bg-black/80 z-[190] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden transform transition-all scale-100">
             <div class="p-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
-                <h3 class="font-bold text-lg"><i class="fas fa-camera text-blue-400 mr-2"></i> Scan Barcode</h3>
-                <button onclick="stopScanner()" class="text-gray-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
+                <h3 class="font-bold text-lg"><i class="fas fa-barcode text-blue-400 mr-2"></i> Scan Barcode / QR</h3>
+                <button onclick="closeScannerModal()" class="text-gray-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
             </div>
-            <div class="p-4 bg-black relative flex justify-center w-full">
-                <div id="reader" style="width: 100%; max-width: 400px; min-height: 250px;"></div>
+            <div class="p-4 bg-black flex-1 flex flex-col items-center justify-center relative min-h-[300px]">
+                <div id="reader" class="w-full rounded-xl overflow-hidden"></div>
             </div>
-            <div class="p-4 bg-gray-50 text-center text-sm text-gray-500 font-medium border-t border-gray-200">
-                <i class="fas fa-info-circle text-blue-500 mr-1"></i> Arahkan kamera ke barcode/QR Code produk.
+            <div class="p-4 bg-gray-50 border-t border-gray-100 flex justify-center">
+                <button onclick="closeScannerModal()" class="bg-gray-200 text-gray-700 font-bold py-2.5 px-6 rounded-xl hover:bg-gray-300 transition text-sm">Tutup Kamera</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal Pembayaran (Cash, QRIS, Transfer) -->
-    <div id="payment-modal" class="hidden-el absolute inset-0 bg-black/60 z-[105] flex items-center justify-center backdrop-blur-sm p-4">
+    <div id="payment-modal" class="hidden-el absolute inset-0 bg-black/60 z-[180] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden transform transition-all scale-100 max-h-[90vh]">
             <div class="p-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
                 <h3 class="font-bold text-lg"><i class="fas fa-cash-register text-green-400 mr-2"></i> Pembayaran</h3>
@@ -67,8 +93,7 @@
                     <span class="text-sm font-semibold text-gray-600">Total Belanja</span>
                     <span id="pay-modal-total" class="text-xl font-extrabold text-blue-600">Rp 0</span>
                 </div>
-                
-                <!-- Pilihan Metode Pembayaran -->
+
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Metode Pembayaran</label>
                     <div class="grid grid-cols-3 gap-2">
@@ -78,7 +103,6 @@
                     </div>
                 </div>
 
-                <!-- Bagian Konten Khusus Tunai -->
                 <div id="payment-cash-section" class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nominal Uang Diterima (Cash)</label>
@@ -98,7 +122,6 @@
                     </div>
                 </div>
 
-                <!-- Bagian Konten Khusus QRIS -->
                 <div id="payment-qris-section" class="hidden-el text-center space-y-3 py-2 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                     <div class="text-xs font-bold text-gray-500 uppercase">Scan QRIS Toko</div>
                     <div class="bg-white p-4 inline-block rounded-xl shadow-sm border border-gray-200">
@@ -107,12 +130,11 @@
                     <div class="text-xs text-gray-500 font-medium">Silakan minta pelanggan scan menggunakan aplikasi e-wallet atau M-Banking.</div>
                 </div>
 
-                <!-- Bagian Konten Khusus Transfer -->
                 <div id="payment-transfer-section" class="hidden-el space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                     <div class="text-xs font-bold text-gray-500 uppercase">Informasi Rekening Tujuan</div>
                     <div class="bg-white p-3 rounded-xl border border-gray-200 text-left space-y-1">
                         <div id="transfer-bank-info" class="text-xs text-gray-400 font-semibold">BCA - 1234567890</div>
-                        <div id="transfer-bank-owner" class="text-sm font-bold text-gray-800">A/N SURCAN Official</div>
+                        <div id="transfer-owner-info" class="text-sm font-bold text-gray-800">A/N SURCAN Official</div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Catatan / No. Ref Transfer (Opsional)</label>
@@ -120,7 +142,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="p-4 bg-gray-50 border-t border-gray-100 flex gap-3 shrink-0">
                 <button onclick="closePaymentModal()" class="flex-1 bg-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-300 transition">Batal</button>
                 <button onclick="confirmAndExecuteCheckout()" id="btn-confirm-pay" class="flex-1 bg-green-500 text-white font-bold py-3 rounded-xl hover:bg-green-600 transition shadow-lg shadow-green-500/30 flex justify-center items-center gap-2">Proses Bayar</button>
@@ -128,40 +150,57 @@
         </div>
     </div>
 
-    <!-- Modal Detail Transaksi (Struk / Sukses Bayar) -->
-    <div id="detail-modal" class="hidden-el absolute inset-0 bg-black/60 z-[90] flex items-center justify-center backdrop-blur-sm p-4">
+    <div id="detail-modal" class="hidden-el absolute inset-0 bg-black/60 z-[170] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden">
             <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                 <h3 class="font-bold text-gray-800"><i class="fas fa-receipt text-blue-500 mr-2"></i> Struk / Detail Transaksi</h3>
                 <button onclick="closeDetailModal()" class="text-gray-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
             </div>
-            <div class="p-4 bg-white text-sm flex justify-between text-gray-500 border-b border-dashed">
-                <span>Invoice: <b id="dtl-inv" class="text-gray-800">INV-XXX</b></span>
-                <span>User: <b id="dtl-cashier" class="text-blue-600">Admin</b></span>
-                <span>Waktu: <b id="dtl-time" class="text-gray-800">00:00</b></span>
+            
+            <div class="overflow-y-auto p-4 bg-white flex-1" id="receipt-container-wrapper">
+                <div id="printable-receipt" class="bg-white p-4 text-gray-800 space-y-3 font-mono text-xs">
+                    <div class="text-center pb-3 border-b border-dashed">
+                        <div class="font-extrabold text-base uppercase text-slate-900 tracking-wider">SURCAN</div>
+                        <div class="text-[11px] text-gray-500">Pusat Belanja & Retail Modern</div>
+                    </div>
+                    <div class="flex justify-between text-gray-600 pb-2 border-b border-dashed">
+                        <div>
+                            <div>Invoice: <b id="dtl-inv" class="text-gray-900">INV-XXX</b></div>
+                            <div>Kasir: <b id="dtl-cashier" class="text-gray-900">Admin</b></div>
+                        </div>
+                        <div class="text-right">
+                            <div>Tanggal: <b id="dtl-date">00-00-0000</b></div>
+                            <div>Waktu: <b id="dtl-time">00:00</b></div>
+                        </div>
+                    </div>
+                    <div id="dtl-voucher-info" class="text-[11px] bg-blue-50 text-blue-700 p-2 rounded font-sans font-medium hidden-el"></div>
+                    <table class="w-full text-left font-sans text-xs">
+                        <thead class="text-[11px] text-gray-400 uppercase border-b border-gray-100">
+                            <tr>
+                                <th class="pb-1 font-semibold">Item</th>
+                                <th class="pb-1 font-semibold text-center w-8">Qty</th>
+                                <th class="pb-1 font-semibold text-right">Harga</th>
+                                <th class="pb-1 font-semibold text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detail-items-table" class="divide-y divide-gray-50 font-sans"></tbody>
+                    </table>
+                    <div id="dtl-payment-summary" class="mt-3 pt-2 border-t border-dashed space-y-1 text-xs font-sans bg-gray-50 p-2.5 rounded-lg"></div>
+                    <div class="text-center text-[10px] text-gray-400 pt-2 border-t border-dashed font-sans">
+                        Terima Kasih Telah Berbelanja di SURCAN!<br>Barang yang sudah dibeli tidak dapat ditukar/dikembalikan.
+                    </div>
+                </div>
             </div>
-            <div class="overflow-y-auto p-4 bg-white flex-1">
-                <div id="dtl-voucher-info" class="mb-3 text-xs bg-blue-50 text-blue-700 p-2 rounded-lg font-medium hidden-el"></div>
-                <table class="w-full text-left text-sm">
-                    <thead class="text-xs text-gray-400 uppercase border-b border-gray-100">
-                        <tr>
-                            <th class="pb-2 font-semibold">Item</th>
-                            <th class="pb-2 font-semibold text-center w-12">Qty</th>
-                            <th class="pb-2 font-semibold text-right">Harga</th>
-                            <th class="pb-2 font-semibold text-right">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody id="detail-items-table" class="divide-y divide-gray-50"></tbody>
-                </table>
-                <div id="dtl-payment-summary" class="mt-4 pt-3 border-t border-dashed space-y-1 text-sm bg-gray-50 p-3 rounded-xl"></div>
-            </div>
-            <div class="p-4 border-t border-gray-100 bg-gray-50">
-                <button onclick="closeDetailModal()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition shadow">Tutup Pop-Up</button>
+
+            <div class="p-3 border-t border-gray-100 bg-gray-50 grid grid-cols-2 md:grid-cols-4 gap-2">
+                <button onclick="printReceipt()" class="bg-slate-800 text-white font-bold py-2.5 px-3 rounded-xl hover:bg-slate-900 transition text-xs flex items-center justify-center gap-1.5 shadow"><i class="fas fa-print"></i> Cetak</button>
+                <button onclick="downloadReceiptImage()" class="bg-blue-600 text-white font-bold py-2.5 px-3 rounded-xl hover:bg-blue-700 transition text-xs flex items-center justify-center gap-1.5 shadow"><i class="fas fa-download"></i> Download</button>
+                <button onclick="sendReceiptWhatsApp()" class="bg-emerald-600 text-white font-bold py-2.5 px-3 rounded-xl hover:bg-emerald-700 transition text-xs flex items-center justify-center gap-1.5 shadow"><i class="fab fa-whatsapp"></i> Kirim WA</button>
+                <button onclick="closeDetailModal()" class="bg-gray-200 text-gray-700 font-bold py-2.5 px-3 rounded-xl hover:bg-gray-300 transition text-xs">Tutup</button>
             </div>
         </div>
     </div>
 
-    <!-- Login Screen -->
     <div id="login-screen" class="absolute inset-0 bg-blue-600 flex items-center justify-center z-50">
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center mx-4">
             <i class="fas fa-store text-5xl text-blue-500 mb-4 drop-shadow-md"></i>
@@ -173,12 +212,12 @@
                     <option value="">-- Pilih User --</option>
                 </select>
             </div>
+
             <input type="password" id="pin-input" placeholder="PIN Akun" class="w-full p-3.5 border rounded-xl mb-4 text-center text-base focus:ring-4 focus:ring-blue-200 focus:border-blue-500 outline-none transition-all">
             <button onclick="login()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-lg active:scale-95">MASUK</button>
         </div>
     </div>
 
-    <!-- Header Navigation -->
     <header id="main-header" class="bg-white shadow-sm px-4 py-3 flex justify-between items-center hidden-el z-40 relative border-b border-gray-200">
         <div class="flex items-center gap-2 text-blue-600 font-bold text-xl tracking-tight">
             <i class="fas fa-store text-blue-500"></i> SURCAN <span id="header-user-badge" class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-semibold ml-2"></span>
@@ -191,24 +230,19 @@
         <button onclick="logout()" class="text-red-500 font-bold hover:bg-red-50 px-3 py-2 rounded-lg transition-colors" title="Keluar"><i class="fas fa-sign-out-alt"></i></button>
     </header>
 
-    <!-- Tab POS (Kasir) -->
     <main id="pos-view" class="flex-1 flex flex-col lg:flex-row overflow-hidden hidden-el relative pb-20 lg:pb-0">
-        <!-- Area Produk -->
         <div class="flex-1 flex flex-col bg-gray-50 h-full relative overflow-y-auto">
-            <div class="p-4 bg-white shadow-sm z-10 flex gap-3 sticky top-0">
-                <div class="relative flex-1 flex">
-                    <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
-                    <input type="text" id="search-item" onkeyup="renderProducts()" placeholder="Cari nama, ID, atau kode..." class="w-full pl-11 p-3 border-y border-l border-gray-200 bg-gray-100 rounded-l-xl focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm">
-                    <button onclick="startScanner()" class="bg-blue-50 border-y border-r border-gray-200 text-blue-600 px-4 rounded-r-xl hover:bg-blue-100 transition-all font-bold" title="Scan Barcode"><i class="fas fa-barcode text-lg"></i></button>
+            <div class="p-4 bg-white shadow-sm z-10 flex gap-3 sticky top-0 items-center">
+                <div class="relative flex-1 flex items-center">
+                    <i class="fas fa-search absolute left-4 text-gray-400"></i>
+                    <input type="text" id="search-item" onkeyup="handleSearchKey(event)" placeholder="Ketik kode/nama lalu Enter..." class="w-full pl-11 pr-12 py-3 border border-gray-200 bg-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm">
+                    <button onclick="openScannerModal()" class="absolute right-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm shrink-0" title="Scan Barcode / QR"><i class="fas fa-barcode text-base"></i></button>
                 </div>
-                <button onclick="loadData()" class="bg-white border border-gray-200 text-gray-600 px-4 rounded-xl hover:bg-gray-50 shadow-sm transition-all" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
+                <button onclick="loadData()" class="bg-white border border-gray-200 text-gray-600 w-11 h-11 rounded-xl hover:bg-gray-50 shadow-sm transition-all flex items-center justify-center shrink-0" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
             </div>
-            <div id="product-grid" class="p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start pb-28 lg:pb-4">
-                <!-- Produk di-render disini -->
-            </div>
+            <div id="product-grid" class="p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start pb-28 lg:pb-4"></div>
         </div>
 
-        <!-- Floating Cart Bar for Mobile -->
         <div class="lg:hidden fixed bottom-3 left-3 right-3 z-30">
             <button onclick="toggleMobileCart()" class="w-full bg-slate-900 text-white p-3.5 rounded-2xl shadow-2xl flex justify-between items-center font-bold border border-slate-700">
                 <span class="flex items-center gap-2"><i class="fas fa-shopping-cart text-blue-400"></i> <span id="mobile-cart-count">0</span> Item</span>
@@ -216,7 +250,6 @@
             </button>
         </div>
 
-        <!-- Area Keranjang -->
         <div id="cart-sidebar" class="hidden fixed inset-0 z-50 lg:relative lg:inset-auto bg-black/60 lg:bg-white w-full lg:w-[420px] border-l border-gray-200 shadow-2xl flex-col h-full justify-end lg:justify-start">
             <div class="bg-white w-full max-h-[85vh] lg:max-h-none flex flex-col ml-auto rounded-t-3xl lg:rounded-none overflow-hidden h-full">
                 <div class="p-4 bg-slate-800 text-white flex justify-between items-center shrink-0">
@@ -230,7 +263,6 @@
                 </div>
 
                 <div class="p-4 border-t border-gray-200 bg-white shrink-0 pb-6 lg:pb-4">
-                    <!-- Input Voucher -->
                     <div class="mb-3 bg-blue-50 p-2.5 rounded-xl border border-blue-100">
                         <div class="flex gap-2 relative">
                             <input type="text" id="voucher-input" list="voucher-list" oninput="applyVoucher()" placeholder="Ketik/Pilih Voucher" class="w-full p-2.5 text-sm border rounded-lg uppercase outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white font-semibold">
@@ -238,7 +270,7 @@
                         </div>
                         <div id="voucher-info" class="text-xs mt-2 hidden-el font-medium"></div>
                     </div>
-                    
+
                     <div class="flex justify-between mb-1.5 text-sm text-gray-600">
                         <span>Subtotal</span>
                         <span id="cart-subtotal" class="font-semibold text-gray-800">Rp 0</span>
@@ -251,7 +283,6 @@
                         <span>Total</span>
                         <span id="cart-total">Rp 0</span>
                     </div>
-                    
                     <button onclick="processCheckout()" id="btn-checkout" class="w-full bg-green-500 text-white font-bold py-3.5 rounded-xl hover:bg-green-600 transition shadow-lg shadow-green-500/30 flex justify-center items-center gap-2 active:scale-95 text-base">
                         <i class="fas fa-check-circle text-xl"></i> BAYAR
                     </button>
@@ -260,7 +291,6 @@
         </div>
     </main>
 
-    <!-- Tab Laporan -->
     <main id="laporan-view" class="flex-1 overflow-y-auto p-6 hidden-el bg-gray-50 pb-20">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-gray-200 pb-4">
             <h2 class="text-2xl font-extrabold text-gray-800 tracking-tight">Laporan Penjualan</h2>
@@ -290,7 +320,8 @@
                             <th class="p-4 font-bold text-xs uppercase tracking-wider rounded-tl-xl">User / Kasir</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-center">Jml Transaksi</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Total Subtotal</th>
-                            <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Total Diskon</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Diskon Reguler</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Diskon Voucher</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Cash (Tunai)</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">QRIS</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Transfer</th>
@@ -314,9 +345,8 @@
                             <th class="p-4 font-bold text-xs uppercase tracking-wider rounded-tl-xl">Tanggal & Jam</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider">No. Invoice</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider">User Kasir</th>
-                            <th class="p-4 font-bold text-xs uppercase tracking-wider">Metode</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider">Pembayaran</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider">Voucher</th>
-                            <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Diskon</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Total Bayar</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-center rounded-tr-xl">Aksi</th>
                         </tr>
@@ -327,11 +357,29 @@
         </div>
     </main>
 
-    <!-- Tab Admin -->
     <main id="admin-view" class="flex-1 overflow-y-auto p-6 hidden-el bg-gray-50 pb-20">
         <h2 class="text-2xl font-extrabold mb-6 text-gray-800 tracking-tight">Panel Administrator</h2>
         
         <div class="grid md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
+                <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-university text-green-500 mr-2"></i> Info Rekening (Transfer)</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nama Bank / E-Wallet</label>
+                        <input type="text" id="setting-bank-name" placeholder="Contoh: BCA / DANA" class="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nomor Rekening</label>
+                        <input type="text" id="setting-bank-acc" placeholder="Contoh: 1234567890" class="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Atas Nama (A/N)</label>
+                        <input type="text" id="setting-bank-owner" placeholder="Contoh: SURCAN Official" class="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none font-semibold">
+                    </div>
+                    <button onclick="saveBankSettings()" class="w-full bg-green-500 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-green-600 transition shadow text-sm mt-2"><i class="fas fa-save mr-1"></i> Simpan Rekening</button>
+                </div>
+            </div>
+
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
                 <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-users text-blue-500 mr-2"></i> Pengaturan User</h3>
                 <div class="flex flex-col gap-2 mb-3">
@@ -360,6 +408,7 @@
 
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
                 <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-ticket-alt text-orange-500 mr-2"></i> Voucher Promo</h3>
+                
                 <div class="space-y-2.5 mb-3">
                     <input type="text" id="v-nama" placeholder="Kode Voucher (Ex: EMINA5000)" class="w-full p-2 border rounded-lg text-sm uppercase focus:ring-2 focus:ring-blue-400 outline-none font-bold">
                     <div class="grid grid-cols-2 gap-2">
@@ -374,6 +423,7 @@
                 <div class="mb-4">
                     <button onclick="saveVoucher()" class="w-full bg-orange-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition shadow text-sm"><i class="fas fa-plus mr-1"></i> Simpan Voucher</button>
                 </div>
+                
                 <div class="flex-1 overflow-y-auto border rounded-xl bg-gray-50 max-h-36">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-gray-200/50 sticky top-0">
@@ -391,6 +441,7 @@
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-file-excel text-green-600 mr-2"></i> Upload Master Item</h3>
                 <p class="text-xs text-gray-500 mb-3">Upload file Excel (.xlsx) data stok & harga.</p>
+                
                 <div class="flex flex-col gap-2.5">
                     <input type="file" id="excel-file" accept=".xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-gray-200 rounded-xl">
                     <div class="flex gap-2 flex-wrap">
@@ -400,28 +451,6 @@
                     </div>
                 </div>
                 <div id="upload-status" class="mt-3 p-2.5 rounded-lg text-xs font-semibold hidden-el bg-gray-50 border"></div>
-            </div>
-        </div>
-
-        <div class="grid md:grid-cols-3 gap-6 mb-6">
-            <!-- Card Pengaturan Rekening Transfer -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
-                <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-university text-purple-500 mr-2"></i> Pengaturan Rekening Transfer</h3>
-                <div class="space-y-3 mb-3 flex-1">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nama Bank / E-Wallet</label>
-                        <input type="text" id="set-bank-name" placeholder="Contoh: BCA / Mandiri / DANA" class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nomor Rekening</label>
-                        <input type="text" id="set-bank-account" placeholder="Contoh: 1234567890" class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Atas Nama (A/N)</label>
-                        <input type="text" id="set-bank-owner" placeholder="Contoh: SURCAN Official" class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
-                    </div>
-                </div>
-                <button onclick="saveBankSettings()" class="w-full bg-purple-600 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-purple-700 transition shadow text-sm mt-auto"><i class="fas fa-save mr-1"></i> Simpan Pengaturan</button>
             </div>
         </div>
 
@@ -448,6 +477,7 @@
     </main>
 
     <script>
+        // Gunakan URL dasar (base URL) Supabase tanpa /rest/v1/
         const SUPABASE_URL = 'https://wfjqqeipfhxedymfwrxr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmanFxZWlwZmh4ZWR5bWZ3cnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzODg5MDQsImV4cCI6MjEwNzk2NDkwNH0.npQ5KaXTX4937nNVPUPk88q0mejqNjkEpdei0jxYNME';
         
@@ -467,11 +497,13 @@
             cart: [],
             vouchers: [],
             cashierUsers: [],
-            settings: { bank_name: 'BCA', bank_account: '1234567890', bank_owner: 'SURCAN Official' },
+            storeSettings: { bankName: 'BCA', bankAcc: '1234567890', bankOwner: 'SURCAN Official' },
             appliedVoucher: null,
             reports: { transactions: [], details: [] },
             currentCalculatedTotal: 0,
-            selectedPaymentMethod: 'cash'
+            selectedPaymentMethod: 'cash',
+            html5QrCode: null,
+            lastReceiptData: null
         };
 
         const formatRp = (angka) => {
@@ -504,6 +536,75 @@
             document.getElementById('custom-modal').classList.add('hidden-el');
         }
 
+        function openScannerModal() {
+            document.getElementById('scanner-modal').classList.remove('hidden-el');
+            setTimeout(() => {
+                if (!state.html5QrCode) {
+                    state.html5QrCode = new Html5Qrcode("reader");
+                }
+                const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+                    handleScannedCode(decodedText);
+                    closeScannerModal();
+                };
+                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+                state.html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+                .catch(err => {
+                    console.error("Gagal memulai kamera scanner:", err);
+                    showModal("Kamera Gagal", "Tidak dapat mengakses kamera perangkat. Pastikan izin kamera aktif.");
+                    closeScannerModal();
+                });
+            }, 300);
+        }
+
+        function closeScannerModal() {
+            if (state.html5QrCode && state.html5QrCode.isScanning) {
+                state.html5QrCode.stop().then(() => {
+                    document.getElementById('scanner-modal').classList.add('hidden-el');
+                }).catch(err => {
+                    console.error("Gagal menghentikan scanner:", err);
+                    document.getElementById('scanner-modal').classList.add('hidden-el');
+                });
+            } else {
+                document.getElementById('scanner-modal').classList.add('hidden-el');
+            }
+        }
+
+        function handleScannedCode(code) {
+            const searchInput = document.getElementById('search-item');
+            if(searchInput) {
+                searchInput.value = code;
+                renderProducts();
+            }
+            const foundItem = state.items.find(i => (i.id || '').toString().toLowerCase() === code.toLowerCase() || (i.orig_code || '').toLowerCase() === code.toLowerCase());
+            if(foundItem) {
+                addToCart(foundItem.id);
+            } else {
+                showModal("Item Tidak Ditemukan", `Produk dengan kode "${code}" tidak terdaftar di sistem.`);
+            }
+        }
+
+        function handleSearchKey(event) {
+            renderProducts();
+            if (event.key === 'Enter') {
+                const searchInput = document.getElementById('search-item');
+                const code = searchInput.value.trim();
+                if (!code) return;
+
+                const foundItem = state.items.find(i => 
+                    (i.id || '').toString().toLowerCase() === code.toLowerCase() || 
+                    (i.orig_code || '').toLowerCase() === code.toLowerCase()
+                );
+
+                if (foundItem) {
+                    addToCart(foundItem.id);
+                    searchInput.value = '';
+                    renderProducts();
+                } else {
+                    showModal("Item Tidak Ditemukan", `Produk dengan kode "${code}" tidak terdaftar di sistem.`);
+                }
+            }
+        }
+
         function toggleMobileCart() {
             const sidebar = document.getElementById('cart-sidebar');
             if (sidebar.classList.contains('hidden')) {
@@ -525,7 +626,7 @@
                 let html = '<option value="">-- Pilih User --</option>';
                 if(state.cashierUsers.length > 0) {
                     state.cashierUsers.forEach(c => {
-                        const icon = c.role === 'admin' ? '⭐' : '👤';
+                        const icon = c.role === 'admin' ? '🔐' : '👤';
                         html += `<option value="${c.name}">${icon} ${c.name} (${c.role || 'kasir'})</option>`;
                     });
                 }
@@ -550,16 +651,19 @@
         async function login() {
             const userSelect = document.getElementById('login-user-select').value;
             const pin = document.getElementById('pin-input').value;
+
             if(!userSelect) {
                 showModal("Pilih User", "Silakan pilih nama user terlebih dahulu.");
                 return;
             }
+
             const selectedUser = state.cashierUsers.find(u => u.name === userSelect);
             
             if (selectedUser.pin && selectedUser.pin !== pin) {
                 showModal("PIN Salah", "PIN yang Anda masukkan salah.");
                 return;
             }
+
             state.role = selectedUser.role || 'kasir';
             state.currentUser = selectedUser.name;
             
@@ -568,6 +672,7 @@
             } else {
                 document.getElementById('nav-admin').classList.add('hidden-el');
             }
+
             document.getElementById('login-screen').classList.add('hidden-el');
             document.getElementById('main-header').classList.remove('hidden-el');
             document.getElementById('header-user-badge').innerText = `${state.currentUser} (${state.role})`;
@@ -606,15 +711,21 @@
                 activeBtn.classList.add('bg-blue-100', 'text-blue-700', 'shadow-sm');
                 activeBtn.classList.remove('text-gray-500', 'bg-transparent');
             }
+
             document.getElementById('pos-view').classList.add('hidden-el');
             document.getElementById('admin-view').classList.add('hidden-el');
             document.getElementById('laporan-view').classList.add('hidden-el');
-            
+
             if(tab === 'pos') {
                 document.getElementById('pos-view').classList.remove('hidden-el');
                 renderProducts();
             } else if (tab === 'admin') {
                 document.getElementById('admin-view').classList.remove('hidden-el');
+                
+                document.getElementById('setting-bank-name').value = state.storeSettings.bankName;
+                document.getElementById('setting-bank-acc').value = state.storeSettings.bankAcc;
+                document.getElementById('setting-bank-owner').value = state.storeSettings.bankOwner;
+
                 renderAdminTable();
                 renderVoucherTable();
                 renderCashierUserTable();
@@ -644,38 +755,29 @@
         async function loadData() {
             if (!client) return;
             try {
-                // Fetch settings
-                const { data: settingsData } = await client.from('store_settings').select('*');
-                if (settingsData && settingsData.length > 0) {
-                    settingsData.forEach(s => {
-                        state.settings[s.setting_key] = s.setting_value;
-                    });
-                }
-                
-                // Update tampilan rekening di Modal POS
-                const bankInfoEl = document.getElementById('transfer-bank-info');
-                const bankOwnerEl = document.getElementById('transfer-bank-owner');
-                if (bankInfoEl) bankInfoEl.innerText = `${state.settings.bank_name} - ${state.settings.bank_account}`;
-                if (bankOwnerEl) bankOwnerEl.innerText = `A/N ${state.settings.bank_owner}`;
-                
-                // Update tampilan form di Admin
-                const inputBankName = document.getElementById('set-bank-name');
-                if (inputBankName) {
-                    inputBankName.value = state.settings.bank_name || '';
-                    document.getElementById('set-bank-account').value = state.settings.bank_account || '';
-                    document.getElementById('set-bank-owner').value = state.settings.bank_owner || '';
-                }
-
                 const { data: items, error } = await client.from('master_items').select('*').order('name');
                 if (error) throw error;
                 state.items = items || [];
                 
                 const { data: voucherData } = await client.from('vouchers').select('*');
                 state.vouchers = voucherData || [];
-                
+
                 const { data: cashierData } = await client.from('cashier_users').select('*').order('name');
                 state.cashierUsers = cashierData || [];
-                
+
+                try {
+                    const { data: settingsData } = await client.from('store_settings').select('*');
+                    if (settingsData && settingsData.length > 0) {
+                        const bankName = settingsData.find(s => s.setting_key === 'bank_name')?.setting_value;
+                        const bankAcc = settingsData.find(s => s.setting_key === 'bank_account')?.setting_value;
+                        const bankOwner = settingsData.find(s => s.setting_key === 'bank_owner')?.setting_value;
+                        
+                        if (bankName) state.storeSettings.bankName = bankName;
+                        if (bankAcc) state.storeSettings.bankAcc = bankAcc;
+                        if (bankOwner) state.storeSettings.bankOwner = bankOwner;
+                    }
+                } catch(e) { console.warn("Tabel store_settings belum disetup atau error baca."); }
+
                 renderProducts();
                 renderCart();
                 renderVoucherList();
@@ -711,11 +813,15 @@
                 (i.id || '').toString().toLowerCase().includes(search) ||
                 (i.orig_code || '').toLowerCase().includes(search)
             );
+
             grid.innerHTML = filtered.map(item => `
                 <div onclick="addToCart('${item.id}')" class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:border-blue-400 hover:shadow-md transition-all flex flex-col h-full active:scale-95 group">
-                    <div class="text-xs text-gray-400 mb-2 flex justify-between font-medium">
+                    <div class="text-xs text-gray-400 mb-2 flex justify-between font-medium items-center">
                         <span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600">${item.id}</span>
-                        <span class="${item.stock <= 5 ? 'text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded' : 'text-green-600 bg-green-50 px-2 py-0.5 rounded'}">Stok: ${item.stock}</span>
+                        <div class="flex items-center gap-1.5">
+                            ${item.disc > 0 ? `<span class="text-[11px] bg-red-50 text-red-600 font-bold px-2 py-0.5 rounded border border-red-100">-${item.disc}%</span>` : ''}
+                            <span class="${item.stock <= 5 ? 'text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded' : 'text-green-600 bg-green-50 px-2 py-0.5 rounded'}">Stok: ${item.stock}</span>
+                        </div>
                     </div>
                     <h3 class="font-bold text-gray-700 leading-snug mb-3 flex-1 text-sm group-hover:text-blue-700 transition-colors">${item.name}</h3>
                     <div class="flex justify-between items-center mt-auto border-t border-dashed pt-2">
@@ -731,6 +837,7 @@
         function addToCart(id) {
             const item = state.items.find(i => i.id === id);
             if (!item) return;
+
             const exist = state.cart.find(c => c.id === id);
             if (exist) {
                 if(exist.qty < item.stock) exist.qty++;
@@ -789,10 +896,11 @@
             const cartContainer = document.getElementById('cart-items');
             let subtotal = 0;
             let totalItemDiscount = 0;
+
             const totalQty = state.cart.reduce((a, b) => a + b.qty, 0);
             document.getElementById('cart-count').innerText = totalQty;
             document.getElementById('mobile-cart-count').innerText = totalQty;
-            
+
             if (state.cart.length === 0) {
                 cartContainer.innerHTML = '<div class="text-center text-gray-400 mt-10 text-sm"><i class="fas fa-box-open text-4xl mb-3 block opacity-30"></i>Keranjang Kosong</div>';
             } else {
@@ -805,6 +913,7 @@
                     
                     subtotal += lineSubtotal;
                     totalItemDiscount += lineDiscAmount;
+
                     return `
                     <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-2">
                         <div class="flex justify-between items-start gap-2">
@@ -822,9 +931,10 @@
                     </div>`;
                 }).join('');
             }
-            
+
             let finalSubtotal = subtotal - totalItemDiscount;
             let voucherDiscountAmount = 0;
+
             if (state.appliedVoucher && state.cart.length > 0) {
                 if (state.appliedVoucher.tipe === 'persen') {
                     voucherDiscountAmount = finalSubtotal * (state.appliedVoucher.nominal / 100);
@@ -833,10 +943,11 @@
                 }
                 if (voucherDiscountAmount > finalSubtotal) voucherDiscountAmount = finalSubtotal;
             }
+
             const grandTotal = finalSubtotal - voucherDiscountAmount;
             state.currentCalculatedTotal = grandTotal;
             const totalAllDiscount = totalItemDiscount + voucherDiscountAmount;
-            
+
             document.getElementById('cart-subtotal').innerText = formatRp(subtotal);
             document.getElementById('cart-discount').innerText = "- " + formatRp(totalAllDiscount);
             document.getElementById('cart-total').innerText = formatRp(grandTotal);
@@ -868,15 +979,16 @@
             const btnCash = document.getElementById('pm-cash-btn');
             const btnQris = document.getElementById('pm-qris-btn');
             const btnTransfer = document.getElementById('pm-transfer-btn');
+
             const secCash = document.getElementById('payment-cash-section');
             const secQris = document.getElementById('payment-qris-section');
             const secTransfer = document.getElementById('payment-transfer-section');
-            
+
             [btnCash, btnQris, btnTransfer].forEach(b => {
                 b.className = "py-2.5 px-3 rounded-xl font-bold text-xs border border-gray-200 bg-gray-50 text-gray-600 transition flex items-center justify-center gap-1.5";
             });
             [secCash, secQris, secTransfer].forEach(s => s.classList.add('hidden-el'));
-            
+
             if (method === 'cash') {
                 btnCash.className = "py-2.5 px-3 rounded-xl font-bold text-xs border border-blue-500 bg-blue-50 text-blue-700 transition flex items-center justify-center gap-1.5";
                 secCash.classList.remove('hidden-el');
@@ -885,6 +997,9 @@
                 btnQris.className = "py-2.5 px-3 rounded-xl font-bold text-xs border border-blue-500 bg-blue-50 text-blue-700 transition flex items-center justify-center gap-1.5";
                 secQris.classList.remove('hidden-el');
             } else if (method === 'transfer') {
+                document.getElementById('transfer-bank-info').innerText = `${state.storeSettings.bankName} - ${state.storeSettings.bankAcc}`;
+                document.getElementById('transfer-owner-info').innerText = `A/N ${state.storeSettings.bankOwner}`;
+
                 btnTransfer.className = "py-2.5 px-3 rounded-xl font-bold text-xs border border-blue-500 bg-blue-50 text-blue-700 transition flex items-center justify-center gap-1.5";
                 secTransfer.classList.remove('hidden-el');
                 setTimeout(() => document.getElementById('pay-transfer-ref').focus(), 50);
@@ -919,7 +1034,7 @@
             let cashVal = state.currentCalculatedTotal;
             let changeAmount = 0;
             let paymentDesc = state.selectedPaymentMethod.toUpperCase();
-            
+
             if (state.selectedPaymentMethod === 'cash') {
                 cashVal = parseFloat(document.getElementById('pay-cash-input').value) || 0;
                 if (cashVal < state.currentCalculatedTotal) {
@@ -931,22 +1046,24 @@
                 const ref = document.getElementById('pay-transfer-ref').value.trim();
                 if(ref) paymentDesc += ` (${ref})`;
             }
-            
+
             closePaymentModal();
+
             const btn = document.getElementById('btn-confirm-pay');
             const oriHtml = btn.innerHTML;
             btn.innerHTML = '<div class="loader mr-2"></div> Memproses...';
             btn.disabled = true;
-            
+
             try {
                 const now = new Date();
                 const orderId = "ORD-" + now.getTime();
                 const dateStr = now.toISOString().split('T')[0];
                 const timeStr = now.toTimeString().split(' ')[0];
+
                 let subtotal = 0;
                 let totalItemDiscount = 0;
                 let detailsToInsert = [];
-                
+
                 state.cart.forEach(item => {
                     const lineSubtotal = item.price * item.qty;
                     let discPercent = item.disc || 0;
@@ -955,6 +1072,7 @@
                     
                     subtotal += lineSubtotal;
                     totalItemDiscount += lineDiscAmount;
+
                     detailsToInsert.push({
                         order_id: orderId,
                         date: dateStr,
@@ -972,10 +1090,10 @@
                         discount_percent: discPercent,
                         total: lineTotal,
                         user_role: state.currentUser,
-                        payment_method: state.selectedPaymentMethod
+                        payment_method: paymentDesc
                     });
                 });
-                
+
                 let finalSubtotal = subtotal - totalItemDiscount;
                 let voucherDiscountAmount = 0;
                 
@@ -987,9 +1105,10 @@
                     }
                     if (voucherDiscountAmount > finalSubtotal) voucherDiscountAmount = finalSubtotal;
                 }
+
                 const finalTotal = finalSubtotal - voucherDiscountAmount;
                 const totalAllDiscount = totalItemDiscount + voucherDiscountAmount;
-                
+
                 const { error: txError } = await client.from('transactions').insert({
                     order_id: orderId,
                     date: dateStr,
@@ -1000,37 +1119,39 @@
                     role: state.currentUser,
                     voucher_nama: state.appliedVoucher ? state.appliedVoucher.nama : null,
                     voucher_diskon: voucherDiscountAmount,
-                    payment_method: state.selectedPaymentMethod
+                    payment_method: paymentDesc
                 });
                 if(txError) throw txError;
-                
+
                 const { error: dtError } = await client.from('transaction_details').insert(detailsToInsert);
                 if(dtError) throw dtError;
-                
+
                 for(let item of state.cart) {
                     const dbItem = state.items.find(i => i.id === item.id);
                     const newStock = dbItem.stock - item.qty;
                     await client.from('master_items').update({ stock: newStock }).eq('id', item.id);
                 }
-                
+
                 const paidItems = [...state.cart];
                 const paidVoucher = state.appliedVoucher ? state.appliedVoucher.nama : null;
                 const paidVoucherDisc = voucherDiscountAmount;
                 const paidSub = subtotal;
                 const paidDisc = totalAllDiscount;
                 const paidTotal = finalTotal;
-                
+
                 state.cart = [];
                 state.appliedVoucher = null;
                 document.getElementById('voucher-input').value = '';
                 document.getElementById('voucher-info').classList.add('hidden-el');
+
                 renderCart();
-                await loadData();
+                await loadData(); 
                 
                 if(window.innerWidth < 1024) toggleMobileCart();
-                
+
                 showSuccessReceiptModal({
                     orderId,
+                    date: dateStr,
                     time: timeStr,
                     cashier: state.currentUser,
                     items: paidItems,
@@ -1043,6 +1164,7 @@
                     voucherName: paidVoucher,
                     voucherDisc: paidVoucherDisc
                 });
+
             } catch (err) {
                 console.error("Gagal Checkout:", err);
                 showModal("Gagal Memproses", err.message);
@@ -1053,16 +1175,20 @@
         }
 
         function showSuccessReceiptModal(data) {
+            state.lastReceiptData = data;
             document.getElementById('dtl-inv').innerText = data.orderId.replace("ORD", "INV");
+            document.getElementById('dtl-date').innerText = data.date;
             document.getElementById('dtl-time').innerText = data.time.substring(0,5);
             document.getElementById('dtl-cashier').innerText = data.cashier || 'Admin';
+
             const vInfoEl = document.getElementById('dtl-voucher-info');
             if(data.voucherName) {
-                vInfoEl.innerHTML = `<i class="fas fa-ticket-alt"></i> Voucher Digunakan: <b>${data.voucherName}</b> (Potongan: ${formatRp(data.voucherDisc)})`;
+                vInfoEl.innerHTML = `<i class="fas fa-ticket-alt"></i> Voucher: <b>${data.voucherName}</b> (${formatRp(data.voucherDisc)})`;
                 vInfoEl.classList.remove('hidden-el');
             } else {
                 vInfoEl.classList.add('hidden-el');
             }
+
             const tbody = document.getElementById('detail-items-table');
             tbody.innerHTML = data.items.map(item => {
                 const lineSub = item.price * item.qty;
@@ -1070,33 +1196,93 @@
                 const lineTot = lineSub - lineDisc;
                 return `
                 <tr class="hover:bg-gray-50/50">
-                    <td class="p-3">
-                        <div class="text-[10px] text-gray-400 font-mono mb-0.5">${item.id}</div>
-                        <div class="font-bold text-gray-800 text-sm leading-tight">${item.name}</div>
-                        ${item.disc > 0 ? `<div class="text-[11px] text-orange-500 mt-1 font-semibold"><i class="fas fa-tag"></i> Diskon: -${formatRp(lineDisc)}</div>` : ''}
+                    <td class="py-1.5 pr-1">
+                        <div class="text-[10px] text-gray-400 font-mono">${item.id}</div>
+                        <div class="font-bold text-gray-800 leading-tight">${item.name}</div>
+                        ${item.disc > 0 ? `<div class="text-[10px] text-orange-500">Disc -${item.disc}%</div>` : ''}
                     </td>
-                    <td class="p-3 text-center font-bold text-gray-700 bg-gray-50/50">${item.qty}</td>
-                    <td class="p-3 text-right text-gray-500 text-sm">${formatRp(item.price)}</td>
-                    <td class="p-3 text-right font-extrabold text-gray-800">${formatRp(lineTot)}</td>
+                    <td class="py-1.5 text-center font-bold text-gray-700">${item.qty}</td>
+                    <td class="py-1.5 text-right text-gray-500">${formatRp(item.price)}</td>
+                    <td class="py-1.5 text-right font-extrabold text-gray-800">${formatRp(lineTot)}</td>
                 </tr>
             `;}).join('');
-            
+
             const summaryDiv = document.getElementById('dtl-payment-summary');
-            let paymentDetailHtml = `<div class="flex justify-between text-gray-600"><span>Metode Pembayaran</span><span class="font-bold uppercase text-blue-600">${data.paymentMethod || 'TUNAI'}</span></div>`;
+            let paymentDetailHtml = `<div class="flex justify-between text-gray-600"><span>Pembayaran</span><span class="font-bold uppercase text-blue-600">${data.paymentMethod || 'CASH'}</span></div>`;
             
             if (data.paymentMethod && data.paymentMethod.startsWith('CASH')) {
                 paymentDetailHtml += `
-                    <div class="flex justify-between text-gray-600 pt-1"><span>Tunai Diterima</span><span class="font-bold">${formatRp(data.cash)}</span></div>
-                    <div class="flex justify-between text-emerald-600 font-bold"><span>Uang Kembalian</span><span>${formatRp(data.change)}</span></div>
+                    <div class="flex justify-between text-gray-600 pt-0.5"><span>Tunai</span><span>${formatRp(data.cash)}</span></div>
+                    <div class="flex justify-between text-emerald-600 font-bold pt-0.5"><span>Kembalian</span><span>${formatRp(data.change)}</span></div>
                 `;
             }
+
             summaryDiv.innerHTML = `
                 <div class="flex justify-between text-gray-600"><span>Subtotal</span><span>${formatRp(data.subtotal)}</span></div>
-                <div class="flex justify-between text-green-600"><span>Total Diskon</span><span>- ${formatRp(data.discount)}</span></div>
-                <div class="flex justify-between text-gray-900 font-extrabold text-base border-t pt-1 border-gray-200"><span>Total Bayar</span><span class="text-blue-600">${formatRp(data.total)}</span></div>
+                <div class="flex justify-between text-green-600"><span>Diskon</span><span>- ${formatRp(data.discount)}</span></div>
+                <div class="flex justify-between text-gray-900 font-extrabold text-sm border-t pt-1 border-gray-200"><span>Total</span><span class="text-blue-600">${formatRp(data.total)}</span></div>
                 ${paymentDetailHtml}
             `;
+
             document.getElementById('detail-modal').classList.remove('hidden-el');
+        }
+
+        function printReceipt() {
+            window.print();
+        }
+
+        function downloadReceiptImage() {
+            const receiptEl = document.getElementById('printable-receipt');
+            if(!receiptEl) return;
+            
+            html2canvas(receiptEl, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Struk_${document.getElementById('dtl-inv').innerText}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(err => {
+                console.error("Gagal mendownload gambar struk:", err);
+                showModal("Gagal", "Tidak dapat mendownload gambar struk.");
+            });
+        }
+
+        function sendReceiptWhatsApp() {
+            const data = state.lastReceiptData;
+            if(!data) {
+                showModal("Data Kosong", "Tidak ada data struk yang dapat dikirim.");
+                return;
+            }
+
+            let msg = `*STRUK BELANJA - SURCAN*\n`;
+            msg += `Invoice: ${data.orderId.replace("ORD", "INV")}\n`;
+            msg += `Tanggal: ${data.date} ${data.time.substring(0,5)}\n`;
+            msg += `Kasir: ${data.cashier}\n`;
+            msg += `--------------------------------\n`;
+
+            data.items.forEach((item, idx) => {
+                const lineSub = item.price * item.qty;
+                const lineDisc = lineSub * ((item.disc || 0) / 100);
+                const lineTot = lineSub - lineDisc;
+                msg += `${idx + 1}. *${item.name}*\n`;
+                msg += `   ${item.qty}x @${formatRp(item.price)} = *${formatRp(lineTot)}*\n`;
+            });
+
+            msg += `--------------------------------\n`;
+            msg += `Subtotal: ${formatRp(data.subtotal)}\n`;
+            msg += `Diskon: - ${formatRp(data.discount)}\n`;
+            msg += `*TOTAL: ${formatRp(data.total)}*\n`;
+            msg += `Metode Pembayaran: ${data.paymentMethod}\n`;
+            
+            if (data.paymentMethod && data.paymentMethod.startsWith('CASH')) {
+                msg += `Tunai: ${formatRp(data.cash)}\n`;
+                msg += `Kembalian: ${formatRp(data.change)}\n`;
+            }
+
+            msg += `--------------------------------\n`;
+            msg += `Terima kasih telah berbelanja di SURCAN! 🙏`;
+
+            const encodedMsg = encodeURIComponent(msg);
+            window.open(`https://api.whatsapp.com/send?text=${encodedMsg}`, '_blank');
         }
 
         function renderAdminTable() {
@@ -1145,14 +1331,43 @@
             tbody.innerHTML = state.cashierUsers.map(c => `
                 <tr class="hover:bg-blue-50/30 transition-colors">
                     <td class="p-2.5">
-                        <div class="font-semibold text-gray-700 text-sm">${c.name}</div>
+                        <div class="font-semibold text-gray-700 text-xs">${c.name}</div>
                         <div class="text-[10px] uppercase font-bold ${c.role === 'admin' ? 'text-blue-500' : 'text-gray-400'}">${c.role || 'kasir'} ${c.pin ? '(Ber-PIN)' : ''}</div>
                     </td>
                     <td class="p-2.5 text-center">
-                        <button onclick="deleteCashierUser('${c.name}')" class="text-red-500 hover:text-red-700 p-1 rounded transition-all" title="Hapus"><i class="fas fa-trash-alt text-sm"></i></button>
+                        <button onclick="deleteCashierUser('${c.name}')" class="text-red-500 hover:text-red-700 p-1 rounded transition-all" title="Hapus"><i class="fas fa-trash-alt text-xs"></i></button>
                     </td>
                 </tr>
             `).join('');
+        }
+
+        async function saveBankSettings() {
+            const bName = document.getElementById('setting-bank-name').value.trim();
+            const bAcc = document.getElementById('setting-bank-acc').value.trim();
+            const bOwner = document.getElementById('setting-bank-owner').value.trim();
+
+            if(!bName || !bAcc) {
+                showModal("Peringatan", "Nama Bank dan Nomor Rekening wajib diisi.");
+                return;
+            }
+
+            try {
+                const payloads = [
+                    { setting_key: 'bank_name', setting_value: bName },
+                    { setting_key: 'bank_account', setting_value: bAcc },
+                    { setting_key: 'bank_owner', setting_value: bOwner }
+                ];
+                const { error } = await client.from('store_settings').upsert(payloads, { onConflict: 'setting_key' });
+                if(error) throw error;
+
+                state.storeSettings.bankName = bName;
+                state.storeSettings.bankAcc = bAcc;
+                state.storeSettings.bankOwner = bOwner;
+
+                showModal("Berhasil", "Informasi rekening transfer berhasil disimpan.");
+            } catch (err) {
+                showModal("Gagal Menyimpan", "Pastikan Anda sudah menjalankan SQL Setup untuk tabel store_settings. Error: " + err.message);
+            }
         }
 
         async function saveCashierUser() {
@@ -1167,7 +1382,7 @@
             try {
                 const payload = { name: name, role: role };
                 if (pin) payload.pin = pin;
-                else payload.pin = null;
+                else payload.pin = null; 
                 
                 const { error } = await client.from('cashier_users').upsert(payload);
                 if(error) throw error;
@@ -1197,10 +1412,12 @@
             const tipe = document.getElementById('v-tipe').value;
             const nominal = parseFloat(document.getElementById('v-nominal').value);
             const keterangan = document.getElementById('v-keterangan').value.trim();
+
             if(!nama || isNaN(nominal) || nominal <= 0) {
                 showModal("Form Tidak Lengkap", "Silakan isi Kode Voucher dan Nominal yang valid.");
                 return;
             }
+
             try {
                 const { error } = await client.from('vouchers').upsert({
                     nama: nama, tipe: tipe, nominal: nominal, keterangan: keterangan
@@ -1228,53 +1445,21 @@
             });
         }
 
-        async function saveBankSettings() {
-            const bankName = document.getElementById('set-bank-name').value.trim();
-            const bankAcc = document.getElementById('set-bank-account').value.trim();
-            const bankOwner = document.getElementById('set-bank-owner').value.trim();
-            
-            if(!bankName || !bankAcc || !bankOwner) {
-                showModal("Form Tidak Lengkap", "Silakan lengkapi semua data rekening.");
-                return;
-            }
-            
-            const btn = document.querySelector('button[onclick="saveBankSettings()"]');
-            const oriHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...';
-            btn.disabled = true;
-            
-            try {
-                const updates = [
-                    { setting_key: 'bank_name', setting_value: bankName },
-                    { setting_key: 'bank_account', setting_value: bankAcc },
-                    { setting_key: 'bank_owner', setting_value: bankOwner }
-                ];
-                
-                const { error } = await client.from('store_settings').upsert(updates);
-                if(error) throw error;
-                
-                await loadData();
-                showModal("Berhasil", "Pengaturan rekening berhasil disimpan!");
-            } catch(err) {
-                showModal("Gagal Menyimpan", err.message);
-            } finally {
-                btn.innerHTML = oriHtml;
-                btn.disabled = false;
-            }
-        }
-
         async function handleBulkUpload() {
             const fileInput = document.getElementById('excel-file');
             const statusEl = document.getElementById('upload-status');
             const file = fileInput.files[0];
+
             if (!file || !client) {
                 statusEl.innerHTML = '<span class="text-red-500"><i class="fas fa-exclamation-circle"></i> Pilih file Excel (.xlsx) terlebih dahulu.</span>';
                 statusEl.classList.remove('hidden-el');
                 return;
             }
+
             statusEl.innerHTML = '<span class="text-blue-600"><i class="fas fa-spinner fa-spin mr-1"></i> Membaca file Excel...</span>';
             statusEl.classList.remove('hidden-el');
             statusEl.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold bg-blue-50 border border-blue-100 block';
+
             const reader = new FileReader();
             reader.onload = async function(e) {
                 try {
@@ -1284,9 +1469,11 @@
                     const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
                     
                     if (rawData.length === 0) throw new Error("File Excel kosong atau tidak terbaca.");
+
                     const cleanKeyStr = (str) => {
                         return str ? str.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
                     };
+
                     const getVal = (row, possibleKeys) => {
                         const normalizedRow = {};
                         Object.keys(row).forEach(k => {
@@ -1300,6 +1487,7 @@
                         }
                         return null;
                     };
+
                     const cleanNum = (val) => {
                         if (val === null || val === undefined || val === '') return 0;
                         if (typeof val === 'number') return val;
@@ -1314,12 +1502,15 @@
                         const finalNum = parseFloat(str);
                         return isNaN(finalNum) ? 0 : finalNum;
                     };
+
                     let formattedData = [];
                     rawData.forEach(row => {
                         const idRaw = getVal(row, ['Kode Stock', 'kodestock', 'kode', 'id', 'itemid']);
                         const nameRaw = getVal(row, ['Nama Barang', 'namabarang', 'nama', 'name', 'itemname']);
                         if (!idRaw && !nameRaw) return;
+
                         const finalId = (idRaw || `STK-${Date.now()}-${Math.floor(Math.random()*1000)}`).toString().trim();
+
                         formattedData.push({
                             id: finalId,
                             name: (nameRaw || 'Unknown').toString().trim(),
@@ -1332,21 +1523,26 @@
                             price: cleanNum(getVal(row, ['Harga Jual', 'hargajual', 'harga', 'price']))
                         });
                     });
+
                     const uniqueDataMap = new Map();
                     formattedData.forEach(item => uniqueDataMap.set(item.id, item));
                     const finalDataToUpload = Array.from(uniqueDataMap.values());
+
                     statusEl.innerHTML = `<span class="text-blue-600"><i class="fas fa-spinner fa-spin mr-1"></i> Mengirim ${finalDataToUpload.length} item ke Database...</span>`;
+
                     const batchSize = 500;
                     for (let i = 0; i < finalDataToUpload.length; i += batchSize) {
                         const batch = finalDataToUpload.slice(i, i + batchSize);
                         const { error } = await client.from('master_items').upsert(batch, { onConflict: 'id' });
                         if (error) throw error;
                     }
+
                     statusEl.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold bg-green-50 border border-green-100 block';
                     statusEl.innerHTML = `<span class="text-green-700"><i class="fas fa-check-circle mr-1"></i> Berhasil update ${finalDataToUpload.length} data.</span>`;
-                    fileInput.value = '';
+                    fileInput.value = ''; 
                     
                     await loadData();
+
                 } catch (err) {
                     console.error(err);
                     statusEl.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold bg-red-50 border border-red-100 block';
@@ -1396,6 +1592,7 @@
             const userFilter = document.getElementById('filter-user').value;
             
             if(!startDate || !endDate) return;
+
             try {
                 let txQuery = client.from('transactions').select('*')
                                             .gte('date', startDate)
@@ -1404,6 +1601,7 @@
                                             .order('time', { ascending: false });
                 
                 if (userFilter) txQuery = txQuery.eq('role', userFilter);
+
                 const { data: tx, error: txError } = await txQuery;
                 if (txError) throw txError;
 
@@ -1412,11 +1610,13 @@
                                             .lte('date', endDate);
                 
                 if (userFilter) dtQuery = dtQuery.eq('user_role', userFilter);
+
                 const { data: dt, error: dtError } = await dtQuery;
                 if (dtError) throw dtError;
 
                 state.reports.transactions = tx || [];
                 state.reports.details = dt || [];
+
                 renderReportUI();
             } catch (err) {
                 console.error("Gagal memuat laporan:", err);
@@ -1439,18 +1639,29 @@
                 sumDiscount += parseFloat(t.discount) || 0;
                 
                 const user = t.role || 'Unknown';
-                if(!klerekMap[user]) klerekMap[user] = { count: 0, subtotal: 0, discount: 0, total: 0, cash: 0, qris: 0, transfer: 0 };
+                if(!klerekMap[user]) {
+                    klerekMap[user] = { count: 0, subtotal: 0, diskon_reg: 0, diskon_voucher: 0, total: 0, cash: 0, qris: 0, transfer: 0 };
+                }
                 
+                let totDisc = parseFloat(t.discount) || 0;
+                let vouchDisc = parseFloat(t.voucher_diskon) || 0;
+                let regDisc = totDisc - vouchDisc;
+
                 klerekMap[user].count += 1;
                 klerekMap[user].subtotal += parseFloat(t.subtotal) || 0;
-                klerekMap[user].discount += parseFloat(t.discount) || 0;
+                klerekMap[user].diskon_reg += regDisc;
+                klerekMap[user].diskon_voucher += vouchDisc;
                 klerekMap[user].total += parseFloat(t.total) || 0;
 
-                const pm = (t.payment_method || 'cash').toLowerCase();
-                if (pm === 'cash') klerekMap[user].cash += parseFloat(t.total) || 0;
-                else if (pm === 'qris') klerekMap[user].qris += parseFloat(t.total) || 0;
-                else if (pm === 'transfer') klerekMap[user].transfer += parseFloat(t.total) || 0;
-                else klerekMap[user].cash += parseFloat(t.total) || 0;
+                const pm = (t.payment_method || 'CASH').toUpperCase();
+                const tTotal = parseFloat(t.total) || 0;
+                if (pm.startsWith('QRIS')) {
+                    klerekMap[user].qris += tTotal;
+                } else if (pm.startsWith('TRANSFER')) {
+                    klerekMap[user].transfer += tTotal;
+                } else {
+                    klerekMap[user].cash += tTotal;
+                }
             });
 
             summaryEl.innerHTML = `
@@ -1467,44 +1678,42 @@
                     <div><div class="text-sm text-gray-500 font-semibold mb-1">Total Diskon & Voucher</div><div class="text-2xl font-extrabold text-gray-800 tracking-tight">${formatRp(sumDiscount)}</div></div>
                 </div>
             `;
+
             document.getElementById('report-tx-count').innerText = `${txData.length} Transaksi`;
 
             if(Object.keys(klerekMap).length === 0) {
-                klerekTbody.innerHTML = `<tr><td colspan="8" class="text-center p-8 text-gray-400 font-medium"><i class="fas fa-folder-open text-3xl mb-3 block opacity-20"></i>Belum ada data klerek</td></tr>`;
+                klerekTbody.innerHTML = `<tr><td colspan="9" class="text-center p-8 text-gray-400 font-medium"><i class="fas fa-folder-open text-3xl mb-3 block opacity-20"></i>Belum ada data klerek</td></tr>`;
             } else {
                 klerekTbody.innerHTML = Object.keys(klerekMap).map(user => `
                 <tr class="hover:bg-slate-50 transition-colors">
                     <td class="p-4 font-bold text-gray-800"><i class="fas fa-user-circle text-gray-400 mr-2"></i> ${user}</td>
-                    <td class="p-4 text-center font-bold text-gray-600">${klerekMap[user].count} <span class="text-xs font-normal">Struk</span></td>
+                    <td class="p-4 text-center font-bold text-gray-600 bg-gray-50/50">${klerekMap[user].count} <span class="text-xs font-normal">Struk</span></td>
                     <td class="p-4 text-right text-gray-600 font-medium">${formatRp(klerekMap[user].subtotal)}</td>
-                    <td class="p-4 text-right text-orange-500 font-bold">${formatRp(klerekMap[user].discount)}</td>
-                    <td class="p-4 text-right text-green-600 font-bold">${formatRp(klerekMap[user].cash)}</td>
-                    <td class="p-4 text-right text-purple-600 font-bold">${formatRp(klerekMap[user].qris)}</td>
-                    <td class="p-4 text-right text-blue-600 font-bold">${formatRp(klerekMap[user].transfer)}</td>
+                    <td class="p-4 text-right text-orange-500 font-semibold">${formatRp(klerekMap[user].diskon_reg)}</td>
+                    <td class="p-4 text-right text-orange-600 font-semibold">${formatRp(klerekMap[user].diskon_voucher)}</td>
+                    <td class="p-4 text-right text-emerald-600 font-semibold">${formatRp(klerekMap[user].cash)}</td>
+                    <td class="p-4 text-right text-purple-600 font-semibold">${formatRp(klerekMap[user].qris)}</td>
+                    <td class="p-4 text-right text-blue-600 font-semibold">${formatRp(klerekMap[user].transfer)}</td>
                     <td class="p-4 text-right font-extrabold text-blue-700">${formatRp(klerekMap[user].total)}</td>
                 </tr>
                 `).join('');
             }
 
             if(txData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center p-12 text-gray-400"><i class="fas fa-folder-open text-5xl mb-3 block opacity-20"></i><span class="font-medium">Belum ada transaksi di rentang tanggal ini</span></td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-12 text-gray-400"><i class="fas fa-folder-open text-5xl mb-3 block opacity-20"></i><span class="font-medium">Belum ada transaksi di rentang tanggal ini</span></td></tr>`;
                 return;
             }
+
             tbody.innerHTML = txData.map(tx => {
                 const invNo = tx.order_id.replace("ORD", "INV");
-                let pmBadge = '';
-                if(tx.payment_method === 'qris') pmBadge = '<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-bold border border-blue-200">QRIS</span>';
-                else if(tx.payment_method === 'transfer') pmBadge = '<span class="bg-purple-50 text-purple-600 px-2 py-0.5 rounded text-[10px] font-bold border border-purple-200">TRANSFER</span>';
-                else pmBadge = '<span class="bg-green-50 text-green-600 px-2 py-0.5 rounded text-[10px] font-bold border border-green-200">CASH</span>';
-
+                const payMethod = tx.payment_method || 'CASH';
                 return `
                 <tr class="hover:bg-slate-50 transition-colors group">
                     <td class="p-4 text-gray-600 font-medium whitespace-nowrap">${tx.date} <span class="text-xs ml-1 bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">${tx.time.substring(0,5)}</span></td>
                     <td class="p-4 font-bold text-gray-800 font-mono text-sm">${invNo}</td>
                     <td class="p-4 text-gray-700 font-semibold"><span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md text-xs border border-blue-100">${tx.role || 'Admin'}</span></td>
-                    <td class="p-4">${pmBadge}</td>
+                    <td class="p-4 text-gray-700 font-semibold uppercase text-xs"><span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md border border-emerald-100">${payMethod}</span></td>
                     <td class="p-4 text-gray-700 font-semibold">${tx.voucher_nama ? `<span class="bg-orange-50 text-orange-600 px-2 py-1 rounded text-xs border border-orange-100">${tx.voucher_nama}</span>` : '-'}</td>
-                    <td class="p-4 text-right text-orange-500 font-semibold">${formatRp(tx.discount)}</td>
                     <td class="p-4 text-right font-extrabold text-blue-600">${formatRp(tx.total)}</td>
                     <td class="p-4 text-center">
                         <button onclick="showDetailModal('${tx.order_id}')" class="bg-white border border-blue-200 text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-50 transition shadow-sm active:scale-95">Lihat Item</button>
@@ -1519,57 +1728,80 @@
                 showModal("Data Kosong", "Tidak ada data transaksi untuk diekspor pada filter ini.");
                 return;
             }
+
             const txData = state.reports.transactions.map(t => ({
                 "Tanggal": t.date,
                 "Jam": t.time,
                 "No. Invoice": t.order_id.replace("ORD", "INV"),
                 "User / Kasir": t.role || 'Admin',
-                "Metode Bayar": (t.payment_method || 'cash').toUpperCase(),
+                "Metode Pembayaran": t.payment_method || 'CASH',
                 "Subtotal": t.subtotal,
                 "Nama Voucher": t.voucher_nama || '-',
                 "Diskon Voucher": t.voucher_diskon,
                 "Total Diskon": t.discount,
                 "Total Pendapatan": t.total
             }));
-            const dtData = state.reports.details.map(d => ({
-                "Tanggal": d.date,
-                "No. Invoice": d.invoice_no,
-                "Kasir": d.user_role || 'Admin',
-                "Metode Bayar": (d.payment_method || 'cash').toUpperCase(),
-                "ID Item": d.item_id,
-                "Nama Barang": d.name,
-                "Family": d.family || '-',
-                "Qty": d.qty,
-                "Harga Satuan": d.price,
-                "Subtotal": d.subtotal,
-                "Diskon Rp": d.discount_amount,
-                "Total Bersih": d.total
-            }));
+
+            const dtData = state.reports.details.map(d => {
+                const parentTx = state.reports.transactions.find(tx => tx.order_id === d.order_id);
+                return {
+                    "Tanggal": d.date,
+                    "No. Invoice": d.invoice_no,
+                    "Kasir": d.user_role || 'Admin',
+                    "Metode Pembayaran": d.payment_method || 'CASH',
+                    "ID Item": d.item_id,
+                    "Nama Barang": d.name,
+                    "Family": d.family || '-',
+                    "Qty": d.qty,
+                    "Harga Satuan": d.price,
+                    "Subtotal": d.subtotal,
+                    "Diskon Rp": d.discount_amount,
+                    "Total Bersih": d.total,
+                    "VOUCHER": parentTx ? (parentTx.voucher_nama || '-') : '-',
+                    "NOMINAL VOUCHER": parentTx ? (parentTx.voucher_diskon || 0) : 0
+                };
+            });
+
             const klerekMap = {};
             state.reports.transactions.forEach(t => {
                 const user = t.role || 'Admin';
-                if(!klerekMap[user]) klerekMap[user] = { user, jml_struk: 0, subtotal: 0, diskon: 0, pendapatan: 0, cash: 0, qris: 0, transfer: 0 };
+                if(!klerekMap[user]) {
+                    klerekMap[user] = { user, jml_struk: 0, subtotal: 0, diskon_reg: 0, diskon_voucher: 0, cash: 0, qris: 0, transfer: 0, pendapatan: 0 };
+                }
+
+                let totDisc = parseFloat(t.discount) || 0;
+                let vouchDisc = parseFloat(t.voucher_diskon) || 0;
+                let regDisc = totDisc - vouchDisc;
+
                 klerekMap[user].jml_struk += 1;
                 klerekMap[user].subtotal += parseFloat(t.subtotal) || 0;
-                klerekMap[user].diskon += parseFloat(t.discount) || 0;
+                klerekMap[user].diskon_reg += regDisc;
+                klerekMap[user].diskon_voucher += vouchDisc;
                 klerekMap[user].pendapatan += parseFloat(t.total) || 0;
-                
-                const pm = (t.payment_method || 'cash').toLowerCase();
-                if (pm === 'cash') klerekMap[user].cash += parseFloat(t.total) || 0;
-                else if (pm === 'qris') klerekMap[user].qris += parseFloat(t.total) || 0;
-                else if (pm === 'transfer') klerekMap[user].transfer += parseFloat(t.total) || 0;
-                else klerekMap[user].cash += parseFloat(t.total) || 0;
+
+                const pm = (t.payment_method || 'CASH').toUpperCase();
+                const tTotal = parseFloat(t.total) || 0;
+                if (pm.startsWith('QRIS')) {
+                    klerekMap[user].qris += tTotal;
+                } else if (pm.startsWith('TRANSFER')) {
+                    klerekMap[user].transfer += tTotal;
+                } else {
+                    klerekMap[user].cash += tTotal;
+                }
             });
+
             const klerekData = Object.values(klerekMap).map(k => ({
                 "Nama User / Kasir": k.user,
                 "Jumlah Transaksi": k.jml_struk,
-                "Tunai (Cash)": k.cash,
+                "Subtotal Omzet": k.subtotal,
+                "Diskon Reguler": k.diskon_reg,
+                "Diskon Voucher": k.diskon_voucher,
+                "Cash (Tunai)": k.cash,
                 "QRIS": k.qris,
                 "Transfer": k.transfer,
-                "Total Diskon": k.diskon,
                 "Pendapatan Bersih": k.pendapatan
             }));
-            
+
             const wb = XLSX.utils.book_new();
             
             const wsTx = XLSX.utils.json_to_sheet(txData);
@@ -1577,10 +1809,10 @@
             
             const wsDt = XLSX.utils.json_to_sheet(dtData);
             XLSX.utils.book_append_sheet(wb, wsDt, "Detail Barang");
-            
+
             const wsKlerek = XLSX.utils.json_to_sheet(klerekData);
             XLSX.utils.book_append_sheet(wb, wsKlerek, "Laporan Klerek");
-            
+
             const startDt = document.getElementById('filter-date-start').value;
             const endDt = document.getElementById('filter-date-end').value;
             XLSX.writeFile(wb, `Laporan_SURCAN_${startDt}_sd_${endDt}.xlsx`);
@@ -1590,36 +1822,30 @@
             const tx = state.reports.transactions.find(t => t.order_id === orderId);
             const items = state.reports.details.filter(d => d.order_id === orderId);
             if(!tx) return;
-            document.getElementById('dtl-inv').innerText = orderId.replace("ORD", "INV");
-            document.getElementById('dtl-time').innerText = tx.time.substring(0,5);
-            document.getElementById('dtl-cashier').innerText = tx.role || 'Admin';
-            const vInfoEl = document.getElementById('dtl-voucher-info');
-            if(tx.voucher_nama) {
-                vInfoEl.innerHTML = `<i class="fas fa-ticket-alt"></i> Voucher Digunakan: <b>${tx.voucher_nama}</b> (Potongan: ${formatRp(tx.voucher_diskon)})`;
-                vInfoEl.classList.remove('hidden-el');
-            } else {
-                vInfoEl.classList.add('hidden-el');
-            }
-            const tbody = document.getElementById('detail-items-table');
-            tbody.innerHTML = items.map(item => `
-                <tr class="hover:bg-gray-50/50">
-                    <td class="p-3">
-                        <div class="text-[10px] text-gray-400 font-mono mb-0.5">${item.item_id}</div>
-                        <div class="font-bold text-gray-800 text-sm leading-tight">${item.name}</div>
-                        ${item.discount_amount > 0 ? `<div class="text-[11px] text-orange-500 mt-1 font-semibold"><i class="fas fa-tag"></i> Diskon: -${formatRp(item.discount_amount)}</div>` : ''}
-                    </td>
-                    <td class="p-3 text-center font-bold text-gray-700 bg-gray-50/50">${item.qty}</td>
-                    <td class="p-3 text-right text-gray-500 text-sm">${formatRp(item.price)}</td>
-                    <td class="p-3 text-right font-extrabold text-gray-800">${formatRp(item.total)}</td>
-                </tr>
-            `).join('');
-            const summaryDiv = document.getElementById('dtl-payment-summary');
-            summaryDiv.innerHTML = `
-                <div class="flex justify-between text-gray-600"><span>Subtotal</span><span>${formatRp(tx.subtotal)}</span></div>
-                <div class="flex justify-between text-green-600"><span>Total Diskon</span><span>- ${formatRp(tx.discount)}</span></div>
-                <div class="flex justify-between text-gray-900 font-extrabold text-base border-t pt-1 border-gray-200"><span>Total Bayar</span><span class="text-blue-600">${formatRp(tx.total)}</span></div>
-            `;
-            document.getElementById('detail-modal').classList.remove('hidden-el');
+
+            const structuredData = {
+                orderId: tx.order_id,
+                date: tx.date,
+                time: tx.time,
+                cashier: tx.role || 'Admin',
+                items: items.map(i => ({
+                    id: i.item_id,
+                    name: i.name,
+                    qty: i.qty,
+                    price: i.price,
+                    disc: i.discount_percent || 0
+                })),
+                subtotal: tx.subtotal,
+                discount: tx.discount,
+                total: tx.total,
+                paymentMethod: tx.payment_method || 'CASH',
+                voucherName: tx.voucher_nama,
+                voucherDisc: tx.voucher_diskon,
+                cash: tx.total,
+                change: 0
+            };
+
+            showSuccessReceiptModal(structuredData);
         }
 
         function closeDetailModal() {
@@ -1628,85 +1854,7 @@
 
         window.onload = function() {
             initLoginOptions();
-            initPWA();
         };
-
-        function initPWA() {
-            const manifestData = {
-                "name": "SURCAN POS Application",
-                "short_name": "SURCAN",
-                "start_url": window.location.pathname || ".",
-                "display": "standalone",
-                "orientation": "portrait",
-                "background_color": "#f3f4f6",
-                "theme_color": "#2563eb",
-                "icons": [
-                    {
-                        "src": "https://cdn-icons-png.flaticon.com/512/3050/3050244.png",
-                        "sizes": "512x512",
-                        "type": "image/png",
-                        "purpose": "any maskable"
-                    }
-                ]
-            };
-            const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/manifest+json' });
-            const manifestLink = document.getElementById('manifest-link');
-            if(manifestLink) {
-                manifestLink.href = URL.createObjectURL(manifestBlob);
-            }
-        }
-
-        // Variabel penampung instans scanner
-        let html5QrCode = null;
-        let isScanning = false;
-
-        function startScanner() {
-            // Tampilkan modal
-            document.getElementById('scanner-modal').classList.remove('hidden-el');
-            
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("reader");
-            }
-            
-            // Callback jika scan berhasil
-            const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-                // 1. Matikan scanner
-                stopScanner();
-                
-                // 2. Isi kotak pencarian dengan hasil scan
-                const searchInput = document.getElementById('search-item');
-                searchInput.value = decodedText;
-                
-                // 3. Panggil fungsi render produk agar otomatis difilter
-                renderProducts();
-            };
-            
-            const config = { fps: 10, qrbox: { width: 250, height: 150 } };
-            
-            // Mulai scanner dengan kamera belakang (environment)
-            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
-            .then(() => {
-                isScanning = true;
-            })
-            .catch((err) => {
-                console.error("Gagal memulai kamera", err);
-                isScanning = false;
-                stopScanner();
-                showModal("Akses Kamera Gagal", "Sistem tidak dapat mengakses kamera. Pastikan Anda menggunakan koneksi aman (HTTPS) dan telah memberikan izin akses kamera di browser.");
-            });
-        }
-
-        function stopScanner() {
-            document.getElementById('scanner-modal').classList.add('hidden-el');
-            if (html5QrCode && isScanning) {
-                html5QrCode.stop().then((ignore) => {
-                    isScanning = false;
-                    html5QrCode.clear();
-                }).catch((err) => {
-                    console.log("Scanner belum berjalan sepenuhnya atau sudah terhenti.", err);
-                });
-            }
-        }
     </script>
 </body>
 </html>
