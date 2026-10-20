@@ -2,9 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <!-- Tambahan viewport-fit=cover agar bisa tembus sampai ke area poni/notch HP -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <!-- Meta tag agar menjadi aplikasi mandiri di Android (Fullscreen PWA) -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,12 +11,11 @@
     <title>Suryatokoku - Multi-Payment Edition</title>
 
     <script>
-        // Generate Manifest Dinamis menggunakan Data URI (Lebih stabil di Chrome Android)
         const manifestJSON = {
             "name": "Suryatokoku POS",
             "short_name": "Suryatokoku",
             "start_url": window.location.href.split('?')[0],
-            "display": "fullscreen", // Diubah ke fullscreen agar benar-benar menutupi seluruh layar
+            "display": "fullscreen",
             "background_color": "#f3f4f6",
             "theme_color": "#2563eb",
             "icons": [{
@@ -35,11 +32,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- HTML5-QRCode Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
         .hidden-el { display: none !important; }
         .loader {
@@ -47,11 +45,20 @@
             border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            #printable-receipt, #printable-receipt * { visibility: visible; }
+            #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 10px; background: white; z-index: 9999; }
+        }
     </style>
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden relative">
 
-    <div id="custom-modal" class="hidden-el absolute inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4">
+    <div id="custom-modal" class="hidden-el absolute inset-0 bg-black/60 z-[200] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm text-center transform transition-all scale-100">
             <h3 id="modal-title" class="text-xl font-bold mb-2 text-gray-800">Peringatan</h3>
             <p id="modal-message" class="text-gray-600 mb-6 text-sm">Pesan akan tampil disini.</p>
@@ -60,7 +67,7 @@
     </div>
 
     <!-- Scanner Modal -->
-    <div id="scanner-modal" class="hidden-el absolute inset-0 bg-black/80 z-[110] flex items-center justify-center backdrop-blur-sm p-4">
+    <div id="scanner-modal" class="hidden-el absolute inset-0 bg-black/80 z-[190] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden transform transition-all scale-100">
             <div class="p-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
                 <h3 class="font-bold text-lg"><i class="fas fa-barcode text-blue-400 mr-2"></i> Scan Barcode / QR</h3>
@@ -75,7 +82,8 @@
         </div>
     </div>
 
-    <div id="payment-modal" class="hidden-el absolute inset-0 bg-black/60 z-[105] flex items-center justify-center backdrop-blur-sm p-4">
+    <!-- Payment Modal -->
+    <div id="payment-modal" class="hidden-el absolute inset-0 bg-black/60 z-[180] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden transform transition-all scale-100 max-h-[90vh]">
             <div class="p-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
                 <h3 class="font-bold text-lg"><i class="fas fa-cash-register text-green-400 mr-2"></i> Pembayaran</h3>
@@ -135,7 +143,6 @@
                         <input type="text" id="pay-transfer-ref" placeholder="Contoh: REF-98213" class="w-full p-2.5 border border-gray-300 rounded-xl text-sm font-semibold bg-white outline-none focus:border-blue-500">
                     </div>
                 </div>
-
             </div>
 
             <div class="p-4 bg-gray-50 border-t border-gray-100 flex gap-3 shrink-0">
@@ -145,38 +152,60 @@
         </div>
     </div>
 
-    <div id="detail-modal" class="hidden-el absolute inset-0 bg-black/60 z-[90] flex items-center justify-center backdrop-blur-sm p-4">
+    <!-- Receipt / Detail Modal -->
+    <div id="detail-modal" class="hidden-el absolute inset-0 bg-black/60 z-[170] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden">
             <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                 <h3 class="font-bold text-gray-800"><i class="fas fa-receipt text-blue-500 mr-2"></i> Struk / Detail Transaksi</h3>
                 <button onclick="closeDetailModal()" class="text-gray-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
             </div>
-            <div class="p-4 bg-white text-sm flex justify-between text-gray-500 border-b border-dashed">
-                <span>Invoice: <b id="dtl-inv" class="text-gray-800">INV-XXX</b></span>
-                <span>User: <b id="dtl-cashier" class="text-blue-600">Admin</b></span>
-                <span>Waktu: <b id="dtl-time" class="text-gray-800">00:00</b></span>
+            
+            <div class="overflow-y-auto p-4 bg-white flex-1" id="receipt-container-wrapper">
+                <!-- Printable / Downloadable Receipt Area -->
+                <div id="printable-receipt" class="bg-white p-4 text-gray-800 space-y-3 font-mono text-xs">
+                    <div class="text-center pb-3 border-b border-dashed">
+                        <div class="font-extrabold text-base uppercase text-slate-900 tracking-wider">SURYATOKOKU</div>
+                        <div class="text-[11px] text-gray-500">Pusat Belanja & Retail Modern</div>
+                    </div>
+                    <div class="flex justify-between text-gray-600 pb-2 border-b border-dashed">
+                        <div>
+                            <div>Invoice: <b id="dtl-inv" class="text-gray-900">INV-XXX</b></div>
+                            <div>Kasir: <b id="dtl-cashier" class="text-gray-900">Admin</b></div>
+                        </div>
+                        <div class="text-right">
+                            <div>Tanggal: <b id="dtl-date">00-00-0000</b></div>
+                            <div>Waktu: <b id="dtl-time">00:00</b></div>
+                        </div>
+                    </div>
+                    <div id="dtl-voucher-info" class="text-[11px] bg-blue-50 text-blue-700 p-2 rounded font-sans font-medium hidden-el"></div>
+                    <table class="w-full text-left font-sans text-xs">
+                        <thead class="text-[11px] text-gray-400 uppercase border-b border-gray-100">
+                            <tr>
+                                <th class="pb-1 font-semibold">Item</th>
+                                <th class="pb-1 font-semibold text-center w-8">Qty</th>
+                                <th class="pb-1 font-semibold text-right">Harga</th>
+                                <th class="pb-1 font-semibold text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detail-items-table" class="divide-y divide-gray-50 font-sans"></tbody>
+                    </table>
+                    <div id="dtl-payment-summary" class="mt-3 pt-2 border-t border-dashed space-y-1 text-xs font-sans bg-gray-50 p-2.5 rounded-lg"></div>
+                    <div class="text-center text-[10px] text-gray-400 pt-2 border-t border-dashed font-sans">
+                        Terima Kasih Telah Berbelanja di Suryatokoku!<br>Barang yang sudah dibeli tidak dapat ditukar/dikembalikan.
+                    </div>
+                </div>
             </div>
-            <div class="overflow-y-auto p-4 bg-white flex-1">
-                <div id="dtl-voucher-info" class="mb-3 text-xs bg-blue-50 text-blue-700 p-2 rounded-lg font-medium hidden-el"></div>
-                <table class="w-full text-left text-sm">
-                    <thead class="text-xs text-gray-400 uppercase border-b border-gray-100">
-                        <tr>
-                            <th class="pb-2 font-semibold">Item</th>
-                            <th class="pb-2 font-semibold text-center w-12">Qty</th>
-                            <th class="pb-2 font-semibold text-right">Harga</th>
-                            <th class="pb-2 font-semibold text-right">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody id="detail-items-table" class="divide-y divide-gray-50"></tbody>
-                </table>
-                <div id="dtl-payment-summary" class="mt-4 pt-3 border-t border-dashed space-y-1 text-sm bg-gray-50 p-3 rounded-xl"></div>
-            </div>
-            <div class="p-4 border-t border-gray-100 bg-gray-50">
-                <button onclick="closeDetailModal()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition shadow">Tutup Pop-Up</button>
+
+            <div class="p-3 border-t border-gray-100 bg-gray-50 grid grid-cols-2 md:grid-cols-4 gap-2">
+                <button onclick="printReceipt()" class="bg-slate-800 text-white font-bold py-2.5 px-3 rounded-xl hover:bg-slate-900 transition text-xs flex items-center justify-center gap-1.5 shadow"><i class="fas fa-print"></i> Cetak</button>
+                <button onclick="downloadReceiptImage()" class="bg-blue-600 text-white font-bold py-2.5 px-3 rounded-xl hover:bg-blue-700 transition text-xs flex items-center justify-center gap-1.5 shadow"><i class="fas fa-download"></i> Download</button>
+                <button onclick="sendReceiptWhatsApp()" class="bg-emerald-600 text-white font-bold py-2.5 px-3 rounded-xl hover:bg-emerald-700 transition text-xs flex items-center justify-center gap-1.5 shadow"><i class="fab fa-whatsapp"></i> Kirim WA</button>
+                <button onclick="closeDetailModal()" class="bg-gray-200 text-gray-700 font-bold py-2.5 px-3 rounded-xl hover:bg-gray-300 transition text-xs">Tutup</button>
             </div>
         </div>
     </div>
 
+    <!-- Login Screen -->
     <div id="login-screen" class="absolute inset-0 bg-blue-600 flex items-center justify-center z-50">
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center mx-4">
             <i class="fas fa-store text-5xl text-blue-500 mb-4 drop-shadow-md"></i>
@@ -211,7 +240,7 @@
             <div class="p-4 bg-white shadow-sm z-10 flex gap-3 sticky top-0 items-center">
                 <div class="relative flex-1 flex items-center">
                     <i class="fas fa-search absolute left-4 text-gray-400"></i>
-                    <input type="text" id="search-item" onkeyup="renderProducts()" placeholder="Cari nama, ID, atau kode..." class="w-full pl-11 pr-12 py-3 border border-gray-200 bg-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm">
+                    <input type="text" id="search-item" onkeyup="handleSearchKey(event)" placeholder="Ketik kode/nama lalu Enter..." class="w-full pl-11 pr-12 py-3 border border-gray-200 bg-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm">
                     <button onclick="openScannerModal()" class="absolute right-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm shrink-0" title="Scan Barcode / QR"><i class="fas fa-barcode text-base"></i></button>
                 </div>
                 <button onclick="loadData()" class="bg-white border border-gray-200 text-gray-600 w-11 h-11 rounded-xl hover:bg-gray-50 shadow-sm transition-all flex items-center justify-center shrink-0" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
@@ -337,7 +366,6 @@
         <h2 class="text-2xl font-extrabold mb-6 text-gray-800 tracking-tight">Panel Administrator</h2>
         
         <div class="grid md:grid-cols-3 gap-6 mb-6">
-            <!-- Card Pengaturan Rekening -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
                 <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-university text-green-500 mr-2"></i> Info Rekening (Transfer)</h3>
                 <div class="space-y-3">
@@ -478,7 +506,8 @@
             reports: { transactions: [], details: [] },
             currentCalculatedTotal: 0,
             selectedPaymentMethod: 'cash',
-            html5QrCode: null
+            html5QrCode: null,
+            lastReceiptData: null
         };
 
         const formatRp = (angka) => {
@@ -553,6 +582,30 @@
             const foundItem = state.items.find(i => (i.id || '').toString().toLowerCase() === code.toLowerCase() || (i.orig_code || '').toLowerCase() === code.toLowerCase());
             if(foundItem) {
                 addToCart(foundItem.id);
+            } else {
+                showModal("Item Tidak Ditemukan", `Produk dengan kode "${code}" tidak terdaftar di sistem.`);
+            }
+        }
+
+        function handleSearchKey(event) {
+            renderProducts();
+            if (event.key === 'Enter') {
+                const searchInput = document.getElementById('search-item');
+                const code = searchInput.value.trim();
+                if (!code) return;
+
+                const foundItem = state.items.find(i => 
+                    (i.id || '').toString().toLowerCase() === code.toLowerCase() || 
+                    (i.orig_code || '').toLowerCase() === code.toLowerCase()
+                );
+
+                if (foundItem) {
+                    addToCart(foundItem.id);
+                    searchInput.value = '';
+                    renderProducts();
+                } else {
+                    showModal("Item Tidak Ditemukan", `Produk dengan kode "${code}" tidak terdaftar di sistem.`);
+                }
             }
         }
 
@@ -767,9 +820,12 @@
 
             grid.innerHTML = filtered.map(item => `
                 <div onclick="addToCart('${item.id}')" class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:border-blue-400 hover:shadow-md transition-all flex flex-col h-full active:scale-95 group">
-                    <div class="text-xs text-gray-400 mb-2 flex justify-between font-medium">
+                    <div class="text-xs text-gray-400 mb-2 flex justify-between font-medium items-center">
                         <span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600">${item.id}</span>
-                        <span class="${item.stock <= 5 ? 'text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded' : 'text-green-600 bg-green-50 px-2 py-0.5 rounded'}">Stok: ${item.stock}</span>
+                        <div class="flex items-center gap-1.5">
+                            ${item.disc > 0 ? `<span class="text-[11px] bg-red-50 text-red-600 font-bold px-2 py-0.5 rounded border border-red-100">-${item.disc}%</span>` : ''}
+                            <span class="${item.stock <= 5 ? 'text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded' : 'text-green-600 bg-green-50 px-2 py-0.5 rounded'}">Stok: ${item.stock}</span>
+                        </div>
                     </div>
                     <h3 class="font-bold text-gray-700 leading-snug mb-3 flex-1 text-sm group-hover:text-blue-700 transition-colors">${item.name}</h3>
                     <div class="flex justify-between items-center mt-auto border-t border-dashed pt-2">
@@ -1099,6 +1155,7 @@
 
                 showSuccessReceiptModal({
                     orderId,
+                    date: dateStr,
                     time: timeStr,
                     cashier: state.currentUser,
                     items: paidItems,
@@ -1122,13 +1179,15 @@
         }
 
         function showSuccessReceiptModal(data) {
+            state.lastReceiptData = data;
             document.getElementById('dtl-inv').innerText = data.orderId.replace("ORD", "INV");
+            document.getElementById('dtl-date').innerText = data.date;
             document.getElementById('dtl-time').innerText = data.time.substring(0,5);
             document.getElementById('dtl-cashier').innerText = data.cashier || 'Admin';
 
             const vInfoEl = document.getElementById('dtl-voucher-info');
             if(data.voucherName) {
-                vInfoEl.innerHTML = `<i class="fas fa-ticket-alt"></i> Voucher Digunakan: <b>${data.voucherName}</b> (Potongan: ${formatRp(data.voucherDisc)})`;
+                vInfoEl.innerHTML = `<i class="fas fa-ticket-alt"></i> Voucher: <b>${data.voucherName}</b> (${formatRp(data.voucherDisc)})`;
                 vInfoEl.classList.remove('hidden-el');
             } else {
                 vInfoEl.classList.add('hidden-el');
@@ -1141,35 +1200,93 @@
                 const lineTot = lineSub - lineDisc;
                 return `
                 <tr class="hover:bg-gray-50/50">
-                    <td class="p-3">
-                        <div class="text-[10px] text-gray-400 font-mono mb-0.5">${item.id}</div>
-                        <div class="font-bold text-gray-800 text-sm leading-tight">${item.name}</div>
-                        ${item.disc > 0 ? `<div class="text-[11px] text-orange-500 mt-1 font-semibold"><i class="fas fa-tag"></i> Diskon: -${formatRp(lineDisc)}</div>` : ''}
+                    <td class="py-1.5 pr-1">
+                        <div class="text-[10px] text-gray-400 font-mono">${item.id}</div>
+                        <div class="font-bold text-gray-800 leading-tight">${item.name}</div>
+                        ${item.disc > 0 ? `<div class="text-[10px] text-orange-500">Disc -${item.disc}%</div>` : ''}
                     </td>
-                    <td class="p-3 text-center font-bold text-gray-700 bg-gray-50/50">${item.qty}</td>
-                    <td class="p-3 text-right text-gray-500 text-sm">${formatRp(item.price)}</td>
-                    <td class="p-3 text-right font-extrabold text-gray-800">${formatRp(lineTot)}</td>
+                    <td class="py-1.5 text-center font-bold text-gray-700">${item.qty}</td>
+                    <td class="py-1.5 text-right text-gray-500">${formatRp(item.price)}</td>
+                    <td class="py-1.5 text-right font-extrabold text-gray-800">${formatRp(lineTot)}</td>
                 </tr>
             `;}).join('');
 
             const summaryDiv = document.getElementById('dtl-payment-summary');
-            let paymentDetailHtml = `<div class="flex justify-between text-gray-600"><span>Metode Pembayaran</span><span class="font-bold uppercase text-blue-600">${data.paymentMethod || 'CASH'}</span></div>`;
+            let paymentDetailHtml = `<div class="flex justify-between text-gray-600"><span>Pembayaran</span><span class="font-bold uppercase text-blue-600">${data.paymentMethod || 'CASH'}</span></div>`;
             
             if (data.paymentMethod && data.paymentMethod.startsWith('CASH')) {
                 paymentDetailHtml += `
-                    <div class="flex justify-between text-gray-600 pt-1"><span>Tunai Diterima</span><span class="font-bold">${formatRp(data.cash)}</span></div>
-                    <div class="flex justify-between text-emerald-600 font-bold"><span>Uang Kembalian</span><span>${formatRp(data.change)}</span></div>
+                    <div class="flex justify-between text-gray-600 pt-0.5"><span>Tunai</span><span>${formatRp(data.cash)}</span></div>
+                    <div class="flex justify-between text-emerald-600 font-bold pt-0.5"><span>Kembalian</span><span>${formatRp(data.change)}</span></div>
                 `;
             }
 
             summaryDiv.innerHTML = `
                 <div class="flex justify-between text-gray-600"><span>Subtotal</span><span>${formatRp(data.subtotal)}</span></div>
-                <div class="flex justify-between text-green-600"><span>Total Diskon</span><span>- ${formatRp(data.discount)}</span></div>
-                <div class="flex justify-between text-gray-900 font-extrabold text-base border-t pt-1 border-gray-200"><span>Total Bayar</span><span class="text-blue-600">${formatRp(data.total)}</span></div>
+                <div class="flex justify-between text-green-600"><span>Diskon</span><span>- ${formatRp(data.discount)}</span></div>
+                <div class="flex justify-between text-gray-900 font-extrabold text-sm border-t pt-1 border-gray-200"><span>Total</span><span class="text-blue-600">${formatRp(data.total)}</span></div>
                 ${paymentDetailHtml}
             `;
 
             document.getElementById('detail-modal').classList.remove('hidden-el');
+        }
+
+        function printReceipt() {
+            window.print();
+        }
+
+        function downloadReceiptImage() {
+            const receiptEl = document.getElementById('printable-receipt');
+            if(!receiptEl) return;
+            
+            html2canvas(receiptEl, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Struk_${document.getElementById('dtl-inv').innerText}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(err => {
+                console.error("Gagal mendownload gambar struk:", err);
+                showModal("Gagal", "Tidak dapat mendownload gambar struk.");
+            });
+        }
+
+        function sendReceiptWhatsApp() {
+            const data = state.lastReceiptData;
+            if(!data) {
+                showModal("Data Kosong", "Tidak ada data struk yang dapat dikirim.");
+                return;
+            }
+
+            let msg = `*STRUK BELANJA - SURYATOKOKU*\n`;
+            msg += `Invoice: ${data.orderId.replace("ORD", "INV")}\n`;
+            msg += `Tanggal: ${data.date} ${data.time.substring(0,5)}\n`;
+            msg += `Kasir: ${data.cashier}\n`;
+            msg += `--------------------------------\n`;
+
+            data.items.forEach((item, idx) => {
+                const lineSub = item.price * item.qty;
+                const lineDisc = lineSub * ((item.disc || 0) / 100);
+                const lineTot = lineSub - lineDisc;
+                msg += `${idx + 1}. *${item.name}*\n`;
+                msg += `   ${item.qty}x @${formatRp(item.price)} = *${formatRp(lineTot)}*\n`;
+            });
+
+            msg += `--------------------------------\n`;
+            msg += `Subtotal: ${formatRp(data.subtotal)}\n`;
+            msg += `Diskon: - ${formatRp(data.discount)}\n`;
+            msg += `*TOTAL: ${formatRp(data.total)}*\n`;
+            msg += `Metode Pembayaran: ${data.paymentMethod}\n`;
+            
+            if (data.paymentMethod && data.paymentMethod.startsWith('CASH')) {
+                msg += `Tunai: ${formatRp(data.cash)}\n`;
+                msg += `Kembalian: ${formatRp(data.change)}\n`;
+            }
+
+            msg += `--------------------------------\n`;
+            msg += `Terima kasih telah berbelanja di Suryatokoku! 🙏`;
+
+            const encodedMsg = encodeURIComponent(msg);
+            window.open(`https://api.whatsapp.com/send?text=${encodedMsg}`, '_blank');
         }
 
         function renderAdminTable() {
@@ -1710,41 +1827,29 @@
             const items = state.reports.details.filter(d => d.order_id === orderId);
             if(!tx) return;
 
-            document.getElementById('dtl-inv').innerText = orderId.replace("ORD", "INV");
-            document.getElementById('dtl-time').innerText = tx.time.substring(0,5);
-            document.getElementById('dtl-cashier').innerText = tx.role || 'Admin';
+            const structuredData = {
+                orderId: tx.order_id,
+                date: tx.date,
+                time: tx.time,
+                cashier: tx.role || 'Admin',
+                items: items.map(i => ({
+                    id: i.item_id,
+                    name: i.name,
+                    qty: i.qty,
+                    price: i.price,
+                    disc: i.discount_percent || 0
+                })),
+                subtotal: tx.subtotal,
+                discount: tx.discount,
+                total: tx.total,
+                paymentMethod: tx.payment_method || 'CASH',
+                voucherName: tx.voucher_nama,
+                voucherDisc: tx.voucher_diskon,
+                cash: tx.total,
+                change: 0
+            };
 
-            const vInfoEl = document.getElementById('dtl-voucher-info');
-            if(tx.voucher_nama) {
-                vInfoEl.innerHTML = `<i class="fas fa-ticket-alt"></i> Voucher Digunakan: <b>${tx.voucher_nama}</b> (Potongan: ${formatRp(tx.voucher_diskon)})`;
-                vInfoEl.classList.remove('hidden-el');
-            } else {
-                vInfoEl.classList.add('hidden-el');
-            }
-
-            const tbody = document.getElementById('detail-items-table');
-            tbody.innerHTML = items.map(item => `
-                <tr class="hover:bg-gray-50/50">
-                    <td class="p-3">
-                        <div class="text-[10px] text-gray-400 font-mono mb-0.5">${item.item_id}</div>
-                        <div class="font-bold text-gray-800 text-sm leading-tight">${item.name}</div>
-                        ${item.discount_amount > 0 ? `<div class="text-[11px] text-orange-500 mt-1 font-semibold"><i class="fas fa-tag"></i> Diskon: -${formatRp(item.discount_amount)}</div>` : ''}
-                    </td>
-                    <td class="p-3 text-center font-bold text-gray-700 bg-gray-50/50">${item.qty}</td>
-                    <td class="p-3 text-right text-gray-500 text-sm">${formatRp(item.price)}</td>
-                    <td class="p-3 text-right font-extrabold text-gray-800">${formatRp(item.total)}</td>
-                </tr>
-            `).join('');
-
-            const summaryDiv = document.getElementById('dtl-payment-summary');
-            summaryDiv.innerHTML = `
-                <div class="flex justify-between text-gray-600"><span>Subtotal</span><span>${formatRp(tx.subtotal)}</span></div>
-                <div class="flex justify-between text-green-600"><span>Total Diskon</span><span>- ${formatRp(tx.discount)}</span></div>
-                <div class="flex justify-between text-gray-900 font-extrabold text-base border-t pt-1 border-gray-200"><span>Total Bayar</span><span class="text-blue-600">${formatRp(tx.total)}</span></div>
-                <div class="flex justify-between text-gray-600 pt-1"><span>Metode Pembayaran</span><span class="font-bold uppercase text-blue-600">${tx.payment_method || 'CASH'}</span></div>
-            `;
-
-            document.getElementById('detail-modal').classList.remove('hidden-el');
+            showSuccessReceiptModal(structuredData);
         }
 
         function closeDetailModal() {
