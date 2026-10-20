@@ -296,7 +296,8 @@
                             <th class="p-4 font-bold text-xs uppercase tracking-wider rounded-tl-xl">User / Kasir</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-center">Jml Transaksi</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Total Subtotal</th>
-                            <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Total Diskon</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Diskon Reguler</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Diskon Voucher</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Cash (Tunai)</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">QRIS</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Transfer</th>
@@ -1526,12 +1527,17 @@
                 
                 const user = t.role || 'Unknown';
                 if(!klerekMap[user]) {
-                    klerekMap[user] = { count: 0, subtotal: 0, discount: 0, total: 0, cash: 0, qris: 0, transfer: 0 };
+                    klerekMap[user] = { count: 0, subtotal: 0, diskon_reg: 0, diskon_voucher: 0, total: 0, cash: 0, qris: 0, transfer: 0 };
                 }
                 
+                let totDisc = parseFloat(t.discount) || 0;
+                let vouchDisc = parseFloat(t.voucher_diskon) || 0;
+                let regDisc = totDisc - vouchDisc;
+
                 klerekMap[user].count += 1;
                 klerekMap[user].subtotal += parseFloat(t.subtotal) || 0;
-                klerekMap[user].discount += parseFloat(t.discount) || 0;
+                klerekMap[user].diskon_reg += regDisc;
+                klerekMap[user].diskon_voucher += vouchDisc;
                 klerekMap[user].total += parseFloat(t.total) || 0;
 
                 const pm = (t.payment_method || 'CASH').toUpperCase();
@@ -1563,14 +1569,15 @@
             document.getElementById('report-tx-count').innerText = `${txData.length} Transaksi`;
 
             if(Object.keys(klerekMap).length === 0) {
-                klerekTbody.innerHTML = `<tr><td colspan="8" class="text-center p-8 text-gray-400 font-medium"><i class="fas fa-folder-open text-3xl mb-3 block opacity-20"></i>Belum ada data klerek</td></tr>`;
+                klerekTbody.innerHTML = `<tr><td colspan="9" class="text-center p-8 text-gray-400 font-medium"><i class="fas fa-folder-open text-3xl mb-3 block opacity-20"></i>Belum ada data klerek</td></tr>`;
             } else {
                 klerekTbody.innerHTML = Object.keys(klerekMap).map(user => `
                 <tr class="hover:bg-slate-50 transition-colors">
                     <td class="p-4 font-bold text-gray-800"><i class="fas fa-user-circle text-gray-400 mr-2"></i> ${user}</td>
                     <td class="p-4 text-center font-bold text-gray-600 bg-gray-50/50">${klerekMap[user].count} <span class="text-xs font-normal">Struk</span></td>
                     <td class="p-4 text-right text-gray-600 font-medium">${formatRp(klerekMap[user].subtotal)}</td>
-                    <td class="p-4 text-right text-orange-500 font-semibold">${formatRp(klerekMap[user].discount)}</td>
+                    <td class="p-4 text-right text-orange-500 font-semibold">${formatRp(klerekMap[user].diskon_reg)}</td>
+                    <td class="p-4 text-right text-orange-600 font-semibold">${formatRp(klerekMap[user].diskon_voucher)}</td>
                     <td class="p-4 text-right text-emerald-600 font-semibold">${formatRp(klerekMap[user].cash)}</td>
                     <td class="p-4 text-right text-purple-600 font-semibold">${formatRp(klerekMap[user].qris)}</td>
                     <td class="p-4 text-right text-blue-600 font-semibold">${formatRp(klerekMap[user].transfer)}</td>
@@ -1622,30 +1629,41 @@
                 "Total Pendapatan": t.total
             }));
 
-            const dtData = state.reports.details.map(d => ({
-                "Tanggal": d.date,
-                "No. Invoice": d.invoice_no,
-                "Kasir": d.user_role || 'Admin',
-                "Metode Pembayaran": d.payment_method || 'CASH',
-                "ID Item": d.item_id,
-                "Nama Barang": d.name,
-                "Family": d.family || '-',
-                "Qty": d.qty,
-                "Harga Satuan": d.price,
-                "Subtotal": d.subtotal,
-                "Diskon Rp": d.discount_amount,
-                "Total Bersih": d.total
-            }));
+            const dtData = state.reports.details.map(d => {
+                const parentTx = state.reports.transactions.find(tx => tx.order_id === d.order_id);
+                return {
+                    "Tanggal": d.date,
+                    "No. Invoice": d.invoice_no,
+                    "Kasir": d.user_role || 'Admin',
+                    "Metode Pembayaran": d.payment_method || 'CASH',
+                    "ID Item": d.item_id,
+                    "Nama Barang": d.name,
+                    "Family": d.family || '-',
+                    "Qty": d.qty,
+                    "Harga Satuan": d.price,
+                    "Subtotal": d.subtotal,
+                    "Diskon Rp": d.discount_amount,
+                    "Total Bersih": d.total,
+                    "VOUCHER": parentTx ? (parentTx.voucher_nama || '-') : '-',
+                    "NOMINAL VOUCHER": parentTx ? (parentTx.voucher_diskon || 0) : 0
+                };
+            });
 
             const klerekMap = {};
             state.reports.transactions.forEach(t => {
                 const user = t.role || 'Admin';
                 if(!klerekMap[user]) {
-                    klerekMap[user] = { user, jml_struk: 0, subtotal: 0, diskon: 0, cash: 0, qris: 0, transfer: 0, pendapatan: 0 };
+                    klerekMap[user] = { user, jml_struk: 0, subtotal: 0, diskon_reg: 0, diskon_voucher: 0, cash: 0, qris: 0, transfer: 0, pendapatan: 0 };
                 }
+
+                let totDisc = parseFloat(t.discount) || 0;
+                let vouchDisc = parseFloat(t.voucher_diskon) || 0;
+                let regDisc = totDisc - vouchDisc;
+
                 klerekMap[user].jml_struk += 1;
                 klerekMap[user].subtotal += parseFloat(t.subtotal) || 0;
-                klerekMap[user].diskon += parseFloat(t.discount) || 0;
+                klerekMap[user].diskon_reg += regDisc;
+                klerekMap[user].diskon_voucher += vouchDisc;
                 klerekMap[user].pendapatan += parseFloat(t.total) || 0;
 
                 const pm = (t.payment_method || 'CASH').toUpperCase();
@@ -1663,7 +1681,8 @@
                 "Nama User / Kasir": k.user,
                 "Jumlah Transaksi": k.jml_struk,
                 "Subtotal Omzet": k.subtotal,
-                "Total Diskon": k.diskon,
+                "Diskon Reguler": k.diskon_reg,
+                "Diskon Voucher": k.diskon_voucher,
                 "Cash (Tunai)": k.cash,
                 "QRIS": k.qris,
                 "Transfer": k.transfer,
