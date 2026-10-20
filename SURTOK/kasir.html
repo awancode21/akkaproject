@@ -13,24 +13,23 @@
     <title>Suryatokoku - Multi-Payment Edition</title>
 
     <script>
-        // Generate Manifest Dinamis agar pasti terbaca sebagai aplikasi oleh Chrome Android
-        const manifest = {
-            name: "Suryatokoku POS",
-            short_name: "Suryatokoku",
-            start_url: window.location.href.split('?')[0], // Otomatis menyesuaikan URL saat ini
-            display: "standalone", // Wajib 'standalone' atau 'fullscreen' agar layaknya aplikasi
-            background_color: "#f3f4f6",
-            theme_color: "#2563eb",
-            icons: [{
-                src: "https://cdn-icons-png.flaticon.com/512/1055/1055685.png",
-                sizes: "512x512",
-                type: "image/png",
-                purpose: "any maskable"
+        // Generate Manifest Dinamis menggunakan Data URI (Lebih stabil di Chrome Android)
+        const manifestJSON = {
+            "name": "Suryatokoku POS",
+            "short_name": "Suryatokoku",
+            "start_url": window.location.href.split('?')[0],
+            "display": "fullscreen", // Diubah ke fullscreen agar benar-benar menutupi seluruh layar
+            "background_color": "#f3f4f6",
+            "theme_color": "#2563eb",
+            "icons": [{
+                "src": "https://cdn-icons-png.flaticon.com/512/1055/1055685.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any maskable"
             }]
         };
-        const blob = new Blob([JSON.stringify(manifest)], {type: 'application/manifest+json'});
-        const manifestURL = URL.createObjectURL(blob);
-        document.write('<link rel="manifest" href="' + manifestURL + '">');
+        const encodedManifest = encodeURIComponent(JSON.stringify(manifestJSON));
+        document.write('<link rel="manifest" href="data:application/manifest+json;charset=utf-8,' + encodedManifest + '">');
     </script>
     
     <script src="https://cdn.tailwindcss.com"></script>
