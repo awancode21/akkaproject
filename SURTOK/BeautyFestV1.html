@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrasi Suryatokoku Beautyfest</title>
+    <title>Registrasi Bazzar Gereja</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -44,23 +44,30 @@
         
         <!-- Header Section -->
         <div class="bg-pink-600 p-6 text-center text-white">
-            <h1 class="text-2xl font-bold mb-2">Suryatokoku Beautyfest</h1>
+            <h1 class="text-2xl font-bold mb-2">Bazzar Gereja</h1>
             <p class="text-pink-100 text-sm">Silakan isi formulir di bawah ini untuk bergabung dengan database kami.</p>
         </div>
 
         <!-- Social Media Links -->
         <div class="p-6 pb-2">
-            <p class="text-sm font-semibold text-gray-600 mb-3 text-center">Jangan lupa ikuti komunitas kami!</p>
-            <div class="flex flex-col sm:flex-row gap-3">
+            <p class="text-sm font-semibold text-gray-600 mb-3 text-center">Jangan lupa ikuti komunitas & sosial media kami!</p>
+            <div class="flex flex-col gap-2.5">
                 <a href="https://whatsapp.com/channel/0029VbC7wYrADTODLH9f8g0a" target="_blank" rel="noopener noreferrer" 
-                   class="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-lg py-2.5 px-4 flex items-center justify-center gap-2 transition-colors text-sm font-medium">
-                    <i class="fab fa-whatsapp text-lg"></i>
-                    Saluran WA
+                   class="w-full bg-green-500 hover:bg-green-600 text-white rounded-lg py-2.5 px-4 flex items-center justify-between transition-colors text-sm font-medium">
+                    <span class="flex items-center gap-2"><i class="fab fa-whatsapp text-lg"></i> Saluran WA Official</span>
+                    <span class="bg-green-600/50 px-2 py-0.5 rounded text-xs">Join</span>
                 </a>
+                
                 <a href="https://www.instagram.com/suryatokokubeautyfest/" target="_blank" rel="noopener noreferrer" 
-                   class="flex-1 ig-btn text-white rounded-lg py-2.5 px-4 flex items-center justify-center gap-2 transition-opacity text-sm font-medium">
-                    <i class="fab fa-instagram text-lg"></i>
-                    Instagram
+                   class="w-full ig-btn text-white rounded-lg py-2.5 px-4 flex items-center justify-between transition-opacity text-sm font-medium">
+                    <span class="flex items-center gap-2"><i class="fab fa-instagram text-lg"></i> @suryatokokubeautyfest</span>
+                    <span class="bg-black/20 px-2 py-0.5 rounded text-xs">Follow</span>
+                </a>
+
+                <a href="https://www.instagram.com/suryatokoku.id?dlrf=bDk3MDVsc21xcXFm" target="_blank" rel="noopener noreferrer" 
+                   class="w-full ig-btn text-white rounded-lg py-2.5 px-4 flex items-center justify-between transition-opacity text-sm font-medium">
+                    <span class="flex items-center gap-2"><i class="fab fa-instagram text-lg"></i> @suryatokoku.id</span>
+                    <span class="bg-black/20 px-2 py-0.5 rounded text-xs">Follow</span>
                 </a>
             </div>
             
@@ -75,10 +82,43 @@
                     class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all">
             </div>
 
-            <div>
-                <label for="alamat" class="block text-sm font-medium text-gray-700 mb-1">Alamat Lengkap</label>
-                <textarea id="alamat" name="alamat" required rows="3" placeholder="Masukkan alamat Anda"
-                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all resize-none"></textarea>
+            <!-- Streaming Chunk: Region Selectors -->
+            <div class="space-y-3 bg-pink-50/50 p-4 rounded-xl border border-pink-100">
+                <label class="block text-sm font-semibold text-gray-800"><i class="fas fa-map-marker-alt text-pink-600 mr-1"></i> Alamat Domisili</label>
+                
+                <div>
+                    <label for="provinsi" class="block text-xs font-medium text-gray-600 mb-1">Provinsi</label>
+                    <select id="provinsi" name="provinsi" required class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-pink-500 outline-none">
+                        <option value="">-- Pilih Provinsi --</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="kabupaten" class="block text-xs font-medium text-gray-600 mb-1">Kabupaten / Kota</label>
+                    <select id="kabupaten" name="kabupaten" required disabled class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-gray-100 text-sm focus:ring-2 focus:ring-pink-500 outline-none">
+                        <option value="">-- Pilih Kabupaten/Kota --</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="kecamatan" class="block text-xs font-medium text-gray-600 mb-1">Kecamatan</label>
+                    <select id="kecamatan" name="kecamatan" required disabled class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-gray-100 text-sm focus:ring-2 focus:ring-pink-500 outline-none">
+                        <option value="">-- Pilih Kecamatan --</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="kelurahan" class="block text-xs font-medium text-gray-600 mb-1">Kelurahan / Desa</label>
+                    <select id="kelurahan" name="kelurahan" required disabled class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-gray-100 text-sm focus:ring-2 focus:ring-pink-500 outline-none">
+                        <option value="">-- Pilih Kelurahan/Desa --</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="detail_alamat" class="block text-xs font-medium text-gray-600 mb-1">Detail Alamat (Jalan / Gedung / Blok / RT RW) - Opsional</label>
+                    <input type="text" id="detail_alamat" name="detail_alamat" placeholder="Contoh: Jl. Merdeka No. 10, RT 01/02"
+                        class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-pink-500 outline-none">
+                </div>
             </div>
 
             <div>
@@ -119,7 +159,7 @@
     </div>
 
     <script>
-        // Konfigurasi Endpoint (Sudah diatur ke data_beautyfestv1)
+        // Konfigurasi Endpoint (Tabel data_beautyfestv1)
         const SUPABASE_URL = 'https://zxsyggyekdbxtumdpisq.supabase.co/rest/v1/data_beautyfestv1';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4c3lnZ3lla2RieHR1bWRwaXNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NzI5MTgsImV4cCI6MjEwNTU0ODkxOH0.b2HoXlKgchtRwOmqRyb9pPQp9tHCQ6x4EibLH6W_tQI';
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbwGJUednCwfarRGxz_SnfpQ2Kc6rx7122PhQe29dSmz66SyaTQlNItVxrhT7MbapTdd/exec';
@@ -128,6 +168,115 @@
         const submitBtn = document.getElementById('submitBtn');
         const modalOverlay = document.getElementById('modalOverlay');
         const modalContent = document.getElementById('modalContent');
+
+        // Dropdown Wilayah Elements
+        const selectProvinsi = document.getElementById('provinsi');
+        const selectKabupaten = document.getElementById('kabupaten');
+        const selectKecamatan = document.getElementById('kecamatan');
+        const selectKelurahan = document.getElementById('kelurahan');
+
+        // Load Provinsi API Indonesia (Wilayah API)
+        async function loadProvinsi() {
+            try {
+                const response = await fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json');
+                const provinces = await response.json();
+                provinces.forEach(prov => {
+                    const option = document.createElement('option');
+                    option.value = prov.name;
+                    option.dataset.id = prov.id;
+                    option.textContent = prov.name;
+                    selectProvinsi.appendChild(option);
+                });
+            } catch (err) {
+                console.error('Gagal memuat provinsi', err);
+            }
+        }
+
+        selectProvinsi.addEventListener('change', async function() {
+            const provId = this.options[this.selectedIndex].dataset.id;
+            selectKabupaten.innerHTML = '<option value="">-- Pilih Kabupaten/Kota --</option>';
+            selectKabupaten.disabled = true;
+            selectKabupaten.classList.add('bg-gray-100');
+            selectKecamatan.innerHTML = '<option value="">-- Pilih Kecamatan --</option>';
+            selectKecamatan.disabled = true;
+            selectKecamatan.classList.add('bg-gray-100');
+            selectKelurahan.innerHTML = '<option value="">-- Pilih Kelurahan/Desa --</option>';
+            selectKelurahan.disabled = true;
+            selectKelurahan.classList.add('bg-gray-100');
+
+            if (!provId) return;
+
+            try {
+                const response = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${provId}.json`);
+                const regencies = await response.json();
+                regencies.forEach(reg => {
+                    const option = document.createElement('option');
+                    option.value = reg.name;
+                    option.dataset.id = reg.id;
+                    option.textContent = reg.name;
+                    selectKabupaten.appendChild(option);
+                });
+                selectKabupaten.disabled = false;
+                selectKabupaten.classList.remove('bg-gray-100');
+            } catch (err) {
+                console.error('Gagal memuat kabupaten', err);
+            }
+        });
+
+        selectKabupaten.addEventListener('change', async function() {
+            const regId = this.options[this.selectedIndex].dataset.id;
+            selectKecamatan.innerHTML = '<option value="">-- Pilih Kecamatan --</option>';
+            selectKecamatan.disabled = true;
+            selectKecamatan.classList.add('bg-gray-100');
+            selectKelurahan.innerHTML = '<option value="">-- Pilih Kelurahan/Desa --</option>';
+            selectKelurahan.disabled = true;
+            selectKelurahan.classList.add('bg-gray-100');
+
+            if (!regId) return;
+
+            try {
+                const response = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${regId}.json`);
+                const districts = await response.json();
+                districts.forEach(dist => {
+                    const option = document.createElement('option');
+                    option.value = dist.name;
+                    option.dataset.id = dist.id;
+                    option.textContent = dist.name;
+                    selectKecamatan.appendChild(option);
+                });
+                selectKecamatan.disabled = false;
+                selectKecamatan.classList.remove('bg-gray-100');
+            } catch (err) {
+                console.error('Gagal memuat kecamatan', err);
+            }
+        });
+
+        selectKecamatan.addEventListener('change', async function() {
+            const distId = this.options[this.selectedIndex].dataset.id;
+            selectKelurahan.innerHTML = '<option value="">-- Pilih Kelurahan/Desa --</option>';
+            selectKelurahan.disabled = true;
+            selectKelurahan.classList.add('bg-gray-100');
+
+            if (!distId) return;
+
+            try {
+                const response = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${distId}.json`);
+                const villages = await response.json();
+                villages.forEach(vill => {
+                    const option = document.createElement('option');
+                    option.value = vill.name;
+                    option.textContent = vill.name;
+                    selectKelurahan.appendChild(option);
+                });
+                selectKelurahan.disabled = false;
+                selectKelurahan.classList.remove('bg-gray-100');
+            } catch (err) {
+                console.error('Gagal memuat kelurahan', err);
+            }
+        });
+
+        // Initialize Provinces on load
+        loadProvinsi();
 
         function showModal(type, title, message) {
             const modalIcon = document.getElementById('modalIcon');
@@ -173,17 +322,28 @@
             e.preventDefault();
             setLoading(true);
 
-            // Ambil data dari form
+            // Susun format alamat lengkap otomatis dari dropdown
+            const prov = selectProvinsi.value;
+            const kab = selectKabupaten.value;
+            const kec = selectKecamatan.value;
+            const kel = selectKelurahan.value;
+            const detail = document.getElementById('detail_alamat').value.trim();
+
+            let fullAlamat = `Desa/Kel. ${kel}, Kec. ${kec}, ${kab}, Prov. ${prov}`;
+            if (detail) {
+                fullAlamat = `${detail}, ${fullAlamat}`;
+            }
+
             const formData = {
                 nama: document.getElementById('nama').value,
-                alamat: document.getElementById('alamat').value,
+                alamat: fullAlamat,
                 no_wa: document.getElementById('no_wa').value,
                 tgl_lahir: document.getElementById('tgl_lahir').value
             };
 
             try {
-                // 1. POST ke Supabase
-                const supabaseResponse = await fetch(SUPABASE_URL, {
+                // 1. Siapkan Request ke Supabase
+                const supabaseRequest = fetch(SUPABASE_URL, {
                     method: 'POST',
                     headers: {
                         'apikey': SUPABASE_KEY,
@@ -194,24 +354,33 @@
                     body: JSON.stringify(formData)
                 });
 
-                if (!supabaseResponse.ok) {
-                    throw new Error('Terjadi kendala saat menyimpan ke Database (Supabase).');
-                }
-
-                // 2. POST ke Google Apps Script (Spreadsheet)
+                // 2. Siapkan Request ke Google Apps Script (Spreadsheet)
                 const gasParams = new URLSearchParams(formData);
-                await fetch(GAS_URL, {
+                const gasRequest = fetch(GAS_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // Mencegah blokir CORS
+                    mode: 'no-cors',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
                     body: gasParams
                 });
 
+                // Eksekusi KEDUA request secara BERSAMAAN (Paralel) untuk memangkas waktu loading
+                const [supabaseResponse] = await Promise.all([supabaseRequest, gasRequest]);
+
+                if (!supabaseResponse.ok) {
+                    throw new Error('Terjadi kendala saat menyimpan ke Database (Supabase).');
+                }
+
                 // Tampilkan sukses
                 showModal('success', 'Pendaftaran Berhasil!', 'Data Anda telah tersimpan dengan aman ke database dan spreadsheet kami. Terima kasih.');
                 form.reset(); 
+                selectKabupaten.innerHTML = '<option value="">-- Pilih Kabupaten/Kota --</option>';
+                selectKabupaten.disabled = true;
+                selectKecamatan.innerHTML = '<option value="">-- Pilih Kecamatan --</option>';
+                selectKecamatan.disabled = true;
+                selectKelurahan.innerHTML = '<option value="">-- Pilih Kelurahan/Desa --</option>';
+                selectKelurahan.disabled = true;
 
             } catch (error) {
                 console.error('Error:', error);
