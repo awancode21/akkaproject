@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2563eb">
     
-    <title>Suryatokoku - Multi-Payment Edition</title>
+    <title>Suryatokoku - Family Tier Edition</title>
 
     <script>
         const manifestJSON = {
@@ -37,7 +37,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
         .hidden-el { display: none !important; }
         .loader {
@@ -45,20 +44,17 @@
             border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        
         @media print {
             body * { visibility: hidden; }
-            #printable-receipt, #printable-receipt * { visibility: visible; }
-            #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 10px; background: white; z-index: 9999; }
+            #receipt-capture-area, #receipt-capture-area * { visibility: visible; }
+            #receipt-capture-area { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 10px; }
+            .no-print { display: none !important; }
         }
     </style>
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden relative">
 
-    <div id="custom-modal" class="hidden-el absolute inset-0 bg-black/60 z-[200] flex items-center justify-center backdrop-blur-sm p-4">
+    <div id="custom-modal" class="hidden-el absolute inset-0 bg-black/60 z-[120] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm text-center transform transition-all scale-100">
             <h3 id="modal-title" class="text-xl font-bold mb-2 text-gray-800">Peringatan</h3>
             <p id="modal-message" class="text-gray-600 mb-6 text-sm">Pesan akan tampil disini.</p>
@@ -66,15 +62,14 @@
         </div>
     </div>
 
-    <!-- Scanner Modal -->
-    <div id="scanner-modal" class="hidden-el absolute inset-0 bg-black/80 z-[190] flex items-center justify-center backdrop-blur-sm p-4">
+    <div id="scanner-modal" class="hidden-el absolute inset-0 bg-black/80 z-[110] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden transform transition-all scale-100">
             <div class="p-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
-                <h3 class="font-bold text-lg"><i class="fas fa-barcode text-blue-400 mr-2"></i> Scan Barcode / QR</h3>
+                <h3 class="font-bold text-lg"><i class="fas fa-barcode text-blue-400 mr-2"></i> Scan Barcode</h3>
                 <button onclick="closeScannerModal()" class="text-gray-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div class="p-4 bg-black flex-1 flex flex-col items-center justify-center relative min-h-[300px]">
-                <div id="reader" class="w-full rounded-xl overflow-hidden"></div>
+                <div id="reader" class="w-full rounded-xl overflow-hidden bg-black"></div>
             </div>
             <div class="p-4 bg-gray-50 border-t border-gray-100 flex justify-center">
                 <button onclick="closeScannerModal()" class="bg-gray-200 text-gray-700 font-bold py-2.5 px-6 rounded-xl hover:bg-gray-300 transition text-sm">Tutup Kamera</button>
@@ -82,8 +77,7 @@
         </div>
     </div>
 
-    <!-- Payment Modal -->
-    <div id="payment-modal" class="hidden-el absolute inset-0 bg-black/60 z-[180] flex items-center justify-center backdrop-blur-sm p-4">
+    <div id="payment-modal" class="hidden-el absolute inset-0 bg-black/60 z-[105] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden transform transition-all scale-100 max-h-[90vh]">
             <div class="p-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
                 <h3 class="font-bold text-lg"><i class="fas fa-cash-register text-green-400 mr-2"></i> Pembayaran</h3>
@@ -107,7 +101,7 @@
 
                 <div id="payment-cash-section" class="space-y-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nominal Uang Diterima (Cash)</label>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Uang Tunai Diterima</label>
                         <input type="number" id="pay-cash-input" oninput="calculateChange()" placeholder="Contoh: 100000" class="w-full p-3.5 border border-gray-300 rounded-xl text-lg font-bold text-gray-800 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none">
                     </div>
                     <div class="grid grid-cols-3 gap-2">
@@ -129,17 +123,16 @@
                     <div class="bg-white p-4 inline-block rounded-xl shadow-sm border border-gray-200">
                         <i class="fas fa-qrcode text-7xl text-slate-800"></i>
                     </div>
-                    <div class="text-xs text-gray-500 font-medium">Silakan minta pelanggan scan menggunakan aplikasi e-wallet atau M-Banking.</div>
                 </div>
 
                 <div id="payment-transfer-section" class="hidden-el space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                    <div class="text-xs font-bold text-gray-500 uppercase">Informasi Rekening Tujuan</div>
+                    <div class="text-xs font-bold text-gray-500 uppercase">Rekening Tujuan</div>
                     <div class="bg-white p-3 rounded-xl border border-gray-200 text-left space-y-1">
                         <div id="transfer-bank-info" class="text-xs text-gray-400 font-semibold">BCA - 1234567890</div>
-                        <div id="transfer-owner-info" class="text-sm font-bold text-gray-800">A/N Suryatokoku Official</div>
+                        <div id="transfer-owner-info" class="text-sm font-bold text-gray-800">A/N Suryatokoku</div>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Catatan / No. Ref Transfer (Opsional)</label>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Catatan / Ref (Opsional)</label>
                         <input type="text" id="pay-transfer-ref" placeholder="Contoh: REF-98213" class="w-full p-2.5 border border-gray-300 rounded-xl text-sm font-semibold bg-white outline-none focus:border-blue-500">
                     </div>
                 </div>
@@ -152,80 +145,69 @@
         </div>
     </div>
 
-    <!-- Receipt / Detail Modal -->
-    <div id="detail-modal" class="hidden-el absolute inset-0 bg-black/60 z-[170] flex items-center justify-center backdrop-blur-sm p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden">
-            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                <h3 class="font-bold text-gray-800"><i class="fas fa-receipt text-blue-500 mr-2"></i> Struk / Detail Transaksi</h3>
+    <div id="detail-modal" class="hidden-el absolute inset-0 bg-black/60 z-[90] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0 no-print">
+                <h3 class="font-bold text-gray-800"><i class="fas fa-receipt text-blue-500 mr-2"></i> Detail Struk</h3>
                 <button onclick="closeDetailModal()" class="text-gray-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
             </div>
             
-            <div class="overflow-y-auto p-4 bg-white flex-1" id="receipt-container-wrapper">
-                <!-- Printable / Downloadable Receipt Area -->
-                <div id="printable-receipt" class="bg-white p-4 text-gray-800 space-y-3 font-mono text-xs">
-                    <div class="text-center pb-3 border-b border-dashed">
-                        <div class="font-extrabold text-base uppercase text-slate-900 tracking-wider">SURYATOKOKU</div>
-                        <div class="text-[11px] text-gray-500">Pusat Belanja & Retail Modern</div>
+            <div id="receipt-capture-area" class="overflow-y-auto p-5 bg-white flex-1 text-gray-800 relative bg-white">
+                <div class="text-center mb-4">
+                    <h2 class="font-extrabold text-xl tracking-tight">SURYATOKOKU</h2>
+                    <p class="text-xs text-gray-500 mt-1">Struk Pembelian</p>
+                </div>
+                <div class="flex justify-between text-xs text-gray-500 border-b border-dashed pb-3 mb-3">
+                    <div>
+                        <div>INV: <b id="dtl-inv" class="text-gray-800">INV-XXX</b></div>
+                        <div>Kasir: <b id="dtl-cashier" class="text-gray-800">Admin</b></div>
                     </div>
-                    <div class="flex justify-between text-gray-600 pb-2 border-b border-dashed">
-                        <div>
-                            <div>Invoice: <b id="dtl-inv" class="text-gray-900">INV-XXX</b></div>
-                            <div>Kasir: <b id="dtl-cashier" class="text-gray-900">Admin</b></div>
-                        </div>
-                        <div class="text-right">
-                            <div>Tanggal: <b id="dtl-date">00-00-0000</b></div>
-                            <div>Waktu: <b id="dtl-time">00:00</b></div>
-                        </div>
+                    <div class="text-right">
+                        <div id="dtl-date">2026-10-21</div>
+                        <div id="dtl-time">11:44</div>
                     </div>
-                    <div id="dtl-voucher-info" class="text-[11px] bg-blue-50 text-blue-700 p-2 rounded font-sans font-medium hidden-el"></div>
-                    <table class="w-full text-left font-sans text-xs">
-                        <thead class="text-[11px] text-gray-400 uppercase border-b border-gray-100">
-                            <tr>
-                                <th class="pb-1 font-semibold">Item</th>
-                                <th class="pb-1 font-semibold text-center w-8">Qty</th>
-                                <th class="pb-1 font-semibold text-right">Harga</th>
-                                <th class="pb-1 font-semibold text-right">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody id="detail-items-table" class="divide-y divide-gray-50 font-sans"></tbody>
-                    </table>
-                    <div id="dtl-payment-summary" class="mt-3 pt-2 border-t border-dashed space-y-1 text-xs font-sans bg-gray-50 p-2.5 rounded-lg"></div>
-                    <div class="text-center text-[10px] text-gray-400 pt-2 border-t border-dashed font-sans">
-                        Terima Kasih Telah Berbelanja di Suryatokoku!<br>Barang yang sudah dibeli tidak dapat ditukar/dikembalikan.
-                    </div>
+                </div>
+                
+                <div id="dtl-voucher-info" class="mb-3 text-[11px] bg-blue-50 text-blue-700 p-2 rounded font-bold hidden-el text-center border border-blue-100"></div>
+                <div id="dtl-tier-info" class="mb-3 text-[11px] bg-amber-50 text-amber-700 p-2 rounded font-bold hidden-el text-center border border-amber-200"></div>
+                
+                <div id="detail-items-table" class="space-y-3 mb-4"></div>
+                
+                <div id="dtl-payment-summary" class="border-t border-dashed pt-3 space-y-1.5 text-sm bg-gray-50 p-4 rounded-xl"></div>
+                
+                <div class="text-center mt-6 text-[10px] text-gray-400 font-medium pb-2">
+                    Terima kasih telah berbelanja di Suryatokoku!
                 </div>
             </div>
 
-            <div class="p-3 border-t border-gray-100 bg-gray-50 grid grid-cols-2 md:grid-cols-4 gap-2">
-                <button onclick="printReceipt()" class="bg-slate-800 text-white font-bold py-2.5 px-3 rounded-xl hover:bg-slate-900 transition text-xs flex items-center justify-center gap-1.5 shadow"><i class="fas fa-print"></i> Cetak</button>
-                <button onclick="downloadReceiptImage()" class="bg-blue-600 text-white font-bold py-2.5 px-3 rounded-xl hover:bg-blue-700 transition text-xs flex items-center justify-center gap-1.5 shadow"><i class="fas fa-download"></i> Download</button>
-                <button onclick="sendReceiptWhatsApp()" class="bg-emerald-600 text-white font-bold py-2.5 px-3 rounded-xl hover:bg-emerald-700 transition text-xs flex items-center justify-center gap-1.5 shadow"><i class="fab fa-whatsapp"></i> Kirim WA</button>
-                <button onclick="closeDetailModal()" class="bg-gray-200 text-gray-700 font-bold py-2.5 px-3 rounded-xl hover:bg-gray-300 transition text-xs">Tutup</button>
+            <div class="p-4 border-t border-gray-100 bg-gray-50 shrink-0 grid grid-cols-3 gap-2 no-print">
+                <button onclick="printReceipt()" class="bg-gray-800 text-white font-bold py-2.5 rounded-xl hover:bg-gray-900 transition shadow text-xs flex flex-col items-center justify-center gap-1"><i class="fas fa-print text-sm"></i> Print</button>
+                <button onclick="downloadReceipt()" class="bg-blue-600 text-white font-bold py-2.5 rounded-xl hover:bg-blue-700 transition shadow text-xs flex flex-col items-center justify-center gap-1"><i class="fas fa-download text-sm"></i> Simpan</button>
+                <button onclick="sendWAReceipt()" class="bg-green-500 text-white font-bold py-2.5 rounded-xl hover:bg-green-600 transition shadow text-xs flex flex-col items-center justify-center gap-1"><i class="fab fa-whatsapp text-sm"></i> Kirim WA</button>
             </div>
         </div>
     </div>
 
-    <!-- Login Screen -->
     <div id="login-screen" class="absolute inset-0 bg-blue-600 flex items-center justify-center z-50">
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center mx-4">
             <i class="fas fa-store text-5xl text-blue-500 mb-4 drop-shadow-md"></i>
             <h1 class="text-2xl font-extrabold mb-6 text-gray-800 tracking-tight">Login Suryatokoku</h1>
             
             <div class="mb-4 text-left">
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Pilih / Nama User</label>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Pilih User</label>
                 <select id="login-user-select" onchange="handleLoginUserChange()" class="w-full p-3 border rounded-xl bg-white text-sm font-semibold focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all">
-                    <option value="">-- Pilih User --</option>
+                    <option value="">-- Loading User... --</option>
                 </select>
             </div>
 
             <input type="password" id="pin-input" placeholder="PIN Akun" class="w-full p-3.5 border rounded-xl mb-4 text-center text-base focus:ring-4 focus:ring-blue-200 focus:border-blue-500 outline-none transition-all">
-            <button onclick="login()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-lg active:scale-95">MASUK</button>
+            <button onclick="login()" id="btn-login" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-lg active:scale-95">MASUK</button>
         </div>
     </div>
 
     <header id="main-header" class="bg-white shadow-sm px-4 py-3 flex justify-between items-center hidden-el z-40 relative border-b border-gray-200">
         <div class="flex items-center gap-2 text-blue-600 font-bold text-xl tracking-tight">
-            <i class="fas fa-store text-blue-500"></i> Suryatokoku <span id="header-user-badge" class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-semibold ml-2"></span>
+            <i class="fas fa-store text-blue-500"></i> Suryatokoku <span id="header-user-badge" class="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold ml-2 uppercase"></span>
         </div>
         <nav class="flex gap-2" id="nav-menu">
             <button onclick="switchTab('pos')" id="nav-pos" class="nav-btn bg-blue-100 text-blue-700 px-3 md:px-4 py-2 rounded-lg font-bold shadow-sm transition-all text-sm"><i class="fas fa-cash-register mr-1"></i> POS</button>
@@ -240,8 +222,8 @@
             <div class="p-4 bg-white shadow-sm z-10 flex gap-3 sticky top-0 items-center">
                 <div class="relative flex-1 flex items-center">
                     <i class="fas fa-search absolute left-4 text-gray-400"></i>
-                    <input type="text" id="search-item" onkeyup="handleSearchKey(event)" placeholder="Ketik kode/nama lalu Enter..." class="w-full pl-11 pr-12 py-3 border border-gray-200 bg-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm">
-                    <button onclick="openScannerModal()" class="absolute right-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm shrink-0" title="Scan Barcode / QR"><i class="fas fa-barcode text-base"></i></button>
+                    <input type="text" id="search-item" onkeyup="handleSearchInput(event)" placeholder="Ketik nama / ID lalu Enter..." class="w-full pl-11 pr-12 py-3 border border-gray-200 bg-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm font-semibold">
+                    <button onclick="openScannerModal()" class="absolute right-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm shrink-0" title="Kamera HP"><i class="fas fa-barcode text-base"></i></button>
                 </div>
                 <button onclick="loadData()" class="bg-white border border-gray-200 text-gray-600 w-11 h-11 rounded-xl hover:bg-gray-50 shadow-sm transition-all flex items-center justify-center shrink-0" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
             </div>
@@ -263,9 +245,7 @@
                     <span class="hidden lg:inline-block bg-blue-500 font-bold text-xs px-3 py-1 rounded-full" id="cart-count">0</span>
                 </div>
                 
-                <div id="cart-items" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50/50">
-                    <div class="text-center text-gray-400 mt-10 text-sm"><i class="fas fa-box-open text-3xl mb-2 block opacity-50"></i>Keranjang kosong</div>
-                </div>
+                <div id="cart-items" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50/50"></div>
 
                 <div class="p-4 border-t border-gray-200 bg-white shrink-0 pb-6 lg:pb-4">
                     <div class="mb-3 bg-blue-50 p-2.5 rounded-xl border border-blue-100">
@@ -280,12 +260,12 @@
                         <span>Subtotal</span>
                         <span id="cart-subtotal" class="font-semibold text-gray-800">Rp 0</span>
                     </div>
-                    <div class="flex justify-between mb-2 text-sm text-green-600 font-medium">
-                        <span>Diskon (Item + Voucher)</span>
+                    <div class="flex justify-between mb-2 text-sm text-orange-600 font-medium">
+                        <span>Total Diskon</span>
                         <span id="cart-discount">- Rp 0</span>
                     </div>
                     <div class="flex justify-between mb-3 text-xl font-extrabold text-gray-900 border-t pt-2 border-dashed">
-                        <span>Total</span>
+                        <span>Total Bayar</span>
                         <span id="cart-total">Rp 0</span>
                     </div>
                     <button onclick="processCheckout()" id="btn-checkout" class="w-full bg-green-500 text-white font-bold py-3.5 rounded-xl hover:bg-green-600 transition shadow-lg shadow-green-500/30 flex justify-center items-center gap-2 active:scale-95 text-base">
@@ -317,7 +297,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="report-summary"></div>
 
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
-            <h3 class="font-bold text-lg mb-4 border-b border-gray-50 pb-3"><i class="fas fa-users-cog text-purple-500 mr-2"></i> Laporan Klerek (Per User)</h3>
+            <h3 class="font-bold text-lg mb-4 border-b border-gray-50 pb-3"><i class="fas fa-users-cog text-purple-500 mr-2"></i> Laporan Klerek</h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm whitespace-nowrap">
                     <thead class="bg-slate-50 text-slate-500">
@@ -326,6 +306,7 @@
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-center">Jml Transaksi</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Total Subtotal</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Diskon Reguler</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Diskon Tier</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Diskon Voucher</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Cash (Tunai)</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">QRIS</th>
@@ -347,11 +328,10 @@
                 <table class="w-full text-left text-sm whitespace-nowrap">
                     <thead class="bg-slate-50 text-slate-500">
                         <tr>
-                            <th class="p-4 font-bold text-xs uppercase tracking-wider rounded-tl-xl">Tanggal & Jam</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider rounded-tl-xl">Waktu</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider">No. Invoice</th>
-                            <th class="p-4 font-bold text-xs uppercase tracking-wider">User Kasir</th>
+                            <th class="p-4 font-bold text-xs uppercase tracking-wider">Kasir</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider">Pembayaran</th>
-                            <th class="p-4 font-bold text-xs uppercase tracking-wider">Voucher</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-right">Total Bayar</th>
                             <th class="p-4 font-bold text-xs uppercase tracking-wider text-center rounded-tr-xl">Aksi</th>
                         </tr>
@@ -365,47 +345,49 @@
     <main id="admin-view" class="flex-1 overflow-y-auto p-6 hidden-el bg-gray-50 pb-20">
         <h2 class="text-2xl font-extrabold mb-6 text-gray-800 tracking-tight">Panel Administrator</h2>
         
-        <div class="grid md:grid-cols-3 gap-6 mb-6">
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
-                <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-university text-green-500 mr-2"></i> Info Rekening (Transfer)</h3>
+                <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-university text-green-500 mr-2"></i> Rekening Transfer</h3>
                 <div class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nama Bank / E-Wallet</label>
-                        <input type="text" id="setting-bank-name" placeholder="Contoh: BCA / DANA" class="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none font-semibold">
+                    <input type="text" id="setting-bank-name" placeholder="Bank (BCA/DANA)" class="w-full p-2.5 border rounded-lg text-sm outline-none font-semibold">
+                    <input type="text" id="setting-bank-acc" placeholder="No Rekening" class="w-full p-2.5 border rounded-lg text-sm outline-none font-bold">
+                    <input type="text" id="setting-bank-owner" placeholder="Atas Nama" class="w-full p-2.5 border rounded-lg text-sm outline-none font-semibold">
+                    <button onclick="saveBankSettings()" class="w-full bg-green-500 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-green-600 transition shadow text-sm"><i class="fas fa-save mr-1"></i> Simpan Rekening</button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
+                <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-star text-amber-500 mr-2"></i> Diskon Tier (Min Belanja)</h3>
+                <div class="space-y-3">
+                    <input type="number" id="setting-tier-min" placeholder="Minimal Belanja (Rp)" class="w-full p-2.5 border rounded-lg text-sm outline-none font-semibold">
+                    <input type="text" id="setting-tier-family" placeholder="Kategori Family (Kosong = Semua)" class="w-full p-2.5 border rounded-lg text-sm outline-none font-semibold text-blue-600 bg-blue-50 placeholder-blue-300" title="Jika diisi, diskon Tier hanya berlaku untuk item dengan family ini">
+                    <div class="flex gap-2">
+                        <select id="setting-tier-type" class="w-1/2 p-2.5 border rounded-lg text-sm bg-white outline-none">
+                            <option value="persen">Persen (%)</option>
+                            <option value="rupiah">Rupiah (Rp)</option>
+                        </select>
+                        <input type="number" id="setting-tier-val" placeholder="Nilai Diskon" class="w-1/2 p-2.5 border rounded-lg text-sm outline-none font-bold">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nomor Rekening</label>
-                        <input type="text" id="setting-bank-acc" placeholder="Contoh: 1234567890" class="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none font-bold">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Atas Nama (A/N)</label>
-                        <input type="text" id="setting-bank-owner" placeholder="Contoh: Suryatokoku" class="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none font-semibold">
-                    </div>
-                    <button onclick="saveBankSettings()" class="w-full bg-green-500 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-green-600 transition shadow text-sm mt-2"><i class="fas fa-save mr-1"></i> Simpan Rekening</button>
+                    <input type="text" id="setting-tier-name" placeholder="Nama Promo (Misal: SUPER SALE)" class="w-full p-2.5 border rounded-lg text-sm outline-none font-semibold hidden">
+                    <button onclick="saveTierSettings()" class="w-full bg-amber-500 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-amber-600 transition shadow text-sm"><i class="fas fa-save mr-1"></i> Simpan Tier Promo</button>
                 </div>
             </div>
 
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
                 <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-users text-blue-500 mr-2"></i> Pengaturan User</h3>
                 <div class="flex flex-col gap-2 mb-3">
-                    <input type="text" id="new-user-name" placeholder="Nama User Baru" class="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                    <input type="text" id="new-user-name" placeholder="Nama User Baru" class="w-full p-2.5 border rounded-lg text-sm outline-none">
                     <div class="flex gap-2">
-                        <select id="new-user-role" class="w-1/2 p-2.5 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-400 outline-none">
+                        <select id="new-user-role" class="w-1/2 p-2.5 border rounded-lg text-sm bg-white outline-none">
                             <option value="kasir">Kasir</option>
                             <option value="admin">Admin</option>
                         </select>
-                        <input type="password" id="new-user-pin" placeholder="PIN (Opsional)" class="w-1/2 p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                        <input type="password" id="new-user-pin" placeholder="PIN (Ops)" class="w-1/2 p-2.5 border rounded-lg text-sm outline-none">
                     </div>
-                    <button onclick="saveCashierUser()" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition shadow text-sm mt-1"><i class="fas fa-plus"></i> Simpan User</button>
+                    <button onclick="saveCashierUser()" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition shadow text-sm"><i class="fas fa-plus"></i> Tambah User</button>
                 </div>
                 <div class="flex-1 overflow-y-auto border rounded-xl bg-gray-50 max-h-48">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-gray-200/50 sticky top-0">
-                            <tr>
-                                <th class="p-3 text-xs text-gray-500 font-bold uppercase">Nama & Role</th>
-                                <th class="p-3 text-center text-xs text-gray-500 font-bold uppercase w-16">Aksi</th>
-                            </tr>
-                        </thead>
                         <tbody id="admin-cashier-table" class="bg-white divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
@@ -413,70 +395,60 @@
 
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
                 <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-ticket-alt text-orange-500 mr-2"></i> Voucher Promo</h3>
-                
                 <div class="space-y-2.5 mb-3">
-                    <input type="text" id="v-nama" placeholder="Kode Voucher (Ex: EMINA5000)" class="w-full p-2 border rounded-lg text-sm uppercase focus:ring-2 focus:ring-blue-400 outline-none font-bold">
-                    <div class="grid grid-cols-2 gap-2">
-                        <select id="v-tipe" class="p-2 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-400 outline-none">
-                            <option value="rupiah">Rupiah (Rp)</option>
-                            <option value="persen">Persen (%)</option>
+                    <input type="text" id="v-nama" placeholder="Kode Voucher" class="w-full p-2 border rounded-lg text-sm uppercase outline-none font-bold">
+                    <div class="flex gap-2">
+                        <select id="v-tipe" class="p-2 border rounded-lg text-sm bg-white outline-none">
+                            <option value="rupiah">Rupiah</option>
+                            <option value="persen">Persen</option>
                         </select>
-                        <input type="number" id="v-nominal" placeholder="Nominal" class="p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                        <input type="number" id="v-nominal" placeholder="Nominal" class="p-2 border rounded-lg text-sm outline-none w-full">
                     </div>
-                    <input type="text" id="v-keterangan" placeholder="Keterangan Voucher" class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                    <input type="text" id="v-keterangan" placeholder="Keterangan" class="w-full p-2 border rounded-lg text-sm outline-none">
                 </div>
                 <div class="mb-4">
-                    <button onclick="saveVoucher()" class="w-full bg-orange-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition shadow text-sm"><i class="fas fa-plus mr-1"></i> Simpan Voucher</button>
+                    <button onclick="saveVoucher()" class="w-full bg-orange-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition shadow text-sm"><i class="fas fa-plus mr-1"></i> Tambah Voucher</button>
                 </div>
-                
                 <div class="flex-1 overflow-y-auto border rounded-xl bg-gray-50 max-h-36">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-gray-200/50 sticky top-0">
-                            <tr>
-                                <th class="p-2.5 text-xs text-gray-500 font-bold uppercase">Kode</th>
-                                <th class="p-2.5 text-xs text-gray-500 font-bold uppercase">Nominal</th>
-                                <th class="p-2.5 text-center text-xs text-gray-500 font-bold uppercase w-12">Aksi</th>
-                            </tr>
-                        </thead>
                         <tbody id="admin-voucher-table" class="bg-white divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
             </div>
+        </div>
 
+        <div class="grid md:grid-cols-3 gap-6">
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-file-excel text-green-600 mr-2"></i> Upload Master Item</h3>
-                <p class="text-xs text-gray-500 mb-3">Upload file Excel (.xlsx) data stok & harga.</p>
-                
                 <div class="flex flex-col gap-2.5">
-                    <input type="file" id="excel-file" accept=".xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-gray-200 rounded-xl">
-                    <div class="flex gap-2 flex-wrap">
-                        <button onclick="handleBulkUpload()" class="bg-green-600 text-white px-3 py-2 rounded-xl font-bold hover:bg-green-700 shadow-sm flex items-center gap-1.5 text-xs transition-all"><i class="fas fa-cloud-upload-alt"></i> Upload</button>
-                        <button onclick="downloadTemplate()" class="bg-white border border-blue-200 text-blue-600 px-3 py-2 rounded-xl font-bold hover:bg-blue-50 shadow-sm flex items-center gap-1.5 text-xs transition-all"><i class="fas fa-download"></i> Template</button>
-                        <button onclick="resetDataMaster()" class="bg-red-600 text-white px-3 py-2 rounded-xl font-bold hover:bg-red-700 shadow-sm flex items-center gap-1.5 text-xs ml-auto transition-all"><i class="fas fa-trash-alt"></i> Hapus Semua Item</button>
+                    <input type="file" id="excel-file" accept=".xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-gray-200 rounded-xl">
+                    <div class="flex gap-2 flex-wrap mt-2">
+                        <button onclick="handleBulkUpload()" class="bg-green-600 text-white px-3 py-2 rounded-xl font-bold hover:bg-green-700 shadow flex items-center gap-1 text-xs"><i class="fas fa-upload"></i> Upload</button>
+                        <button onclick="downloadTemplate()" class="bg-white border border-blue-200 text-blue-600 px-3 py-2 rounded-xl font-bold hover:bg-blue-50 shadow-sm flex items-center gap-1 text-xs"><i class="fas fa-download"></i> Template</button>
+                        <button onclick="resetDataMaster()" class="bg-red-600 text-white px-3 py-2 rounded-xl font-bold hover:bg-red-700 shadow flex items-center gap-1 text-xs ml-auto"><i class="fas fa-trash"></i> Kosongkan</button>
                     </div>
                 </div>
                 <div id="upload-status" class="mt-3 p-2.5 rounded-lg text-xs font-semibold hidden-el bg-gray-50 border"></div>
             </div>
-        </div>
 
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
-                <h3 class="font-bold text-lg"><i class="fas fa-box text-blue-500 mr-2"></i> Data Master Item</h3>
-                <span id="total-master-items" class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-sm font-bold">Total: 0 Item</span>
-            </div>
-            <div class="overflow-x-auto rounded-xl border border-gray-100">
-                <table class="w-full text-left text-sm whitespace-nowrap">
-                    <thead class="bg-slate-50 text-slate-600 border-b">
-                        <tr>
-                            <th class="p-3 font-semibold text-xs uppercase tracking-wider">Kode (ID)</th>
-                            <th class="p-3 font-semibold text-xs uppercase tracking-wider">Nama Barang</th>
-                            <th class="p-3 font-semibold text-xs uppercase tracking-wider">Family</th>
-                            <th class="p-3 font-semibold text-xs uppercase tracking-wider text-center">Stok</th>
-                            <th class="p-3 font-semibold text-xs uppercase tracking-wider text-right">Harga Jual</th>
-                        </tr>
-                    </thead>
-                    <tbody id="admin-item-table" class="divide-y divide-gray-100"></tbody>
-                </table>
+            <div class="md:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                    <h3 class="font-bold text-lg"><i class="fas fa-box text-blue-500 mr-2"></i> Data Master Item</h3>
+                    <span id="total-master-items" class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-sm font-bold">0 Item</span>
+                </div>
+                <div class="overflow-x-auto rounded-xl border border-gray-100 max-h-64">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-slate-50 text-slate-600 border-b sticky top-0">
+                            <tr>
+                                <th class="p-3 font-semibold text-xs uppercase">Kode</th>
+                                <th class="p-3 font-semibold text-xs uppercase">Nama Barang</th>
+                                <th class="p-3 font-semibold text-xs uppercase text-center">Stok</th>
+                                <th class="p-3 font-semibold text-xs uppercase text-right">Harga</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-item-table" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </main>
@@ -487,38 +459,26 @@
         
         let client = null;
         try {
-            if (window.supabase) {
-                client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            }
-        } catch (e) {
-            console.error("Gagal menginisialisasi client Supabase:", e);
-        }
+            if (window.supabase) client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } catch (e) { console.error("Gagal init Supabase:", e); }
 
         let state = {
-            role: null, 
-            currentUser: null,
-            items: [],
-            cart: [],
-            vouchers: [],
-            cashierUsers: [],
-            storeSettings: { bankName: 'BCA', bankAcc: '1234567890', bankOwner: 'Suryatokoku Official' },
-            appliedVoucher: null,
-            reports: { transactions: [], details: [] },
-            currentCalculatedTotal: 0,
-            selectedPaymentMethod: 'cash',
-            html5QrCode: null,
-            lastReceiptData: null
+            role: null, currentUser: null, items: [], cart: [], vouchers: [], cashierUsers: [],
+            storeSettings: { 
+                bankName: 'BCA', bankAcc: '1234567890', bankOwner: 'Suryatokoku Official',
+                tierMin: 0, tierType: 'persen', tierVal: 0, tierName: 'Tier Promo', tierFamily: ''
+            },
+            appliedVoucher: null, reports: { transactions: [], details: [] },
+            currentCalculatedTotal: 0, selectedPaymentMethod: 'cash',
+            html5QrCode: null, isProcessingScan: false, currentReceiptData: null
         };
 
-        const formatRp = (angka) => {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka || 0);
-        };
+        const formatRp = (angka) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka || 0);
 
         function showModal(title, message, isConfirm = false, onConfirmCallback = null) {
             document.getElementById('modal-title').innerText = title;
             document.getElementById('modal-message').innerText = message;
             const actions = document.getElementById('modal-actions');
-            
             if (isConfirm) {
                 actions.innerHTML = `
                     <button onclick="closeModal()" class="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold hover:bg-gray-200 transition">Batal</button>
@@ -529,32 +489,27 @@
                     if (onConfirmCallback) onConfirmCallback();
                 };
             } else {
-                actions.innerHTML = `
-                    <button onclick="closeModal()" class="w-full bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold hover:bg-blue-700 shadow transition">Mengerti</button>
-                `;
+                actions.innerHTML = `<button onclick="closeModal()" class="w-full bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold hover:bg-blue-700 shadow transition">Mengerti</button>`;
             }
             document.getElementById('custom-modal').classList.remove('hidden-el');
         }
 
-        function closeModal() {
-            document.getElementById('custom-modal').classList.add('hidden-el');
-        }
+        function closeModal() { document.getElementById('custom-modal').classList.add('hidden-el'); }
 
         function openScannerModal() {
             document.getElementById('scanner-modal').classList.remove('hidden-el');
+            state.isProcessingScan = false;
             setTimeout(() => {
-                if (!state.html5QrCode) {
-                    state.html5QrCode = new Html5Qrcode("reader");
-                }
-                const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-                    handleScannedCode(decodedText);
-                    closeScannerModal();
+                if (!state.html5QrCode) state.html5QrCode = new Html5Qrcode("reader");
+                const qrCodeSuccessCallback = (decodedText) => {
+                    if (state.isProcessingScan) return;
+                    state.isProcessingScan = true;
+                    handleScannedCode(decodedText, true);
                 };
                 const config = { fps: 10, qrbox: { width: 250, height: 250 } };
                 state.html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
                 .catch(err => {
-                    console.error("Gagal memulai kamera scanner:", err);
-                    showModal("Kamera Gagal", "Tidak dapat mengakses kamera perangkat. Pastikan izin kamera aktif.");
+                    showModal("Kamera Gagal", "Tidak dapat mengakses kamera perangkat.");
                     closeScannerModal();
                 });
             }, 300);
@@ -562,120 +517,74 @@
 
         function closeScannerModal() {
             if (state.html5QrCode && state.html5QrCode.isScanning) {
-                state.html5QrCode.stop().then(() => {
-                    document.getElementById('scanner-modal').classList.add('hidden-el');
-                }).catch(err => {
-                    console.error("Gagal menghentikan scanner:", err);
-                    document.getElementById('scanner-modal').classList.add('hidden-el');
-                });
+                state.html5QrCode.stop().then(() => document.getElementById('scanner-modal').classList.add('hidden-el'))
+                .catch(() => document.getElementById('scanner-modal').classList.add('hidden-el'));
             } else {
                 document.getElementById('scanner-modal').classList.add('hidden-el');
             }
         }
 
-        function handleScannedCode(code) {
-            const searchInput = document.getElementById('search-item');
-            if(searchInput) {
-                searchInput.value = code;
+        function handleSearchInput(e) {
+            if (e.key === 'Enter') {
+                const code = document.getElementById('search-item').value.trim();
+                if(code) handleScannedCode(code, false);
+            } else {
                 renderProducts();
             }
+        }
+
+        function handleScannedCode(code, fromCamera) {
+            if (fromCamera) closeScannerModal();
             const foundItem = state.items.find(i => (i.id || '').toString().toLowerCase() === code.toLowerCase() || (i.orig_code || '').toLowerCase() === code.toLowerCase());
-            if(foundItem) {
+            
+            if (foundItem) {
                 addToCart(foundItem.id);
+                document.getElementById('search-item').value = '';
+                renderProducts();
             } else {
-                showModal("Item Tidak Ditemukan", `Produk dengan kode "${code}" tidak terdaftar di sistem.`);
-            }
-        }
-
-        function handleSearchKey(event) {
-            renderProducts();
-            if (event.key === 'Enter') {
-                const searchInput = document.getElementById('search-item');
-                const code = searchInput.value.trim();
-                if (!code) return;
-
-                const foundItem = state.items.find(i => 
-                    (i.id || '').toString().toLowerCase() === code.toLowerCase() || 
-                    (i.orig_code || '').toLowerCase() === code.toLowerCase()
-                );
-
-                if (foundItem) {
-                    addToCart(foundItem.id);
-                    searchInput.value = '';
-                    renderProducts();
-                } else {
-                    showModal("Item Tidak Ditemukan", `Produk dengan kode "${code}" tidak terdaftar di sistem.`);
-                }
-            }
-        }
-
-        function toggleMobileCart() {
-            const sidebar = document.getElementById('cart-sidebar');
-            if (sidebar.classList.contains('hidden')) {
-                sidebar.classList.remove('hidden');
-                sidebar.classList.add('flex');
-            } else {
-                sidebar.classList.remove('flex');
-                sidebar.classList.add('hidden');
+                showModal("Item Tidak Ditemukan", `Barcode/Kode "${code}" tidak terdaftar di sistem.`, false, null);
+                state.isProcessingScan = false;
             }
         }
 
         async function initLoginOptions() {
-            if (!client) return;
+            if (!client) {
+                showModal("Gagal", "Tidak dapat terkoneksi ke Database Supabase.");
+                return;
+            }
             try {
                 const { data } = await client.from('cashier_users').select('*').order('name');
                 state.cashierUsers = data || [];
                 const selectEl = document.getElementById('login-user-select');
-                
                 let html = '<option value="">-- Pilih User --</option>';
-                if(state.cashierUsers.length > 0) {
-                    state.cashierUsers.forEach(c => {
-                        const icon = c.role === 'admin' ? '🔐' : '👤';
-                        html += `<option value="${c.name}">${icon} ${c.name} (${c.role || 'kasir'})</option>`;
-                    });
-                }
+                state.cashierUsers.forEach(c => {
+                    const icon = c.role === 'admin' ? '🔐' : '👤';
+                    html += `<option value="${c.name}">${icon} ${c.name} (${c.role || 'kasir'})</option>`;
+                });
                 selectEl.innerHTML = html;
-            } catch(e) {
-                console.error("Gagal memuat list user", e);
-            }
+            } catch(e) { console.error("Gagal memuat list user", e); }
         }
 
         function handleLoginUserChange() {
             const val = document.getElementById('login-user-select').value;
             const pinInput = document.getElementById('pin-input');
-            const selectedUser = state.cashierUsers.find(u => u.name === val);
-            
-            if(selectedUser && selectedUser.pin) {
-                pinInput.placeholder = "Masukkan PIN";
-            } else {
-                pinInput.placeholder = "PIN (Kosongkan jika tidak ada)";
-            }
+            const user = state.cashierUsers.find(u => u.name === val);
+            pinInput.placeholder = (user && user.pin) ? "Masukkan PIN" : "PIN (Kosongkan jika tidak ada)";
         }
 
         async function login() {
             const userSelect = document.getElementById('login-user-select').value;
             const pin = document.getElementById('pin-input').value;
-
-            if(!userSelect) {
-                showModal("Pilih User", "Silakan pilih nama user terlebih dahulu.");
-                return;
-            }
-
-            const selectedUser = state.cashierUsers.find(u => u.name === userSelect);
+            if(!userSelect) return showModal("Pilih User", "Silakan pilih nama user.");
             
-            if (selectedUser.pin && selectedUser.pin !== pin) {
-                showModal("PIN Salah", "PIN yang Anda masukkan salah.");
-                return;
-            }
+            const user = state.cashierUsers.find(u => u.name === userSelect);
+            if (user.pin && user.pin !== pin) return showModal("PIN Salah", "PIN salah.");
 
-            state.role = selectedUser.role || 'kasir';
-            state.currentUser = selectedUser.name;
+            state.role = user.role || 'kasir';
+            state.currentUser = user.name;
             
-            if (state.role === 'admin') {
-                document.getElementById('nav-admin').classList.remove('hidden-el');
-            } else {
-                document.getElementById('nav-admin').classList.add('hidden-el');
-            }
+            if (state.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden-el');
+            else document.getElementById('nav-admin').classList.add('hidden-el');
 
             document.getElementById('login-screen').classList.add('hidden-el');
             document.getElementById('main-header').classList.remove('hidden-el');
@@ -685,31 +594,13 @@
             switchTab('pos');
         }
 
-        function logout() {
-            state.role = null;
-            state.currentUser = null;
-            state.cart = [];
-            state.appliedVoucher = null;
-            state.reports = { transactions: [], details: [] };
-            document.getElementById('pin-input').value = '';
-            document.getElementById('voucher-input').value = '';
-            document.getElementById('login-user-select').value = '';
-            
-            document.getElementById('login-screen').classList.remove('hidden-el');
-            document.getElementById('main-header').classList.add('hidden-el');
-            document.getElementById('pos-view').classList.add('hidden-el');
-            document.getElementById('admin-view').classList.add('hidden-el');
-            document.getElementById('laporan-view').classList.add('hidden-el');
-            
-            initLoginOptions();
-        }
+        function logout() { location.reload(); }
 
         function switchTab(tab) {
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('bg-blue-100', 'text-blue-700', 'shadow-sm');
                 btn.classList.add('text-gray-500', 'bg-transparent');
             });
-            
             const activeBtn = document.getElementById('nav-' + tab);
             if(activeBtn) {
                 activeBtn.classList.add('bg-blue-100', 'text-blue-700', 'shadow-sm');
@@ -720,152 +611,93 @@
             document.getElementById('admin-view').classList.add('hidden-el');
             document.getElementById('laporan-view').classList.add('hidden-el');
 
-            if(tab === 'pos') {
-                document.getElementById('pos-view').classList.remove('hidden-el');
-                renderProducts();
-            } else if (tab === 'admin') {
-                document.getElementById('admin-view').classList.remove('hidden-el');
-                
-                document.getElementById('setting-bank-name').value = state.storeSettings.bankName;
-                document.getElementById('setting-bank-acc').value = state.storeSettings.bankAcc;
-                document.getElementById('setting-bank-owner').value = state.storeSettings.bankOwner;
-
-                renderAdminTable();
-                renderVoucherTable();
-                renderCashierUserTable();
-            } else if (tab === 'laporan') {
-                document.getElementById('laporan-view').classList.remove('hidden-el');
-                
-                const filterUser = document.getElementById('filter-user');
-                let userOptions = '<option value="">Semua User</option>';
-                state.cashierUsers.forEach(u => {
-                    userOptions += `<option value="${u.name}">${u.name} (${u.role || 'kasir'})</option>`;
-                });
-                filterUser.innerHTML = userOptions;
-
-                const dateStart = document.getElementById('filter-date-start');
-                const dateEnd = document.getElementById('filter-date-end');
-                const now = new Date();
-                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-                const todayStr = now.toISOString().split('T')[0];
-                
-                if(!dateStart.value) dateStart.value = todayStr;
-                if(!dateEnd.value) dateEnd.value = todayStr;
-                
-                loadReport();
-            }
+            if(tab === 'pos') { document.getElementById('pos-view').classList.remove('hidden-el'); renderProducts(); }
+            else if (tab === 'admin') { document.getElementById('admin-view').classList.remove('hidden-el'); populateAdminForms(); }
+            else if (tab === 'laporan') { document.getElementById('laporan-view').classList.remove('hidden-el'); initReportTab(); }
         }
 
         async function loadData() {
             if (!client) return;
             try {
-                const { data: items, error } = await client.from('master_items').select('*').order('name');
-                if (error) throw error;
-                state.items = items || [];
+                const [resItems, resVouchers, resUsers, resSettings] = await Promise.all([
+                    client.from('master_items').select('*').order('name'),
+                    client.from('vouchers').select('*'),
+                    client.from('cashier_users').select('*').order('name'),
+                    client.from('store_settings').select('*')
+                ]);
+
+                if (resItems.error) throw resItems.error;
                 
-                const { data: voucherData } = await client.from('vouchers').select('*');
-                state.vouchers = voucherData || [];
-
-                const { data: cashierData } = await client.from('cashier_users').select('*').order('name');
-                state.cashierUsers = cashierData || [];
-
-                try {
-                    const { data: settingsData } = await client.from('store_settings').select('*');
-                    if (settingsData && settingsData.length > 0) {
-                        const bankName = settingsData.find(s => s.setting_key === 'bank_name')?.setting_value;
-                        const bankAcc = settingsData.find(s => s.setting_key === 'bank_account')?.setting_value;
-                        const bankOwner = settingsData.find(s => s.setting_key === 'bank_owner')?.setting_value;
-                        
-                        if (bankName) state.storeSettings.bankName = bankName;
-                        if (bankAcc) state.storeSettings.bankAcc = bankAcc;
-                        if (bankOwner) state.storeSettings.bankOwner = bankOwner;
-                    }
-                } catch(e) { console.warn("Tabel store_settings belum disetup atau error baca."); }
-
-                renderProducts();
-                renderCart();
-                renderVoucherList();
+                state.items = resItems.data || [];
+                state.vouchers = resVouchers.data || [];
+                state.cashierUsers = resUsers.data || [];
                 
-                if(state.role === 'admin') {
-                    renderAdminTable();
-                    renderVoucherTable();
-                    renderCashierUserTable();
+                if(resSettings.data) {
+                    resSettings.data.forEach(s => {
+                        if(s.setting_key === 'bank_name') state.storeSettings.bankName = s.setting_value;
+                        if(s.setting_key === 'bank_account') state.storeSettings.bankAcc = s.setting_value;
+                        if(s.setting_key === 'bank_owner') state.storeSettings.bankOwner = s.setting_value;
+                        if(s.setting_key === 'tier_min') state.storeSettings.tierMin = parseFloat(s.setting_value) || 0;
+                        if(s.setting_key === 'tier_type') state.storeSettings.tierType = s.setting_value;
+                        if(s.setting_key === 'tier_val') state.storeSettings.tierVal = parseFloat(s.setting_value) || 0;
+                        if(s.setting_key === 'tier_name') state.storeSettings.tierName = s.setting_value;
+                        if(s.setting_key === 'tier_family') state.storeSettings.tierFamily = s.setting_value;
+                    });
                 }
-            } catch (err) {
-                console.error("Gagal memuat data: ", err.message);
-                showModal("Gagal Terhubung", "Tidak dapat mengambil data dari server.");
-            }
-        }
 
-        function renderVoucherList() {
-            const dataList = document.getElementById('voucher-list');
-            if (dataList && state.vouchers) {
-                dataList.innerHTML = state.vouchers.map(v => {
-                    const labelStr = v.tipe === 'persen' ? `Diskon ${v.nominal}%` : `Potongan ${formatRp(v.nominal)}`;
-                    return `<option value="${v.nama}">${v.keterangan ? v.keterangan + ' (' + labelStr + ')' : labelStr}</option>`;
-                }).join('');
-            }
+                renderProducts(); renderCart(); renderVoucherList();
+                if(state.role === 'admin') populateAdminForms();
+            } catch (err) { showModal("Gagal", "Gagal memuat data dari server: " + err.message); }
         }
 
         function renderProducts() {
             const grid = document.getElementById('product-grid');
-            const searchInput = document.getElementById('search-item');
-            const search = searchInput ? searchInput.value.toLowerCase() : '';
-            
-            const filtered = state.items.filter(i => 
-                (i.name || '').toLowerCase().includes(search) || 
-                (i.id || '').toString().toLowerCase().includes(search) ||
-                (i.orig_code || '').toLowerCase().includes(search)
-            );
+            const search = (document.getElementById('search-item').value || '').toLowerCase();
+            const filtered = state.items.filter(i => (i.name||'').toLowerCase().includes(search) || (i.id||'').toLowerCase().includes(search) || (i.orig_code||'').toLowerCase().includes(search));
 
-            grid.innerHTML = filtered.map(item => `
-                <div onclick="addToCart('${item.id}')" class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:border-blue-400 hover:shadow-md transition-all flex flex-col h-full active:scale-95 group">
-                    <div class="text-xs text-gray-400 mb-2 flex justify-between font-medium items-center">
-                        <span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600">${item.id}</span>
+            grid.innerHTML = filtered.map(item => {
+                const discPercent = parseFloat(item.disc) || 0;
+                return `
+                <div onclick="addToCart('${item.id}')" class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:border-blue-400 hover:shadow-md transition-all flex flex-col h-full active:scale-95 group relative overflow-hidden">
+                    <div class="text-xs text-gray-400 mb-2 mt-1 flex justify-between items-center font-medium">
                         <div class="flex items-center gap-1.5">
-                            ${item.disc > 0 ? `<span class="text-[11px] bg-red-50 text-red-600 font-bold px-2 py-0.5 rounded border border-red-100">-${item.disc}%</span>` : ''}
-                            <span class="${item.stock <= 5 ? 'text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded' : 'text-green-600 bg-green-50 px-2 py-0.5 rounded'}">Stok: ${item.stock}</span>
+                            <span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600">${item.id}</span>
+                            ${discPercent > 0 ? `<span class="bg-red-50 border border-red-200 text-red-600 px-1.5 py-0.5 rounded font-extrabold text-[10px]">-${discPercent}%</span>` : ''}
                         </div>
+                        <span class="${item.stock <= 5 ? 'text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded' : 'text-green-600 bg-green-50 px-2 py-0.5 rounded'}">Stok: ${item.stock}</span>
                     </div>
-                    <h3 class="font-bold text-gray-700 leading-snug mb-3 flex-1 text-sm group-hover:text-blue-700 transition-colors">${item.name}</h3>
+                    <h3 class="font-bold text-gray-700 leading-snug mb-3 flex-1 text-sm group-hover:text-blue-700 transition-colors pt-1">${item.name}</h3>
                     <div class="flex justify-between items-center mt-auto border-t border-dashed pt-2">
                         <div class="text-blue-600 font-extrabold text-sm">${formatRp(item.price)}</div>
-                        <div class="h-6 w-6 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                        <div class="h-6 w-6 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors shrink-0">
                             <i class="fas fa-plus text-xs"></i>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                </div>`
+            }).join('');
         }
 
         function addToCart(id) {
             const item = state.items.find(i => i.id === id);
             if (!item) return;
-
             const exist = state.cart.find(c => c.id === id);
             if (exist) {
                 if(exist.qty < item.stock) exist.qty++;
-                else showModal("Stok Habis", `Stok ${item.name} tidak mencukupi. Maksimal ${item.stock}.`);
+                else showModal("Stok Habis", `Maksimal ${item.stock}.`);
             } else {
                 if(item.stock > 0) state.cart.push({ ...item, qty: 1 });
-                else showModal("Stok Kosong", `Barang ${item.name} sedang kosong.`);
+                else showModal("Stok Kosong", `Barang kosong.`);
             }
             renderCart();
         }
 
         function updateQty(id, delta) {
-            const itemIndex = state.cart.findIndex(c => c.id === id);
-            if (itemIndex > -1) {
-                const item = state.cart[itemIndex];
+            const item = state.cart.find(c => c.id === id);
+            if (item) {
                 const dbItem = state.items.find(i => i.id === id);
-                
                 item.qty += delta;
-                if (item.qty <= 0) {
-                    state.cart.splice(itemIndex, 1);
-                } else if (item.qty > dbItem.stock) {
-                    item.qty = dbItem.stock;
-                    showModal("Stok Maksimal", "Kuantitas disesuaikan dengan sisa stok.");
-                }
+                if (item.qty <= 0) state.cart = state.cart.filter(c => c.id !== id);
+                else if (item.qty > dbItem.stock) item.qty = dbItem.stock;
             }
             renderCart();
         }
@@ -873,78 +705,122 @@
         function applyVoucher() {
             const input = document.getElementById('voucher-input').value.trim();
             const infoEl = document.getElementById('voucher-info');
-            
             if(!input) {
-                state.appliedVoucher = null;
-                infoEl.classList.add('hidden-el');
-                renderCart();
-                return;
-            }
-            
-            const found = state.vouchers.find(v => v.nama.toLowerCase() === input.toLowerCase());
-            if(found) {
-                state.appliedVoucher = found;
-                infoEl.innerHTML = `<i class="fas fa-check-circle"></i> Voucher <b>${found.nama}</b> aktif (${found.tipe === 'persen' ? found.nominal + '%' : formatRp(found.nominal)})`;
-                infoEl.className = 'text-xs mt-2 font-bold text-green-600 bg-green-50 p-2 rounded-lg border border-green-200';
-                infoEl.classList.remove('hidden-el');
+                state.appliedVoucher = null; infoEl.classList.add('hidden-el');
             } else {
-                state.appliedVoucher = null;
-                infoEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> Voucher tidak valid/kadaluarsa.`;
-                infoEl.className = 'text-xs mt-2 font-bold text-red-500 bg-red-50 p-2 rounded-lg border border-red-200';
+                const found = state.vouchers.find(v => v.nama.toLowerCase() === input.toLowerCase());
+                if(found) {
+                    state.appliedVoucher = found;
+                    infoEl.innerHTML = `<i class="fas fa-check-circle"></i> Voucher aktif`;
+                    infoEl.className = 'text-xs mt-2 font-bold text-green-600 bg-green-50 p-2 rounded-lg border border-green-200';
+                } else {
+                    state.appliedVoucher = null;
+                    infoEl.innerHTML = `<i class="fas fa-times-circle"></i> Tidak valid`;
+                    infoEl.className = 'text-xs mt-2 font-bold text-red-500 bg-red-50 p-2 rounded-lg border border-red-200';
+                }
                 infoEl.classList.remove('hidden-el');
             }
             renderCart();
         }
 
+        function toggleMobileCart() {
+            const sidebar = document.getElementById('cart-sidebar');
+            if (sidebar.classList.contains('hidden')) { sidebar.classList.remove('hidden'); sidebar.classList.add('flex'); } 
+            else { sidebar.classList.remove('flex'); sidebar.classList.add('hidden'); }
+        }
+
         function renderCart() {
             const cartContainer = document.getElementById('cart-items');
-            let subtotal = 0;
-            let totalItemDiscount = 0;
-
+            
+            let rawSubtotal = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
             const totalQty = state.cart.reduce((a, b) => a + b.qty, 0);
+            
             document.getElementById('cart-count').innerText = totalQty;
             document.getElementById('mobile-cart-count').innerText = totalQty;
 
+            // Hitung subtotal yang memenuhi syarat (hanya family tertentu, atau semua jika kosong)
+            let eligibleSubtotal = state.storeSettings.tierFamily 
+                ? state.cart.filter(i => (i.family||'').toLowerCase() === state.storeSettings.tierFamily.toLowerCase()).reduce((sum, item) => sum + (item.price * item.qty), 0)
+                : rawSubtotal;
+
+            let isTierActive = false;
+            let tierDiscAmount = 0;
+            let tierLabelStr = '';
+            
+            if (state.storeSettings.tierMin > 0 && eligibleSubtotal >= state.storeSettings.tierMin) {
+                isTierActive = true;
+                if(state.storeSettings.tierType === 'persen') {
+                    tierDiscAmount = eligibleSubtotal * (state.storeSettings.tierVal / 100);
+                    tierLabelStr = `-${state.storeSettings.tierVal}%`;
+                } else {
+                    tierDiscAmount = state.storeSettings.tierVal;
+                    tierLabelStr = `-${formatRp(state.storeSettings.tierVal)}`;
+                }
+            }
+
+            let totalItemDiscount = 0;
+            
             if (state.cart.length === 0) {
                 cartContainer.innerHTML = '<div class="text-center text-gray-400 mt-10 text-sm"><i class="fas fa-box-open text-4xl mb-3 block opacity-30"></i>Keranjang Kosong</div>';
             } else {
-                cartContainer.innerHTML = state.cart.map(item => {
+                let htmlContent = '';
+                if(isTierActive) {
+                    let famLabel = state.storeSettings.tierFamily ? ` (Khusus ${state.storeSettings.tierFamily.toUpperCase()})` : '';
+                    htmlContent += `<div class="bg-amber-50 border border-amber-200 text-amber-800 p-2.5 rounded-xl text-xs font-bold mb-2 flex items-center justify-between"><span class="flex items-center gap-1.5"><i class="fas fa-star text-amber-500"></i> Tier ${tierLabelStr}${famLabel} Aktif</span></div>`;
+                }
+
+                htmlContent += state.cart.map(item => {
                     const lineSubtotal = item.price * item.qty;
-                    let discPercent = item.disc || 0;
-                    
-                    const lineDiscAmount = lineSubtotal * (discPercent / 100);
-                    const lineTotal = lineSubtotal - lineDiscAmount;
-                    
-                    subtotal += lineSubtotal;
+                    let lineDiscAmount = 0;
+                    let badgeHtml = '';
+
+                    // Cek apakah item ini berhak dapat tier diskon
+                    let isItemTierEligible = isTierActive && (!state.storeSettings.tierFamily || (item.family||'').toLowerCase() === state.storeSettings.tierFamily.toLowerCase());
+
+                    if (isItemTierEligible) {
+                        if(state.storeSettings.tierType === 'persen') {
+                            lineDiscAmount = lineSubtotal * (state.storeSettings.tierVal / 100);
+                        } else {
+                            lineDiscAmount = (lineSubtotal / eligibleSubtotal) * tierDiscAmount;
+                        }
+                        badgeHtml = `<span class="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-extrabold border border-amber-200">${tierLabelStr}</span>`;
+                    } else {
+                        const discPercent = parseFloat(item.disc) || 0;
+                        if(discPercent > 0) {
+                            lineDiscAmount = lineSubtotal * (discPercent / 100);
+                            badgeHtml = `<span class="text-[10px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded font-extrabold border border-red-100">-${discPercent}%</span>`;
+                        }
+                    }
+
                     totalItemDiscount += lineDiscAmount;
+                    const lineTotal = lineSubtotal - lineDiscAmount;
 
                     return `
-                    <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-2">
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-2 relative">
                         <div class="flex justify-between items-start gap-2">
-                            <span class="font-bold text-sm text-gray-800 leading-tight">${item.name}</span>
+                            <span class="font-bold text-sm text-gray-800 leading-tight w-3/4">${item.name}</span>
                             <span class="font-extrabold text-sm text-blue-600 whitespace-nowrap">${formatRp(lineTotal)}</span>
                         </div>
                         <div class="flex justify-between items-center mt-1">
                             <div class="flex items-center gap-1 bg-gray-50 rounded-lg p-1 border border-gray-100">
-                                <button onclick="updateQty('${item.id}', -1)" class="w-7 h-7 bg-white rounded-md shadow-sm text-gray-600 font-bold hover:bg-gray-200">-</button>
+                                <button onclick="updateQty('${item.id}', -1)" class="w-7 h-7 bg-white rounded-md shadow-sm text-gray-600 font-bold">-</button>
                                 <span class="text-sm font-bold w-6 text-center text-gray-700">${item.qty}</span>
-                                <button onclick="updateQty('${item.id}', 1)" class="w-7 h-7 bg-white rounded-md shadow-sm text-gray-600 font-bold hover:bg-gray-200">+</button>
+                                <button onclick="updateQty('${item.id}', 1)" class="w-7 h-7 bg-white rounded-md shadow-sm text-gray-600 font-bold">+</button>
                             </div>
-                            ${discPercent > 0 ? `<span class="text-xs bg-red-50 text-red-600 px-2 py-1 rounded-md font-bold shadow-sm border border-red-100">-${discPercent}%</span>` : ''}
+                            ${badgeHtml}
                         </div>
                     </div>`;
                 }).join('');
+
+                cartContainer.innerHTML = htmlContent;
             }
 
-            let finalSubtotal = subtotal - totalItemDiscount;
+            let finalSubtotal = rawSubtotal - totalItemDiscount;
             let voucherDiscountAmount = 0;
 
             if (state.appliedVoucher && state.cart.length > 0) {
-                if (state.appliedVoucher.tipe === 'persen') {
-                    voucherDiscountAmount = finalSubtotal * (state.appliedVoucher.nominal / 100);
-                } else {
-                    voucherDiscountAmount = parseFloat(state.appliedVoucher.nominal);
-                }
+                if (state.appliedVoucher.tipe === 'persen') voucherDiscountAmount = finalSubtotal * (state.appliedVoucher.nominal / 100);
+                else voucherDiscountAmount = parseFloat(state.appliedVoucher.nominal);
                 if (voucherDiscountAmount > finalSubtotal) voucherDiscountAmount = finalSubtotal;
             }
 
@@ -952,18 +828,14 @@
             state.currentCalculatedTotal = grandTotal;
             const totalAllDiscount = totalItemDiscount + voucherDiscountAmount;
 
-            document.getElementById('cart-subtotal').innerText = formatRp(subtotal);
+            document.getElementById('cart-subtotal').innerText = formatRp(rawSubtotal);
             document.getElementById('cart-discount').innerText = "- " + formatRp(totalAllDiscount);
             document.getElementById('cart-total').innerText = formatRp(grandTotal);
             document.getElementById('mobile-cart-total').innerText = formatRp(grandTotal);
         }
 
         function processCheckout() {
-            if (state.cart.length === 0 || !client) {
-                if(state.cart.length === 0) showModal("Peringatan", "Keranjang belanja masih kosong!");
-                return;
-            }
-            
+            if (state.cart.length === 0) return showModal("Peringatan", "Keranjang kosong!");
             setPaymentMethod('cash');
             document.getElementById('pay-modal-total').innerText = formatRp(state.currentCalculatedTotal);
             document.getElementById('pay-cash-input').value = '';
@@ -973,442 +845,324 @@
             setTimeout(() => document.getElementById('pay-cash-input').focus(), 100);
         }
 
-        function closePaymentModal() {
-            document.getElementById('payment-modal').classList.add('hidden-el');
-        }
+        function closePaymentModal() { document.getElementById('payment-modal').classList.add('hidden-el'); }
 
         function setPaymentMethod(method) {
             state.selectedPaymentMethod = method;
-            
-            const btnCash = document.getElementById('pm-cash-btn');
-            const btnQris = document.getElementById('pm-qris-btn');
-            const btnTransfer = document.getElementById('pm-transfer-btn');
-
-            const secCash = document.getElementById('payment-cash-section');
-            const secQris = document.getElementById('payment-qris-section');
-            const secTransfer = document.getElementById('payment-transfer-section');
-
-            [btnCash, btnQris, btnTransfer].forEach(b => {
-                b.className = "py-2.5 px-3 rounded-xl font-bold text-xs border border-gray-200 bg-gray-50 text-gray-600 transition flex items-center justify-center gap-1.5";
+            ['cash', 'qris', 'transfer'].forEach(m => {
+                document.getElementById(`pm-${m}-btn`).className = "py-2.5 px-3 rounded-xl font-bold text-xs border border-gray-200 bg-gray-50 text-gray-600 flex items-center justify-center gap-1.5";
+                document.getElementById(`payment-${m}-section`).classList.add('hidden-el');
             });
-            [secCash, secQris, secTransfer].forEach(s => s.classList.add('hidden-el'));
-
-            if (method === 'cash') {
-                btnCash.className = "py-2.5 px-3 rounded-xl font-bold text-xs border border-blue-500 bg-blue-50 text-blue-700 transition flex items-center justify-center gap-1.5";
-                secCash.classList.remove('hidden-el');
-                setTimeout(() => document.getElementById('pay-cash-input').focus(), 50);
-            } else if (method === 'qris') {
-                btnQris.className = "py-2.5 px-3 rounded-xl font-bold text-xs border border-blue-500 bg-blue-50 text-blue-700 transition flex items-center justify-center gap-1.5";
-                secQris.classList.remove('hidden-el');
-            } else if (method === 'transfer') {
-                document.getElementById('transfer-bank-info').innerText = `${state.storeSettings.bankName} - ${state.storeSettings.bankAcc}`;
-                document.getElementById('transfer-owner-info').innerText = `A/N ${state.storeSettings.bankOwner}`;
-
-                btnTransfer.className = "py-2.5 px-3 rounded-xl font-bold text-xs border border-blue-500 bg-blue-50 text-blue-700 transition flex items-center justify-center gap-1.5";
-                secTransfer.classList.remove('hidden-el');
-                setTimeout(() => document.getElementById('pay-transfer-ref').focus(), 50);
-            }
+            document.getElementById(`pm-${method}-btn`).classList.add('border-blue-500', 'bg-blue-50', 'text-blue-700');
+            document.getElementById(`pm-${method}-btn`).classList.remove('border-gray-200', 'bg-gray-50', 'text-gray-600');
+            document.getElementById(`payment-${method}-section`).classList.remove('hidden-el');
         }
 
-        function quickCash(nominal) {
-            document.getElementById('pay-cash-input').value = nominal;
-            calculateChange();
-        }
-
-        function exactCash() {
-            document.getElementById('pay-cash-input').value = state.currentCalculatedTotal;
-            calculateChange();
-        }
-
+        function quickCash(nominal) { document.getElementById('pay-cash-input').value = nominal; calculateChange(); }
+        function exactCash() { document.getElementById('pay-cash-input').value = state.currentCalculatedTotal; calculateChange(); }
+        
         function calculateChange() {
-            const cashVal = parseFloat(document.getElementById('pay-cash-input').value) || 0;
-            const change = cashVal - state.currentCalculatedTotal;
+            const cash = parseFloat(document.getElementById('pay-cash-input').value) || 0;
+            const change = cash - state.currentCalculatedTotal;
             const changeEl = document.getElementById('pay-modal-change');
-            
-            if (change >= 0) {
-                changeEl.innerText = formatRp(change);
-                changeEl.className = "text-xl font-extrabold text-emerald-600";
-            } else {
-                changeEl.innerText = "Kurang " + formatRp(Math.abs(change));
-                changeEl.className = "text-xl font-extrabold text-red-500";
-            }
+            if (change >= 0) { changeEl.innerText = formatRp(change); changeEl.className = "text-xl font-extrabold text-emerald-600"; }
+            else { changeEl.innerText = "Kurang " + formatRp(Math.abs(change)); changeEl.className = "text-xl font-extrabold text-red-500"; }
         }
 
         async function confirmAndExecuteCheckout() {
-            let cashVal = state.currentCalculatedTotal;
-            let changeAmount = 0;
-            let paymentDesc = state.selectedPaymentMethod.toUpperCase();
+            let cashVal = state.currentCalculatedTotal, changeAmount = 0, paymentDesc = state.selectedPaymentMethod.toUpperCase();
 
             if (state.selectedPaymentMethod === 'cash') {
                 cashVal = parseFloat(document.getElementById('pay-cash-input').value) || 0;
-                if (cashVal < state.currentCalculatedTotal) {
-                    showModal("Uang Kurang", "Nominal uang tunai yang dibayarkan kurang dari total belanja!");
-                    return;
-                }
+                if (cashVal < state.currentCalculatedTotal) return showModal("Uang Kurang", "Nominal uang tunai kurang!");
                 changeAmount = cashVal - state.currentCalculatedTotal;
             } else if (state.selectedPaymentMethod === 'transfer') {
                 const ref = document.getElementById('pay-transfer-ref').value.trim();
                 if(ref) paymentDesc += ` (${ref})`;
             }
 
-            closePaymentModal();
-
             const btn = document.getElementById('btn-confirm-pay');
-            const oriHtml = btn.innerHTML;
-            btn.innerHTML = '<div class="loader mr-2"></div> Memproses...';
-            btn.disabled = true;
+            btn.innerHTML = '<div class="loader mr-2"></div> Memproses...'; btn.disabled = true;
 
             try {
+                const orderId = "ORD-" + new Date().getTime();
                 const now = new Date();
-                const orderId = "ORD-" + now.getTime();
                 const dateStr = now.toISOString().split('T')[0];
                 const timeStr = now.toTimeString().split(' ')[0];
 
-                let subtotal = 0;
+                let rawSubtotal = state.cart.reduce((s, i) => s + (i.price * i.qty), 0);
+                
+                let eligibleSubtotal = state.storeSettings.tierFamily 
+                    ? state.cart.filter(i => (i.family||'').toLowerCase() === state.storeSettings.tierFamily.toLowerCase()).reduce((sum, item) => sum + (item.price * item.qty), 0)
+                    : rawSubtotal;
+
+                let isTierActive = false, tierDiscTotal = 0, tierLabel = '';
+                
+                if (state.storeSettings.tierMin > 0 && eligibleSubtotal >= state.storeSettings.tierMin) {
+                    isTierActive = true;
+                    if(state.storeSettings.tierType === 'persen') {
+                        tierDiscTotal = eligibleSubtotal * (state.storeSettings.tierVal / 100);
+                        tierLabel = `-${state.storeSettings.tierVal}%`;
+                    } else {
+                        tierDiscTotal = state.storeSettings.tierVal;
+                        tierLabel = `-${formatRp(state.storeSettings.tierVal)}`;
+                    }
+                }
+
                 let totalItemDiscount = 0;
                 let detailsToInsert = [];
 
                 state.cart.forEach(item => {
-                    const lineSubtotal = item.price * item.qty;
-                    let discPercent = item.disc || 0;
-                    const lineDiscAmount = lineSubtotal * (discPercent / 100);
-                    const lineTotal = lineSubtotal - lineDiscAmount;
-                    
-                    subtotal += lineSubtotal;
-                    totalItemDiscount += lineDiscAmount;
+                    const lineSub = item.price * item.qty;
+                    let lineDisc = 0, discPercRecord = 0;
+
+                    let isItemTierEligible = isTierActive && (!state.storeSettings.tierFamily || (item.family||'').toLowerCase() === state.storeSettings.tierFamily.toLowerCase());
+
+                    if(isItemTierEligible) {
+                        if(state.storeSettings.tierType === 'persen') {
+                            lineDisc = lineSub * (state.storeSettings.tierVal / 100);
+                            discPercRecord = state.storeSettings.tierVal;
+                        } else {
+                            lineDisc = (lineSub / eligibleSubtotal) * tierDiscTotal;
+                            discPercRecord = 0;
+                        }
+                    } else {
+                        discPercRecord = parseFloat(item.disc) || 0;
+                        lineDisc = lineSub * (discPercRecord / 100);
+                    }
+                    totalItemDiscount += lineDisc;
 
                     detailsToInsert.push({
-                        order_id: orderId,
-                        date: dateStr,
-                        time: timeStr,
-                        invoice_no: orderId.replace("ORD", "INV"),
-                        item_id: item.id,
-                        orig_code: item.orig_code || null,
-                        name: item.name,
-                        kelompok: item.kelompok,
-                        family: item.family,
-                        qty: item.qty,
-                        price: item.price,
-                        subtotal: lineSubtotal,
-                        discount_amount: lineDiscAmount,
-                        discount_percent: discPercent,
-                        total: lineTotal,
-                        user_role: state.currentUser,
-                        payment_method: paymentDesc
+                        order_id: orderId, date: dateStr, time: timeStr, invoice_no: orderId.replace("ORD", "INV"),
+                        item_id: item.id, orig_code: item.orig_code, name: item.name, kelompok: item.kelompok, family: item.family,
+                        qty: item.qty, price: item.price, subtotal: lineSub, discount_amount: lineDisc, discount_percent: discPercRecord,
+                        total: lineSub - lineDisc, user_role: state.currentUser, payment_method: paymentDesc
                     });
                 });
 
-                let finalSubtotal = subtotal - totalItemDiscount;
-                let voucherDiscountAmount = 0;
-                
-                if (state.appliedVoucher) {
-                    if (state.appliedVoucher.tipe === 'persen') {
-                        voucherDiscountAmount = finalSubtotal * (state.appliedVoucher.nominal / 100);
-                    } else {
-                        voucherDiscountAmount = parseFloat(state.appliedVoucher.nominal);
-                    }
-                    if (voucherDiscountAmount > finalSubtotal) voucherDiscountAmount = finalSubtotal;
+                let finalSubtotal = rawSubtotal - totalItemDiscount;
+                let voucherDisc = 0;
+                if(state.appliedVoucher) {
+                    voucherDisc = state.appliedVoucher.tipe === 'persen' ? finalSubtotal * (state.appliedVoucher.nominal/100) : parseFloat(state.appliedVoucher.nominal);
+                    if(voucherDisc > finalSubtotal) voucherDisc = finalSubtotal;
                 }
+                const finalTotal = finalSubtotal - voucherDisc;
+                const totalAllDiscount = totalItemDiscount + voucherDisc;
 
-                const finalTotal = finalSubtotal - voucherDiscountAmount;
-                const totalAllDiscount = totalItemDiscount + voucherDiscountAmount;
-
-                const { error: txError } = await client.from('transactions').insert({
-                    order_id: orderId,
-                    date: dateStr,
-                    time: timeStr,
-                    subtotal: subtotal,
-                    discount: totalAllDiscount,
-                    total: finalTotal,
-                    role: state.currentUser,
-                    voucher_nama: state.appliedVoucher ? state.appliedVoucher.nama : null,
-                    voucher_diskon: voucherDiscountAmount,
-                    payment_method: paymentDesc
+                const { error: txErr } = await client.from('transactions').insert({
+                    order_id: orderId, date: dateStr, time: timeStr, subtotal: rawSubtotal, discount: totalAllDiscount, total: finalTotal,
+                    role: state.currentUser, voucher_nama: state.appliedVoucher ? state.appliedVoucher.nama : null, voucher_diskon: voucherDisc,
+                    payment_method: paymentDesc, tier_promo_name: isTierActive ? state.storeSettings.tierName : null, tier_promo_disc: isTierActive ? tierDiscTotal : 0,
+                    tier_promo_family: isTierActive ? state.storeSettings.tierFamily : null
                 });
-                if(txError) throw txError;
+                if(txErr) throw txErr;
 
-                const { error: dtError } = await client.from('transaction_details').insert(detailsToInsert);
-                if(dtError) throw dtError;
+                const { error: dtErr } = await client.from('transaction_details').insert(detailsToInsert);
+                if(dtErr) throw dtErr;
 
-                for(let item of state.cart) {
-                    const dbItem = state.items.find(i => i.id === item.id);
-                    const newStock = dbItem.stock - item.qty;
-                    await client.from('master_items').update({ stock: newStock }).eq('id', item.id);
+                for(let i of state.cart) {
+                    const dbItem = state.items.find(x => x.id === i.id);
+                    await client.from('master_items').update({ stock: dbItem.stock - i.qty }).eq('id', i.id);
                 }
 
-                const paidItems = [...state.cart];
-                const paidVoucher = state.appliedVoucher ? state.appliedVoucher.nama : null;
-                const paidVoucherDisc = voucherDiscountAmount;
-                const paidSub = subtotal;
-                const paidDisc = totalAllDiscount;
-                const paidTotal = finalTotal;
+                const recData = {
+                    orderId, date: dateStr, time: timeStr, cashier: state.currentUser, items: [...state.cart], 
+                    subtotal: rawSubtotal, discount: totalAllDiscount, total: finalTotal,
+                    cash: cashVal, change: changeAmount, paymentMethod: paymentDesc,
+                    voucherName: state.appliedVoucher?.nama, voucherDisc,
+                    tierName: isTierActive ? state.storeSettings.tierName : null, tierLabel: isTierActive ? tierLabel : null,
+                    tierType: isTierActive ? state.storeSettings.tierType : null, tierVal: isTierActive ? state.storeSettings.tierVal : 0,
+                    tierFamily: isTierActive ? state.storeSettings.tierFamily : null
+                };
 
-                state.cart = [];
-                state.appliedVoucher = null;
-                document.getElementById('voucher-input').value = '';
-                document.getElementById('voucher-info').classList.add('hidden-el');
-
-                renderCart();
-                await loadData(); 
+                state.cart = []; state.appliedVoucher = null;
+                document.getElementById('voucher-input').value = ''; document.getElementById('voucher-info').classList.add('hidden-el');
+                closePaymentModal();
                 
+                await loadData();
                 if(window.innerWidth < 1024) toggleMobileCart();
+                buildReceiptUI(recData);
 
-                showSuccessReceiptModal({
-                    orderId,
-                    date: dateStr,
-                    time: timeStr,
-                    cashier: state.currentUser,
-                    items: paidItems,
-                    subtotal: paidSub,
-                    discount: paidDisc,
-                    total: paidTotal,
-                    cash: cashVal,
-                    change: changeAmount,
-                    paymentMethod: paymentDesc,
-                    voucherName: paidVoucher,
-                    voucherDisc: paidVoucherDisc
-                });
-
-            } catch (err) {
-                console.error("Gagal Checkout:", err);
-                showModal("Gagal Memproses", err.message);
-            } finally {
-                btn.innerHTML = oriHtml;
-                btn.disabled = false;
-            }
+            } catch(e) { showModal("Gagal Memproses", e.message); } 
+            finally { btn.innerHTML = 'Proses Bayar'; btn.disabled = false; }
         }
 
-        function showSuccessReceiptModal(data) {
-            state.lastReceiptData = data;
+        function renderVoucherList() {
+            const dl = document.getElementById('voucher-list');
+            if(dl) dl.innerHTML = state.vouchers.map(v => `<option value="${v.nama}">${v.keterangan||v.nama}</option>`).join('');
+        }
+
+        function buildReceiptUI(data) {
+            state.currentReceiptData = data;
             document.getElementById('dtl-inv').innerText = data.orderId.replace("ORD", "INV");
+            document.getElementById('dtl-cashier').innerText = data.cashier || 'Admin';
             document.getElementById('dtl-date').innerText = data.date;
             document.getElementById('dtl-time').innerText = data.time.substring(0,5);
-            document.getElementById('dtl-cashier').innerText = data.cashier || 'Admin';
 
-            const vInfoEl = document.getElementById('dtl-voucher-info');
-            if(data.voucherName) {
-                vInfoEl.innerHTML = `<i class="fas fa-ticket-alt"></i> Voucher: <b>${data.voucherName}</b> (${formatRp(data.voucherDisc)})`;
-                vInfoEl.classList.remove('hidden-el');
+            const vEl = document.getElementById('dtl-voucher-info');
+            if(data.voucherName) { vEl.innerHTML = `Voucher: ${data.voucherName} (-${formatRp(data.voucherDisc)})`; vEl.classList.remove('hidden-el'); }
+            else vEl.classList.add('hidden-el');
+
+            const tEl = document.getElementById('dtl-tier-info');
+            if(data.tierName) { 
+                let tText = data.tierLabel || (data.tierType === 'persen' ? `-${data.tierVal}%` : `-${formatRp(data.tierVal)}`);
+                let famLabel = data.tierFamily ? ` Khusus ${data.tierFamily}` : '';
+                tEl.innerHTML = `Promo Tier${famLabel} Aktif: ${tText}`; 
+                tEl.classList.remove('hidden-el'); 
             } else {
-                vInfoEl.classList.add('hidden-el');
+                tEl.classList.add('hidden-el');
             }
 
-            const tbody = document.getElementById('detail-items-table');
-            tbody.innerHTML = data.items.map(item => {
-                const lineSub = item.price * item.qty;
-                const lineDisc = lineSub * ((item.disc || 0) / 100);
-                const lineTot = lineSub - lineDisc;
+            document.getElementById('detail-items-table').innerHTML = data.items.map(i => {
+                const sub = i.price * i.qty;
+                let discLabel = '', lineDisc = 0;
+                
+                let isItemTier = data.tierName && (!data.tierFamily || (i.family||'').toLowerCase() === (data.tierFamily||'').toLowerCase());
+
+                if (isItemTier) {
+                    let tText = data.tierLabel || (data.tierType === 'persen' ? `-${data.tierVal}%` : `-${formatRp(data.tierVal)}`);
+                    discLabel = `<div class="text-[11px] text-amber-600 font-bold mt-0.5">${tText}</div>`;
+                    if (i.discount_amount !== undefined) lineDisc = i.discount_amount;
+                } else if (i.discount_amount > 0 || (i.disc !== undefined && i.disc > 0)) {
+                    let perc = i.discount_percent || i.disc;
+                    discLabel = `<div class="text-[11px] text-red-500 font-bold mt-0.5">-${perc}%</div>`;
+                    if (i.discount_amount !== undefined) lineDisc = i.discount_amount;
+                    else lineDisc = sub * (perc/100);
+                }
+                const tot = i.total !== undefined ? i.total : (sub - lineDisc);
+
                 return `
-                <tr class="hover:bg-gray-50/50">
-                    <td class="py-1.5 pr-1">
-                        <div class="text-[10px] text-gray-400 font-mono">${item.id}</div>
-                        <div class="font-bold text-gray-800 leading-tight">${item.name}</div>
-                        ${item.disc > 0 ? `<div class="text-[10px] text-orange-500">Disc -${item.disc}%</div>` : ''}
-                    </td>
-                    <td class="py-1.5 text-center font-bold text-gray-700">${item.qty}</td>
-                    <td class="py-1.5 text-right text-gray-500">${formatRp(item.price)}</td>
-                    <td class="py-1.5 text-right font-extrabold text-gray-800">${formatRp(lineTot)}</td>
-                </tr>
-            `;}).join('');
+                <div class="flex justify-between items-start text-sm border-b border-gray-100 pb-2">
+                    <div>
+                        <div class="text-[10px] text-gray-400 font-mono">${i.item_id || i.id}</div>
+                        <div class="font-bold text-gray-800 leading-tight">${i.name}</div>
+                        <div class="text-xs text-gray-500">${i.qty} x ${formatRp(i.price)}</div>
+                        ${discLabel}
+                    </div>
+                    <div class="font-extrabold text-gray-900 mt-2">${formatRp(tot)}</div>
+                </div>`;
+            }).join('');
 
-            const summaryDiv = document.getElementById('dtl-payment-summary');
-            let paymentDetailHtml = `<div class="flex justify-between text-gray-600"><span>Pembayaran</span><span class="font-bold uppercase text-blue-600">${data.paymentMethod || 'CASH'}</span></div>`;
-            
-            if (data.paymentMethod && data.paymentMethod.startsWith('CASH')) {
-                paymentDetailHtml += `
-                    <div class="flex justify-between text-gray-600 pt-0.5"><span>Tunai</span><span>${formatRp(data.cash)}</span></div>
-                    <div class="flex justify-between text-emerald-600 font-bold pt-0.5"><span>Kembalian</span><span>${formatRp(data.change)}</span></div>
-                `;
+            let payHtml = `<div class="flex justify-between text-gray-600"><span>Pembayaran</span><span class="font-bold uppercase">${data.paymentMethod}</span></div>`;
+            if(data.paymentMethod.startsWith('CASH') && data.cash) {
+                payHtml += `<div class="flex justify-between text-gray-600 mt-1"><span>Tunai</span><span>${formatRp(data.cash)}</span></div>
+                            <div class="flex justify-between text-gray-800 font-bold"><span>Kembali</span><span>${formatRp(data.change)}</span></div>`;
             }
 
-            summaryDiv.innerHTML = `
+            document.getElementById('dtl-payment-summary').innerHTML = `
                 <div class="flex justify-between text-gray-600"><span>Subtotal</span><span>${formatRp(data.subtotal)}</span></div>
-                <div class="flex justify-between text-green-600"><span>Diskon</span><span>- ${formatRp(data.discount)}</span></div>
-                <div class="flex justify-between text-gray-900 font-extrabold text-sm border-t pt-1 border-gray-200"><span>Total</span><span class="text-blue-600">${formatRp(data.total)}</span></div>
-                ${paymentDetailHtml}
+                <div class="flex justify-between text-green-600"><span>Diskon</span><span>-${formatRp(data.discount)}</span></div>
+                <div class="flex justify-between text-gray-900 font-extrabold text-base border-t border-gray-200 mt-1 pt-1"><span>Total Bayar</span><span>${formatRp(data.total)}</span></div>
+                ${payHtml}
             `;
-
             document.getElementById('detail-modal').classList.remove('hidden-el');
         }
 
+        function closeDetailModal() { document.getElementById('detail-modal').classList.add('hidden-el'); }
+
         function printReceipt() {
-            window.print();
+            const p = document.getElementById('receipt-capture-area').innerHTML;
+            const w = window.open('', '', 'width=400,height=600');
+            w.document.write(`<html><head><title>Print Struk</title><script src="https://cdn.tailwindcss.com"><\/script></head><body class="p-4 bg-white text-black font-sans w-[300px] mx-auto">${p}</body></html>`);
+            w.document.close();
+            setTimeout(() => { w.print(); w.close(); }, 500);
         }
 
-        function downloadReceiptImage() {
-            const receiptEl = document.getElementById('printable-receipt');
-            if(!receiptEl) return;
-            
-            html2canvas(receiptEl, { scale: 2 }).then(canvas => {
+        function downloadReceipt() {
+            const el = document.getElementById('receipt-capture-area');
+            html2canvas(el, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `Struk_${document.getElementById('dtl-inv').innerText}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
-            }).catch(err => {
-                console.error("Gagal mendownload gambar struk:", err);
-                showModal("Gagal", "Tidak dapat mendownload gambar struk.");
             });
         }
 
-        function sendReceiptWhatsApp() {
-            const data = state.lastReceiptData;
-            if(!data) {
-                showModal("Data Kosong", "Tidak ada data struk yang dapat dikirim.");
-                return;
-            }
-
-            let msg = `*STRUK BELANJA - SURYATOKOKU*\n`;
-            msg += `Invoice: ${data.orderId.replace("ORD", "INV")}\n`;
-            msg += `Tanggal: ${data.date} ${data.time.substring(0,5)}\n`;
-            msg += `Kasir: ${data.cashier}\n`;
-            msg += `--------------------------------\n`;
-
-            data.items.forEach((item, idx) => {
-                const lineSub = item.price * item.qty;
-                const lineDisc = lineSub * ((item.disc || 0) / 100);
-                const lineTot = lineSub - lineDisc;
-                msg += `${idx + 1}. *${item.name}*\n`;
-                msg += `   ${item.qty}x @${formatRp(item.price)} = *${formatRp(lineTot)}*\n`;
+        function sendWAReceipt() {
+            const d = state.currentReceiptData;
+            if(!d) return;
+            let text = `*SURYATOKOKU - STRUK PEMBELIAN*\n`;
+            text += `No: ${d.orderId.replace('ORD','INV')}\n`;
+            text += `Tgl: ${d.date} ${d.time.substring(0,5)}\n`;
+            text += `Kasir: ${d.cashier}\n------------------------\n`;
+            
+            d.items.forEach(i => {
+                text += `*${i.name}*\n`;
+                text += `${i.qty} x ${formatRp(i.price)} = ${formatRp(i.total || (i.price*i.qty))}\n`;
             });
-
-            msg += `--------------------------------\n`;
-            msg += `Subtotal: ${formatRp(data.subtotal)}\n`;
-            msg += `Diskon: - ${formatRp(data.discount)}\n`;
-            msg += `*TOTAL: ${formatRp(data.total)}*\n`;
-            msg += `Metode Pembayaran: ${data.paymentMethod}\n`;
+            text += `------------------------\n`;
+            text += `Subtotal: ${formatRp(d.subtotal)}\n`;
+            text += `Diskon: -${formatRp(d.discount)}\n`;
+            text += `*Total: ${formatRp(d.total)}*\n`;
+            text += `Pembayaran: ${d.paymentMethod}\n`;
+            text += `Terima kasih!`;
             
-            if (data.paymentMethod && data.paymentMethod.startsWith('CASH')) {
-                msg += `Tunai: ${formatRp(data.cash)}\n`;
-                msg += `Kembalian: ${formatRp(data.change)}\n`;
-            }
-
-            msg += `--------------------------------\n`;
-            msg += `Terima kasih telah berbelanja di Suryatokoku! 🙏`;
-
-            const encodedMsg = encodeURIComponent(msg);
-            window.open(`https://api.whatsapp.com/send?text=${encodedMsg}`, '_blank');
+            const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
         }
 
-        function renderAdminTable() {
-            document.getElementById('total-master-items').innerText = `Total: ${state.items.length} Item`;
-            const tbody = document.getElementById('admin-item-table');
-            tbody.innerHTML = state.items.slice(0, 100).map(item => `
-                <tr class="hover:bg-blue-50/50 transition-colors">
-                    <td class="p-3 text-xs text-gray-500 font-mono">${item.id}</td>
-                    <td class="p-3 font-semibold text-gray-800">${item.name}</td>
-                    <td class="p-3 text-gray-600">${item.family || '-'}</td>
-                    <td class="p-3 text-center font-bold ${item.stock <= 5 ? 'text-red-600 bg-red-50 rounded-lg' : 'text-gray-700'}">${item.stock}</td>
-                    <td class="p-3 text-right font-bold text-gray-800">${formatRp(item.price)}</td>
-                </tr>
-            `).join('');
+        function populateAdminForms() {
+            document.getElementById('setting-bank-name').value = state.storeSettings.bankName || '';
+            document.getElementById('setting-bank-acc').value = state.storeSettings.bankAcc || '';
+            document.getElementById('setting-bank-owner').value = state.storeSettings.bankOwner || '';
             
-            if(state.items.length > 100) {
-                tbody.innerHTML += `<tr><td colspan="5" class="text-center p-4 text-gray-400 text-sm font-medium bg-gray-50"><i class="fas fa-info-circle mr-1"></i> Menampilkan 100 item teratas di panel ini.</td></tr>`;
-            }
-        }
+            document.getElementById('setting-tier-min').value = state.storeSettings.tierMin || '';
+            document.getElementById('setting-tier-type').value = state.storeSettings.tierType || 'persen';
+            document.getElementById('setting-tier-val').value = state.storeSettings.tierVal || '';
+            document.getElementById('setting-tier-family').value = state.storeSettings.tierFamily || '';
+            document.getElementById('setting-tier-name').value = state.storeSettings.tierName || 'Tier Promo';
 
-        function renderVoucherTable() {
-            const tbody = document.getElementById('admin-voucher-table');
-            if(state.vouchers.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="text-center p-4 text-gray-400 text-xs">Belum ada voucher</td></tr>`;
-                return;
-            }
-            tbody.innerHTML = state.vouchers.map(v => `
-                <tr class="hover:bg-orange-50/30 transition-colors">
-                    <td class="p-2.5 font-extrabold text-orange-600 text-xs tracking-wider">${v.nama}</td>
-                    <td class="p-2.5 text-xs font-bold text-gray-700">
-                        ${v.tipe === 'persen' ? `${v.nominal}%` : formatRp(v.nominal)}
-                    </td>
-                    <td class="p-2.5 text-center">
-                        <button onclick="deleteVoucher('${v.nama}')" class="text-red-500 hover:text-red-700 p-1 rounded transition-all" title="Hapus"><i class="fas fa-trash-alt text-xs"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function renderCashierUserTable() {
-            const tbody = document.getElementById('admin-cashier-table');
-            if(state.cashierUsers.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="2" class="text-center p-4 text-gray-400 text-xs">Belum ada user terdaftar</td></tr>`;
-                return;
-            }
-            tbody.innerHTML = state.cashierUsers.map(c => `
-                <tr class="hover:bg-blue-50/30 transition-colors">
-                    <td class="p-2.5">
-                        <div class="font-semibold text-gray-700 text-xs">${c.name}</div>
-                        <div class="text-[10px] uppercase font-bold ${c.role === 'admin' ? 'text-blue-500' : 'text-gray-400'}">${c.role || 'kasir'} ${c.pin ? '(Ber-PIN)' : ''}</div>
-                    </td>
-                    <td class="p-2.5 text-center">
-                        <button onclick="deleteCashierUser('${c.name}')" class="text-red-500 hover:text-red-700 p-1 rounded transition-all" title="Hapus"><i class="fas fa-trash-alt text-xs"></i></button>
-                    </td>
-                </tr>
-            `).join('');
+            renderAdminTable(); renderVoucherTable(); renderCashierUserTable();
         }
 
         async function saveBankSettings() {
-            const bName = document.getElementById('setting-bank-name').value.trim();
-            const bAcc = document.getElementById('setting-bank-acc').value.trim();
-            const bOwner = document.getElementById('setting-bank-owner').value.trim();
-
-            if(!bName || !bAcc) {
-                showModal("Peringatan", "Nama Bank dan Nomor Rekening wajib diisi.");
-                return;
-            }
-
+            const n = document.getElementById('setting-bank-name').value.trim();
+            const a = document.getElementById('setting-bank-acc').value.trim();
+            const o = document.getElementById('setting-bank-owner').value.trim();
+            if(!n || !a) return showModal("Peringatan", "Bank dan Rekening wajib.");
             try {
                 const payloads = [
-                    { setting_key: 'bank_name', setting_value: bName },
-                    { setting_key: 'bank_account', setting_value: bAcc },
-                    { setting_key: 'bank_owner', setting_value: bOwner }
+                    { setting_key: 'bank_name', setting_value: n },
+                    { setting_key: 'bank_account', setting_value: a },
+                    { setting_key: 'bank_owner', setting_value: o }
                 ];
-                const { error } = await client.from('store_settings').upsert(payloads, { onConflict: 'setting_key' });
-                if(error) throw error;
+                await client.from('store_settings').upsert(payloads);
+                state.storeSettings.bankName = n; state.storeSettings.bankAcc = a; state.storeSettings.bankOwner = o;
+                showModal("Berhasil", "Info rekening disimpan.");
+            } catch (e) { showModal("Gagal", e.message); }
+        }
 
-                state.storeSettings.bankName = bName;
-                state.storeSettings.bankAcc = bAcc;
-                state.storeSettings.bankOwner = bOwner;
-
-                showModal("Berhasil", "Informasi rekening transfer berhasil disimpan.");
-            } catch (err) {
-                showModal("Gagal Menyimpan", "Pastikan Anda sudah menjalankan SQL Setup untuk tabel store_settings. Error: " + err.message);
-            }
+        async function saveTierSettings() {
+            const min = parseFloat(document.getElementById('setting-tier-min').value) || 0;
+            const type = document.getElementById('setting-tier-type').value;
+            const val = parseFloat(document.getElementById('setting-tier-val').value) || 0;
+            const fam = document.getElementById('setting-tier-family').value.trim();
+            const name = document.getElementById('setting-tier-name').value.trim() || 'Tier Promo';
+            try {
+                const payloads = [
+                    { setting_key: 'tier_min', setting_value: min.toString() },
+                    { setting_key: 'tier_type', setting_value: type },
+                    { setting_key: 'tier_val', setting_value: val.toString() },
+                    { setting_key: 'tier_family', setting_value: fam },
+                    { setting_key: 'tier_name', setting_value: name }
+                ];
+                await client.from('store_settings').upsert(payloads);
+                state.storeSettings.tierMin = min; state.storeSettings.tierType = type;
+                state.storeSettings.tierVal = val; state.storeSettings.tierName = name; state.storeSettings.tierFamily = fam;
+                showModal("Berhasil", "Pengaturan Promo Tier disimpan.");
+            } catch (e) { showModal("Gagal", e.message); }
         }
 
         async function saveCashierUser() {
             const name = document.getElementById('new-user-name').value.trim();
             const role = document.getElementById('new-user-role').value;
             const pin = document.getElementById('new-user-pin').value.trim();
-            
-            if(!name) {
-                showModal("Peringatan", "Masukkan nama user terlebih dahulu.");
-                return;
-            }
+            if(!name) return;
             try {
-                const payload = { name: name, role: role };
-                if (pin) payload.pin = pin;
-                else payload.pin = null; 
-                
-                const { error } = await client.from('cashier_users').upsert(payload);
-                if(error) throw error;
-                
-                document.getElementById('new-user-name').value = '';
-                document.getElementById('new-user-pin').value = '';
+                await client.from('cashier_users').upsert({ name, role, pin: pin||null });
+                document.getElementById('new-user-name').value = ''; document.getElementById('new-user-pin').value = '';
                 await loadData();
-            } catch(err) {
-                showModal("Gagal Menyimpan", err.message);
-            }
-        }
-
-        async function deleteCashierUser(name) {
-            showModal("Konfirmasi", `Hapus user "${name}"?`, true, async () => {
-                try {
-                    const { error } = await client.from('cashier_users').delete().eq('name', name);
-                    if(error) throw error;
-                    await loadData();
-                } catch(err) {
-                    showModal("Gagal Menghapus", err.message);
-                }
-            });
+            } catch(e) { showModal("Gagal", e.message); }
         }
 
         async function saveVoucher() {
@@ -1416,449 +1170,249 @@
             const tipe = document.getElementById('v-tipe').value;
             const nominal = parseFloat(document.getElementById('v-nominal').value);
             const keterangan = document.getElementById('v-keterangan').value.trim();
-
-            if(!nama || isNaN(nominal) || nominal <= 0) {
-                showModal("Form Tidak Lengkap", "Silakan isi Kode Voucher dan Nominal yang valid.");
-                return;
-            }
-
+            if(!nama || !nominal) return;
             try {
-                const { error } = await client.from('vouchers').upsert({
-                    nama: nama, tipe: tipe, nominal: nominal, keterangan: keterangan
-                });
-                if(error) throw error;
-                
-                document.getElementById('v-nama').value = '';
-                document.getElementById('v-nominal').value = '';
-                document.getElementById('v-keterangan').value = '';
+                await client.from('vouchers').upsert({ nama, tipe, nominal, keterangan });
+                document.getElementById('v-nama').value = ''; document.getElementById('v-nominal').value = ''; document.getElementById('v-keterangan').value = '';
                 await loadData();
-            } catch (err) {
-                showModal("Gagal Menyimpan", err.message);
-            }
+            } catch(e) { showModal("Gagal", e.message); }
         }
 
-        function deleteVoucher(nama) {
-            showModal("Konfirmasi Penghapusan", `Yakin ingin menghapus voucher "${nama}"?`, true, async () => {
-                try {
-                    const { error } = await client.from('vouchers').delete().eq('nama', nama);
-                    if(error) throw error;
-                    await loadData();
-                } catch(err) {
-                    showModal("Gagal Menghapus", err.message);
-                }
-            });
+        function renderAdminTable() {
+            document.getElementById('total-master-items').innerText = `${state.items.length} Item`;
+            document.getElementById('admin-item-table').innerHTML = state.items.slice(0, 100).map(i => `
+                <tr class="hover:bg-blue-50">
+                    <td class="p-3 text-xs text-gray-500 font-mono">${i.id}</td>
+                    <td class="p-3 font-semibold text-gray-800 text-xs">${i.name}</td>
+                    <td class="p-3 text-center font-bold ${i.stock <= 5 ? 'text-red-600 bg-red-50' : 'text-gray-700'}">${i.stock}</td>
+                    <td class="p-3 text-right font-bold text-gray-800 text-xs">${formatRp(i.price)}</td>
+                </tr>`).join('');
+        }
+
+        function renderVoucherTable() {
+            document.getElementById('admin-voucher-table').innerHTML = state.vouchers.map(v => `
+                <tr class="hover:bg-orange-50">
+                    <td class="p-2.5 font-bold text-orange-600 text-xs uppercase">${v.nama}</td>
+                    <td class="p-2.5 text-xs text-gray-600">${v.tipe==='persen'?v.nominal+'%':formatRp(v.nominal)}</td>
+                </tr>`).join('');
+        }
+
+        function renderCashierUserTable() {
+            document.getElementById('admin-cashier-table').innerHTML = state.cashierUsers.map(c => `
+                <tr class="hover:bg-blue-50"><td class="p-2.5 text-xs font-semibold">${c.name} <span class="text-[10px] text-gray-400">(${c.role})</span></td></tr>
+            `).join('');
         }
 
         async function handleBulkUpload() {
-            const fileInput = document.getElementById('excel-file');
-            const statusEl = document.getElementById('upload-status');
-            const file = fileInput.files[0];
-
-            if (!file || !client) {
-                statusEl.innerHTML = '<span class="text-red-500"><i class="fas fa-exclamation-circle"></i> Pilih file Excel (.xlsx) terlebih dahulu.</span>';
-                statusEl.classList.remove('hidden-el');
-                return;
-            }
-
-            statusEl.innerHTML = '<span class="text-blue-600"><i class="fas fa-spinner fa-spin mr-1"></i> Membaca file Excel...</span>';
-            statusEl.classList.remove('hidden-el');
-            statusEl.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold bg-blue-50 border border-blue-100 block';
-
+            const file = document.getElementById('excel-file').files[0];
+            const status = document.getElementById('upload-status');
+            if(!file) return;
+            status.innerHTML = '<span class="text-blue-600">Membaca file...</span>'; status.classList.remove('hidden-el');
+            
             const reader = new FileReader();
-            reader.onload = async function(e) {
+            reader.onload = async (e) => {
                 try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'}); 
-                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-                    
-                    if (rawData.length === 0) throw new Error("File Excel kosong atau tidak terbaca.");
-
-                    const cleanKeyStr = (str) => {
-                        return str ? str.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
-                    };
-
-                    const getVal = (row, possibleKeys) => {
-                        const normalizedRow = {};
-                        Object.keys(row).forEach(k => {
-                            normalizedRow[cleanKeyStr(k)] = row[k];
-                        });
-                        for (let pKey of possibleKeys) {
-                            const cleanedPKey = cleanKeyStr(pKey);
-                            if (normalizedRow[cleanedPKey] !== undefined && normalizedRow[cleanedPKey] !== "") {
-                                return normalizedRow[cleanedPKey];
-                            }
-                        }
-                        return null;
-                    };
-
-                    const cleanNum = (val) => {
-                        if (val === null || val === undefined || val === '') return 0;
-                        if (typeof val === 'number') return val;
-                        let str = val.toString().trim();
-                        if (str.startsWith('(') && str.endsWith(')')) str = '-' + str.substring(1, str.length - 1);
-                        str = str.replace(/[^0-9\.\-\,]/g, ''); 
-                        if (str.includes(',') && str.includes('.')) {
-                            str = str.replace(/\./g, '').replace(',', '.');
-                        } else if (str.includes(',')) {
-                            str = str.replace(',', '.');
-                        }
-                        const finalNum = parseFloat(str);
-                        return isNaN(finalNum) ? 0 : finalNum;
-                    };
-
-                    let formattedData = [];
-                    rawData.forEach(row => {
-                        const idRaw = getVal(row, ['Kode Stock', 'kodestock', 'kode', 'id', 'itemid']);
-                        const nameRaw = getVal(row, ['Nama Barang', 'namabarang', 'nama', 'name', 'itemname']);
-                        if (!idRaw && !nameRaw) return;
-
-                        const finalId = (idRaw || `STK-${Date.now()}-${Math.floor(Math.random()*1000)}`).toString().trim();
-
-                        formattedData.push({
-                            id: finalId,
-                            name: (nameRaw || 'Unknown').toString().trim(),
-                            kelompok: (getVal(row, ['Kelompok', 'kelompok', 'brand']) || '').toString().trim(),
-                            family: (getVal(row, ['Family', 'family']) || '').toString().trim(),
-                            orig_code: (getVal(row, ['Original Code', 'originalcode', 'origcode']) || '').toString().trim(),
-                            disc: cleanNum(getVal(row, ['Disc', 'disc', 'diskon'])),
-                            stock: cleanNum(getVal(row, ['Qty Akhir', 'qtyakhir', 'qty', 'stok', 'stock'])),
-                            cost: cleanNum(getVal(row, ['Harga Beli Akhir', 'hargabeliakhir', 'hargabeli', 'modal'])),
-                            price: cleanNum(getVal(row, ['Harga Jual', 'hargajual', 'harga', 'price']))
+                    const wb = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
+                    const raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                    let formatted = [];
+                    raw.forEach(r => {
+                        const id = r['Kode Stock'] || r['id'] || `STK-${Date.now()}-${Math.floor(Math.random()*100)}`;
+                        const name = r['Nama Barang'] || r['name'];
+                        if(!name) return;
+                        formatted.push({
+                            id: id.toString().trim(), name: name.toString().trim(), 
+                            kelompok: (r['Kelompok']||'').toString(), family: (r['Family']||'').toString(),
+                            orig_code: (r['Original Code']||r['orig_code']||'').toString(),
+                            disc: parseFloat(r['Disc']||r['diskon'])||0, stock: parseFloat(r['Qty Akhir']||r['qty'])||0,
+                            cost: parseFloat(r['Harga Beli Akhir'])||0, price: parseFloat(r['Harga Jual']||r['harga'])||0
                         });
                     });
-
-                    const uniqueDataMap = new Map();
-                    formattedData.forEach(item => uniqueDataMap.set(item.id, item));
-                    const finalDataToUpload = Array.from(uniqueDataMap.values());
-
-                    statusEl.innerHTML = `<span class="text-blue-600"><i class="fas fa-spinner fa-spin mr-1"></i> Mengirim ${finalDataToUpload.length} item ke Database...</span>`;
-
-                    const batchSize = 500;
-                    for (let i = 0; i < finalDataToUpload.length; i += batchSize) {
-                        const batch = finalDataToUpload.slice(i, i + batchSize);
-                        const { error } = await client.from('master_items').upsert(batch, { onConflict: 'id' });
-                        if (error) throw error;
-                    }
-
-                    statusEl.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold bg-green-50 border border-green-100 block';
-                    statusEl.innerHTML = `<span class="text-green-700"><i class="fas fa-check-circle mr-1"></i> Berhasil update ${finalDataToUpload.length} data.</span>`;
-                    fileInput.value = ''; 
                     
+                    status.innerHTML = `<span class="text-blue-600">Mengunggah ${formatted.length} data...</span>`;
+                    for(let i=0; i<formatted.length; i+=500) {
+                        await client.from('master_items').upsert(formatted.slice(i, i+500), { onConflict: 'id' });
+                    }
+                    status.innerHTML = '<span class="text-green-600">Berhasil!</span>';
                     await loadData();
-
-                } catch (err) {
-                    console.error(err);
-                    statusEl.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold bg-red-50 border border-red-100 block';
-                    statusEl.innerHTML = `<span class="text-red-600"><i class="fas fa-exclamation-triangle mr-1"></i> Gagal: ${err.message}</span>`;
-                }
+                } catch (err) { status.innerHTML = `<span class="text-red-600">Error: ${err.message}</span>`; }
             };
             reader.readAsArrayBuffer(file);
         }
 
         function downloadTemplate() {
-            const templateData = [
-                ["Kode Stock", "Nama Barang", "Kelompok", "Family", "Original Code", "Disc", "Qty Akhir", "Harga Beli Akhir", "Harga Jual"],
-                ["STK-001", "EMINA ACNE CLEAR EXPERT SERUM 17ml", "KOSMETIK", "EMINA", "EMN-001", 0, 16, 25000, 39000]
-            ];
-            const ws = XLSX.utils.aoa_to_sheet(templateData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Master Item");
-            XLSX.writeFile(wb, "Template_Upload_Suryatokoku.xlsx");
+            const ws = XLSX.utils.aoa_to_sheet([["Kode Stock", "Nama Barang", "Kelompok", "Family", "Original Code", "Disc", "Qty Akhir", "Harga Jual"]]);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Master"); XLSX.writeFile(wb, "Template.xlsx");
         }
 
         function resetDataMaster() {
-            if (!client) return;
-            showModal("PERINGATAN BAHAYA!", "Anda akan menghapus SEMUA data produk di database secara permanen. Lanjutkan?", true, async () => {
-                const statusEl = document.getElementById('upload-status');
-                statusEl.classList.remove('hidden-el');
-                statusEl.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold border bg-yellow-50 border-yellow-200 text-yellow-700 block';
-                statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Menghapus seluruh data...';
-                
-                try {
-                    const { error } = await client.from('master_items').delete().neq('id', 'kosong');
-                    if (error) throw error;
-                    
-                    statusEl.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold border bg-green-50 border-green-200 text-green-700 block';
-                    statusEl.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Seluruh data berhasil dihapus!';
-                    await loadData();
-                } catch (err) {
-                    statusEl.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold border bg-red-50 border-red-200 text-red-600 block';
-                    statusEl.innerHTML = `<i class="fas fa-times-circle mr-1"></i> Gagal: ${err.message}`;
-                }
+            showModal("PERINGATAN", "Hapus semua master barang?", true, async () => {
+                await client.from('master_items').delete().neq('id', 'kosong');
+                await loadData();
             });
+        }
+
+        function initReportTab() {
+            const userFilter = document.getElementById('filter-user');
+            userFilter.innerHTML = '<option value="">Semua User</option>' + state.cashierUsers.map(u => `<option value="${u.name}">${u.name}</option>`).join('');
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('filter-date-start').value = today; document.getElementById('filter-date-end').value = today;
+            loadReport();
         }
 
         async function loadReport() {
-            if (!client) return;
-            const startDate = document.getElementById('filter-date-start').value;
-            const endDate = document.getElementById('filter-date-end').value;
-            const userFilter = document.getElementById('filter-user').value;
-            
-            if(!startDate || !endDate) return;
+            if(!client) return;
+            const start = document.getElementById('filter-date-start').value;
+            const end = document.getElementById('filter-date-end').value;
+            const user = document.getElementById('filter-user').value;
+            if(!start||!end) return;
 
             try {
-                let txQuery = client.from('transactions').select('*')
-                                            .gte('date', startDate)
-                                            .lte('date', endDate)
-                                            .order('date', { ascending: false })
-                                            .order('time', { ascending: false });
+                let qTx = client.from('transactions').select('*').gte('date', start).lte('date', end).order('date', {ascending:false}).order('time', {ascending:false});
+                if(user) qTx = qTx.eq('role', user);
+                const {data: tx} = await qTx;
                 
-                if (userFilter) txQuery = txQuery.eq('role', userFilter);
+                let qDt = client.from('transaction_details').select('*').gte('date', start).lte('date', end);
+                if(user) qDt = qDt.eq('user_role', user);
+                const {data: dt} = await qDt;
 
-                const { data: tx, error: txError } = await txQuery;
-                if (txError) throw txError;
-
-                let dtQuery = client.from('transaction_details').select('*')
-                                            .gte('date', startDate)
-                                            .lte('date', endDate);
-                
-                if (userFilter) dtQuery = dtQuery.eq('user_role', userFilter);
-
-                const { data: dt, error: dtError } = await dtQuery;
-                if (dtError) throw dtError;
-
-                state.reports.transactions = tx || [];
-                state.reports.details = dt || [];
-
+                state.reports = { transactions: tx||[], details: dt||[] };
                 renderReportUI();
-            } catch (err) {
-                console.error("Gagal memuat laporan:", err);
-                showModal("Gagal Mengambil Laporan", err.message);
-            }
+            } catch(e) {}
         }
 
         function renderReportUI() {
-            const txData = state.reports.transactions;
-            const tbody = document.getElementById('report-table');
-            const summaryEl = document.getElementById('report-summary');
-            const klerekTbody = document.getElementById('report-klerek-table');
+            const txs = state.reports.transactions;
+            let totalRev = 0, totalDisc = 0, kMap = {};
             
-            let sumTotal = 0;
-            let sumDiscount = 0;
-            let klerekMap = {};
-
-            txData.forEach(t => {
-                sumTotal += parseFloat(t.total) || 0;
-                sumDiscount += parseFloat(t.discount) || 0;
+            txs.forEach(t => {
+                totalRev += parseFloat(t.total)||0; totalDisc += parseFloat(t.discount)||0;
+                const u = t.role || 'Admin';
+                if(!kMap[u]) kMap[u] = { count: 0, sub: 0, dReg: 0, dTier: 0, dVouch: 0, cash: 0, qris: 0, tf: 0, tot: 0 };
                 
-                const user = t.role || 'Unknown';
-                if(!klerekMap[user]) {
-                    klerekMap[user] = { count: 0, subtotal: 0, diskon_reg: 0, diskon_voucher: 0, total: 0, cash: 0, qris: 0, transfer: 0 };
-                }
+                let totD = parseFloat(t.discount)||0, vD = parseFloat(t.voucher_diskon)||0, tD = parseFloat(t.tier_promo_disc)||0;
                 
-                let totDisc = parseFloat(t.discount) || 0;
-                let vouchDisc = parseFloat(t.voucher_diskon) || 0;
-                let regDisc = totDisc - vouchDisc;
+                kMap[u].count++; kMap[u].sub += parseFloat(t.subtotal)||0;
+                kMap[u].dTier += tD; kMap[u].dVouch += vD; kMap[u].dReg += (totD - vD - tD);
+                kMap[u].tot += parseFloat(t.total)||0;
 
-                klerekMap[user].count += 1;
-                klerekMap[user].subtotal += parseFloat(t.subtotal) || 0;
-                klerekMap[user].diskon_reg += regDisc;
-                klerekMap[user].diskon_voucher += vouchDisc;
-                klerekMap[user].total += parseFloat(t.total) || 0;
-
-                const pm = (t.payment_method || 'CASH').toUpperCase();
-                const tTotal = parseFloat(t.total) || 0;
-                if (pm.startsWith('QRIS')) {
-                    klerekMap[user].qris += tTotal;
-                } else if (pm.startsWith('TRANSFER')) {
-                    klerekMap[user].transfer += tTotal;
-                } else {
-                    klerekMap[user].cash += tTotal;
-                }
+                const pm = (t.payment_method||'CASH').toUpperCase();
+                if(pm.includes('QRIS')) kMap[u].qris += parseFloat(t.total);
+                else if(pm.includes('TRANSFER')) kMap[u].tf += parseFloat(t.total);
+                else kMap[u].cash += parseFloat(t.total);
             });
 
-            summaryEl.innerHTML = `
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-green-100 flex items-center gap-4">
-                    <div class="w-14 h-14 bg-green-50 text-green-500 rounded-2xl flex items-center justify-center text-2xl"><i class="fas fa-wallet"></i></div>
-                    <div><div class="text-sm text-gray-500 font-semibold mb-1">Total Pendapatan Bersih</div><div class="text-2xl font-extrabold text-gray-800 tracking-tight">${formatRp(sumTotal)}</div></div>
+            document.getElementById('report-summary').innerHTML = `
+                <div class="bg-white p-4 rounded-xl border border-green-100 flex gap-4 items-center shadow-sm">
+                    <div class="w-12 h-12 bg-green-50 text-green-500 rounded-xl flex items-center justify-center text-xl"><i class="fas fa-wallet"></i></div>
+                    <div><div class="text-xs text-gray-500 font-semibold">Pendapatan Bersih</div><div class="text-lg font-bold">${formatRp(totalRev)}</div></div>
                 </div>
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-blue-100 flex items-center gap-4">
-                    <div class="w-14 h-14 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center text-2xl"><i class="fas fa-shopping-cart"></i></div>
-                    <div><div class="text-sm text-gray-500 font-semibold mb-1">Jumlah Transaksi</div><div class="text-2xl font-extrabold text-gray-800 tracking-tight">${txData.length} <span class="text-sm font-medium text-gray-500">Struk</span></div></div>
+                <div class="bg-white p-4 rounded-xl border border-blue-100 flex gap-4 items-center shadow-sm">
+                    <div class="w-12 h-12 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center text-xl"><i class="fas fa-receipt"></i></div>
+                    <div><div class="text-xs text-gray-500 font-semibold">Jumlah Struk</div><div class="text-lg font-bold">${txs.length}</div></div>
                 </div>
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-orange-100 flex items-center gap-4">
-                    <div class="w-14 h-14 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center text-2xl"><i class="fas fa-tags"></i></div>
-                    <div><div class="text-sm text-gray-500 font-semibold mb-1">Total Diskon & Voucher</div><div class="text-2xl font-extrabold text-gray-800 tracking-tight">${formatRp(sumDiscount)}</div></div>
+                <div class="bg-white p-4 rounded-xl border border-orange-100 flex gap-4 items-center shadow-sm">
+                    <div class="w-12 h-12 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center text-xl"><i class="fas fa-tags"></i></div>
+                    <div><div class="text-xs text-gray-500 font-semibold">Total Diskon</div><div class="text-lg font-bold">${formatRp(totalDisc)}</div></div>
                 </div>
             `;
-
-            document.getElementById('report-tx-count').innerText = `${txData.length} Transaksi`;
-
-            if(Object.keys(klerekMap).length === 0) {
-                klerekTbody.innerHTML = `<tr><td colspan="9" class="text-center p-8 text-gray-400 font-medium"><i class="fas fa-folder-open text-3xl mb-3 block opacity-20"></i>Belum ada data klerek</td></tr>`;
-            } else {
-                klerekTbody.innerHTML = Object.keys(klerekMap).map(user => `
-                <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="p-4 font-bold text-gray-800"><i class="fas fa-user-circle text-gray-400 mr-2"></i> ${user}</td>
-                    <td class="p-4 text-center font-bold text-gray-600 bg-gray-50/50">${klerekMap[user].count} <span class="text-xs font-normal">Struk</span></td>
-                    <td class="p-4 text-right text-gray-600 font-medium">${formatRp(klerekMap[user].subtotal)}</td>
-                    <td class="p-4 text-right text-orange-500 font-semibold">${formatRp(klerekMap[user].diskon_reg)}</td>
-                    <td class="p-4 text-right text-orange-600 font-semibold">${formatRp(klerekMap[user].diskon_voucher)}</td>
-                    <td class="p-4 text-right text-emerald-600 font-semibold">${formatRp(klerekMap[user].cash)}</td>
-                    <td class="p-4 text-right text-purple-600 font-semibold">${formatRp(klerekMap[user].qris)}</td>
-                    <td class="p-4 text-right text-blue-600 font-semibold">${formatRp(klerekMap[user].transfer)}</td>
-                    <td class="p-4 text-right font-extrabold text-blue-700">${formatRp(klerekMap[user].total)}</td>
-                </tr>
-                `).join('');
-            }
-
-            if(txData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-12 text-gray-400"><i class="fas fa-folder-open text-5xl mb-3 block opacity-20"></i><span class="font-medium">Belum ada transaksi di rentang tanggal ini</span></td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = txData.map(tx => {
-                const invNo = tx.order_id.replace("ORD", "INV");
-                const payMethod = tx.payment_method || 'CASH';
+            document.getElementById('report-tx-count').innerText = `${txs.length} Transaksi`;
+            document.getElementById('report-klerek-table').innerHTML = Object.keys(kMap).map(u => `
+                <tr class="hover:bg-gray-50 text-xs font-semibold">
+                    <td class="p-3 text-gray-800">${u}</td><td class="p-3 text-center">${kMap[u].count}</td>
+                    <td class="p-3 text-right">${formatRp(kMap[u].sub)}</td><td class="p-3 text-right text-orange-500">${formatRp(kMap[u].dReg)}</td>
+                    <td class="p-3 text-right text-amber-500">${formatRp(kMap[u].dTier)}</td><td class="p-3 text-right text-orange-600">${formatRp(kMap[u].dVouch)}</td>
+                    <td class="p-3 text-right text-emerald-600">${formatRp(kMap[u].cash)}</td><td class="p-3 text-right text-purple-600">${formatRp(kMap[u].qris)}</td>
+                    <td class="p-3 text-right text-blue-600">${formatRp(kMap[u].tf)}</td><td class="p-3 text-right text-gray-900 font-bold">${formatRp(kMap[u].tot)}</td>
+                </tr>`).join('');
+            
+            document.getElementById('report-table').innerHTML = txs.map(t => {
                 return `
-                <tr class="hover:bg-slate-50 transition-colors group">
-                    <td class="p-4 text-gray-600 font-medium whitespace-nowrap">${tx.date} <span class="text-xs ml-1 bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">${tx.time.substring(0,5)}</span></td>
-                    <td class="p-4 font-bold text-gray-800 font-mono text-sm">${invNo}</td>
-                    <td class="p-4 text-gray-700 font-semibold"><span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md text-xs border border-blue-100">${tx.role || 'Admin'}</span></td>
-                    <td class="p-4 text-gray-700 font-semibold uppercase text-xs"><span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md border border-emerald-100">${payMethod}</span></td>
-                    <td class="p-4 text-gray-700 font-semibold">${tx.voucher_nama ? `<span class="bg-orange-50 text-orange-600 px-2 py-1 rounded text-xs border border-orange-100">${tx.voucher_nama}</span>` : '-'}</td>
-                    <td class="p-4 text-right font-extrabold text-blue-600">${formatRp(tx.total)}</td>
-                    <td class="p-4 text-center">
-                        <button onclick="showDetailModal('${tx.order_id}')" class="bg-white border border-blue-200 text-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-50 transition shadow-sm active:scale-95">Lihat Item</button>
-                    </td>
-                </tr>
-                `;
+                <tr class="hover:bg-gray-50 text-xs">
+                    <td class="p-3 font-medium text-gray-600">${t.date} ${t.time.substring(0,5)}</td>
+                    <td class="p-3 font-mono font-bold">${t.order_id.replace('ORD','INV')}</td>
+                    <td class="p-3">${t.role}</td><td class="p-3 font-bold">${t.payment_method}</td>
+                    <td class="p-3 text-right font-bold text-blue-600">${formatRp(t.total)}</td>
+                    <td class="p-3 text-center"><button onclick="viewReportDetail('${t.order_id}')" class="bg-white border text-blue-600 px-3 py-1 rounded font-bold hover:bg-blue-50">Detail</button></td>
+                </tr>`;
             }).join('');
         }
 
+        function viewReportDetail(id) {
+            const tx = state.reports.transactions.find(t => t.order_id === id);
+            const dt = state.reports.details.filter(d => d.order_id === id);
+            if(!tx) return;
+            
+            buildReceiptUI({
+                orderId: tx.order_id, date: tx.date, time: tx.time, cashier: tx.role, items: dt,
+                subtotal: tx.subtotal, discount: tx.discount, total: tx.total, paymentMethod: tx.payment_method,
+                voucherName: tx.voucher_nama, voucherDisc: tx.voucher_diskon, tierName: tx.tier_promo_name,
+                tierFamily: tx.tier_promo_family
+            });
+        }
+
         function exportExcelReport() {
-            if (state.reports.transactions.length === 0) {
-                showModal("Data Kosong", "Tidak ada data transaksi untuk diekspor pada filter ini.");
-                return;
-            }
-
-            const txData = state.reports.transactions.map(t => ({
-                "Tanggal": t.date,
-                "Jam": t.time,
-                "No. Invoice": t.order_id.replace("ORD", "INV"),
-                "User / Kasir": t.role || 'Admin',
-                "Metode Pembayaran": t.payment_method || 'CASH',
-                "Subtotal": t.subtotal,
-                "Nama Voucher": t.voucher_nama || '-',
-                "Diskon Voucher": t.voucher_diskon,
-                "Total Diskon": t.discount,
-                "Total Pendapatan": t.total
-            }));
-
-            const dtData = state.reports.details.map(d => {
-                const parentTx = state.reports.transactions.find(tx => tx.order_id === d.order_id);
-                return {
-                    "Tanggal": d.date,
-                    "No. Invoice": d.invoice_no,
-                    "Kasir": d.user_role || 'Admin',
-                    "Metode Pembayaran": d.payment_method || 'CASH',
-                    "ID Item": d.item_id,
-                    "Nama Barang": d.name,
-                    "Family": d.family || '-',
-                    "Qty": d.qty,
-                    "Harga Satuan": d.price,
-                    "Subtotal": d.subtotal,
-                    "Diskon Rp": d.discount_amount,
-                    "Total Bersih": d.total,
-                    "VOUCHER": parentTx ? (parentTx.voucher_nama || '-') : '-',
-                    "NOMINAL VOUCHER": parentTx ? (parentTx.voucher_diskon || 0) : 0
-                };
-            });
-
-            const klerekMap = {};
-            state.reports.transactions.forEach(t => {
-                const user = t.role || 'Admin';
-                if(!klerekMap[user]) {
-                    klerekMap[user] = { user, jml_struk: 0, subtotal: 0, diskon_reg: 0, diskon_voucher: 0, cash: 0, qris: 0, transfer: 0, pendapatan: 0 };
-                }
-
-                let totDisc = parseFloat(t.discount) || 0;
-                let vouchDisc = parseFloat(t.voucher_diskon) || 0;
-                let regDisc = totDisc - vouchDisc;
-
-                klerekMap[user].jml_struk += 1;
-                klerekMap[user].subtotal += parseFloat(t.subtotal) || 0;
-                klerekMap[user].diskon_reg += regDisc;
-                klerekMap[user].diskon_voucher += vouchDisc;
-                klerekMap[user].pendapatan += parseFloat(t.total) || 0;
-
-                const pm = (t.payment_method || 'CASH').toUpperCase();
-                const tTotal = parseFloat(t.total) || 0;
-                if (pm.startsWith('QRIS')) {
-                    klerekMap[user].qris += tTotal;
-                } else if (pm.startsWith('TRANSFER')) {
-                    klerekMap[user].transfer += tTotal;
-                } else {
-                    klerekMap[user].cash += tTotal;
-                }
-            });
-
-            const klerekData = Object.values(klerekMap).map(k => ({
-                "Nama User / Kasir": k.user,
-                "Jumlah Transaksi": k.jml_struk,
-                "Subtotal Omzet": k.subtotal,
-                "Diskon Reguler": k.diskon_reg,
-                "Diskon Voucher": k.diskon_voucher,
-                "Cash (Tunai)": k.cash,
-                "QRIS": k.qris,
-                "Transfer": k.transfer,
-                "Pendapatan Bersih": k.pendapatan
-            }));
-
+            if(state.reports.transactions.length===0) return;
             const wb = XLSX.utils.book_new();
             
-            const wsTx = XLSX.utils.json_to_sheet(txData);
-            XLSX.utils.book_append_sheet(wb, wsTx, "Transaksi Utama");
+            const txData = state.reports.transactions.map(t => ({
+                "Tanggal": t.date, "Jam": t.time, "Invoice": t.order_id.replace("ORD","INV"), "Kasir": t.role,
+                "Pembayaran": t.payment_method, "Subtotal": t.subtotal, "Diskon Tier": t.tier_promo_disc||0, "Family Tier": t.tier_promo_family||'-',
+                "Nama Voucher": t.voucher_nama||'-', "Diskon Voucher": t.voucher_diskon||0, "Total Diskon": t.discount, "Pendapatan": t.total
+            }));
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(txData), "Transaksi Utama");
             
-            const wsDt = XLSX.utils.json_to_sheet(dtData);
-            XLSX.utils.book_append_sheet(wb, wsDt, "Detail Barang");
+            const dtData = state.reports.details.map(d => {
+                const pTx = state.reports.transactions.find(x => x.order_id === d.order_id);
+                // Cek apakah item ini berhak mendapat promo tier dari header transaksinya
+                const isTierItem = pTx && pTx.tier_promo_name && (!pTx.tier_promo_family || (d.family||'').toLowerCase() === (pTx.tier_promo_family||'').toLowerCase());
+                
+                return {
+                    "Tanggal": d.date, "Invoice": d.invoice_no, "Kasir": d.user_role, "Pembayaran": d.payment_method,
+                    "ID": d.item_id, "Item": d.name, "Family": d.family||'-', "Qty": d.qty, "Harga": d.price, "Subtotal": d.subtotal, 
+                    "Persen Diskon": d.discount_percent ? d.discount_percent + '%' : '0%',
+                    "Diskon Rp": d.discount_amount, "Total": d.total,
+                    "PROMO TIER": isTierItem ? (pTx.tier_promo_name || 'Aktif') : '-',
+                    "VOUCHER": pTx?(pTx.voucher_nama||'-'):'-', "NOMINAL VOUCHER": pTx?(pTx.voucher_diskon||0):0
+                }
+            });
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dtData), "Detail Barang");
 
-            const wsKlerek = XLSX.utils.json_to_sheet(klerekData);
-            XLSX.utils.book_append_sheet(wb, wsKlerek, "Laporan Klerek");
+            let kMap = {};
+            state.reports.transactions.forEach(t => {
+                const u = t.role || 'Admin';
+                if(!kMap[u]) kMap[u] = { count: 0, sub: 0, dReg: 0, dTier: 0, dVouch: 0, cash: 0, qris: 0, tf: 0, tot: 0 };
+                
+                let totD = parseFloat(t.discount)||0, vD = parseFloat(t.voucher_diskon)||0, tD = parseFloat(t.tier_promo_disc)||0;
+                
+                kMap[u].count++; kMap[u].sub += parseFloat(t.subtotal)||0;
+                kMap[u].dTier += tD; kMap[u].dVouch += vD; kMap[u].dReg += (totD - vD - tD);
+                kMap[u].tot += parseFloat(t.total)||0;
 
-            const startDt = document.getElementById('filter-date-start').value;
-            const endDt = document.getElementById('filter-date-end').value;
-            XLSX.writeFile(wb, `Laporan_Suryatokoku_${startDt}_sd_${endDt}.xlsx`);
+                const pm = (t.payment_method||'CASH').toUpperCase();
+                if(pm.includes('QRIS')) kMap[u].qris += parseFloat(t.total);
+                else if(pm.includes('TRANSFER')) kMap[u].tf += parseFloat(t.total);
+                else kMap[u].cash += parseFloat(t.total);
+            });
+
+            const klerekData = Object.keys(kMap).map(u => ({
+                "User / Kasir": u,
+                "Jml Transaksi": kMap[u].count,
+                "Total Subtotal": kMap[u].sub,
+                "Diskon Reguler": kMap[u].dReg,
+                "Diskon Tier": kMap[u].dTier,
+                "Diskon Voucher": kMap[u].dVouch,
+                "Cash (Tunai)": kMap[u].cash,
+                "QRIS": kMap[u].qris,
+                "Transfer": kMap[u].tf,
+                "Pendapatan Bersih": kMap[u].tot
+            }));
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(klerekData), "Laporan Klerek");
+
+            const st = document.getElementById('filter-date-start').value;
+            XLSX.writeFile(wb, `Laporan_${st}.xlsx`);
         }
 
-        function showDetailModal(orderId) {
-            const tx = state.reports.transactions.find(t => t.order_id === orderId);
-            const items = state.reports.details.filter(d => d.order_id === orderId);
-            if(!tx) return;
-
-            const structuredData = {
-                orderId: tx.order_id,
-                date: tx.date,
-                time: tx.time,
-                cashier: tx.role || 'Admin',
-                items: items.map(i => ({
-                    id: i.item_id,
-                    name: i.name,
-                    qty: i.qty,
-                    price: i.price,
-                    disc: i.discount_percent || 0
-                })),
-                subtotal: tx.subtotal,
-                discount: tx.discount,
-                total: tx.total,
-                paymentMethod: tx.payment_method || 'CASH',
-                voucherName: tx.voucher_nama,
-                voucherDisc: tx.voucher_diskon,
-                cash: tx.total,
-                change: 0
-            };
-
-            showSuccessReceiptModal(structuredData);
-        }
-
-        function closeDetailModal() {
-            document.getElementById('detail-modal').classList.add('hidden-el');
-        }
-
-        window.onload = function() {
-            initLoginOptions();
-        };
+        window.onload = initLoginOptions;
     </script>
 </body>
 </html>
