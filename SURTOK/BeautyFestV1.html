@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrasi Suryatokoku Beautyfest</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+        .ig-btn {
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+        }
+        .ig-btn:hover {
+            opacity: 0.9;
+        }
+        
+        /* Modal Animation */
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity 300ms, transform 300ms;
+        }
+        .modal-exit {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .modal-exit-active {
+            opacity: 0;
+            transform: scale(0.9);
+            transition: opacity 300ms, transform 300ms;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4 sm:p-8">
+
+    <div class="w-full max-w-lg glass-card rounded-2xl overflow-hidden relative">
+        
+        <!-- Header Section -->
+        <div class="bg-pink-600 p-6 text-center text-white">
+            <h1 class="text-2xl font-bold mb-2">Suryatokoku Beautyfest</h1>
+            <p class="text-pink-100 text-sm">Silakan isi formulir di bawah ini untuk bergabung dengan database kami.</p>
+        </div>
+
+        <!-- Social Media Links -->
+        <div class="p-6 pb-2">
+            <p class="text-sm font-semibold text-gray-600 mb-3 text-center">Jangan lupa ikuti komunitas kami!</p>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <a href="https://whatsapp.com/channel/0029VbC7wYrADTODLH9f8g0a" target="_blank" rel="noopener noreferrer" 
+                   class="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-lg py-2.5 px-4 flex items-center justify-center gap-2 transition-colors text-sm font-medium">
+                    <i class="fab fa-whatsapp text-lg"></i>
+                    Saluran WA
+                </a>
+                <a href="https://www.instagram.com/suryatokokubeautyfest/" target="_blank" rel="noopener noreferrer" 
+                   class="flex-1 ig-btn text-white rounded-lg py-2.5 px-4 flex items-center justify-center gap-2 transition-opacity text-sm font-medium">
+                    <i class="fab fa-instagram text-lg"></i>
+                    Instagram
+                </a>
+            </div>
+            
+            <div class="mt-6 border-t border-gray-200"></div>
+        </div>
+
+        <form id="registrasiForm" class="p-6 pt-2 space-y-4">
+            
+            <div>
+                <label for="nama" class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+                <input type="text" id="nama" name="nama" required placeholder="Masukkan nama Anda"
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all">
+            </div>
+
+            <div>
+                <label for="alamat" class="block text-sm font-medium text-gray-700 mb-1">Alamat Lengkap</label>
+                <textarea id="alamat" name="alamat" required rows="3" placeholder="Masukkan alamat Anda"
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all resize-none"></textarea>
+            </div>
+
+            <div>
+                <label for="no_wa" class="block text-sm font-medium text-gray-700 mb-1">No. WhatsApp</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500"><i class="fab fa-whatsapp"></i></span>
+                    <input type="tel" id="no_wa" name="no_wa" required placeholder="08xxxxxxxxxx"
+                        class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all">
+                </div>
+            </div>
+
+            <div>
+                <label for="tgl_lahir" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Lahir</label>
+                <input type="date" id="tgl_lahir" name="tgl_lahir" required
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition-all">
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="submitBtn" 
+                class="w-full mt-6 bg-pink-600 hover:bg-pink-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+                <span>Kirim Data</span>
+                <i class="fas fa-paper-plane text-sm"></i>
+            </button>
+        </form>
+    </div>
+
+    <div id="modalOverlay" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4">
+        <div id="modalContent" class="bg-white rounded-2xl max-w-sm w-full p-6 text-center transform scale-90 opacity-0 transition-all duration-300">
+            <div id="modalIcon" class="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4">
+                <!-- Icon disuntikkan via JS -->
+            </div>
+            <h3 id="modalTitle" class="text-lg font-bold text-gray-900 mb-2">Pesan</h3>
+            <p id="modalMessage" class="text-gray-600 text-sm mb-6">Detail pesan di sini.</p>
+            <button onclick="closeModal()" class="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-2.5 rounded-lg transition-colors">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Konfigurasi Endpoint
+        const SUPABASE_URL = 'https://zxsyggyekdbxtumdpisq.supabase.co/rest/v1/data_beautyfestv1';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4c3lnZ3lla2RieHR1bWRwaXNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NzI5MTgsImV4cCI6MjEwNTU0ODkxOH0.b2HoXlKgchtRwOmqRyb9pPQp9tHCQ6x4EibLH6W_tQI';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbwGJUednCwfarRGxz_SnfpQ2Kc6rx7122PhQe29dSmz66SyaTQlNItVxrhT7MbapTdd/exec';
+
+        const form = document.getElementById('registrasiForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalContent = document.getElementById('modalContent');
+
+        // Fungsi Menampilkan Modal
+        function showModal(type, title, message) {
+            const modalIcon = document.getElementById('modalIcon');
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+
+            if (type === 'success') {
+                modalIcon.className = 'w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 bg-green-100 text-green-500 text-2xl';
+                modalIcon.innerHTML = '<i class="fas fa-check"></i>';
+            } else {
+                modalIcon.className = 'w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 bg-red-100 text-red-500 text-2xl';
+                modalIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+            }
+
+            modalOverlay.classList.remove('hidden');
+            // Sedikit delay agar transisi CSS jalan
+            setTimeout(() => {
+                modalContent.classList.remove('scale-90', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        // Fungsi Menutup Modal
+        function closeModal() {
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-90', 'opacity-0');
+            setTimeout(() => {
+                modalOverlay.classList.add('hidden');
+            }, 300);
+        }
+
+        // Fungsi Tombol Loading
+        function setLoading(isLoading) {
+            if (isLoading) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span>Mengirim...</span>';
+                submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span>Kirim Data</span> <i class="fas fa-paper-plane text-sm"></i>';
+                submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+            }
+        }
+
+        // Event Listener Submit Form
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            setLoading(true);
+
+            // Ambil data dari form
+            const formData = {
+                nama: document.getElementById('nama').value,
+                alamat: document.getElementById('alamat').value,
+                no_wa: document.getElementById('no_wa').value,
+                tgl_lahir: document.getElementById('tgl_lahir').value
+            };
+
+            try {
+                // 1. POST ke Supabase
+                const supabaseResponse = await fetch(SUPABASE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!supabaseResponse.ok) {
+                    throw new Error('Terjadi kendala saat menyimpan ke Database (Supabase).');
+                }
+
+                // 2. POST ke Google Apps Script (Spreadsheet)
+                // Menggunakan mode no-cors dan URLSearchParams agar compatible dengan script GAS web app default
+                const gasParams = new URLSearchParams(formData);
+                await fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Mencegah blokir CORS dari sisi client
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: gasParams
+                });
+
+                // Jika berhasil melewati dua fetch di atas
+                showModal('success', 'Pendaftaran Berhasil!', 'Data Anda telah tersimpan dengan aman ke database dan spreadsheet kami. Terima kasih.');
+                form.reset(); // Reset isi form
+
+            } catch (error) {
+                console.error('Error:', error);
+                showModal('error', 'Gagal Mengirim Data', error.message || 'Periksa kembali koneksi internet Anda dan coba lagi.');
+            } finally {
+                setLoading(false);
+            }
+        });
+    </script>
+</body>
+</html>
