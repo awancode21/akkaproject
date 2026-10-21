@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -33,15 +34,6 @@
         .modal-enter-active {
             opacity: 1;
             transform: scale(1);
-            transition: opacity 300ms, transform 300ms;
-        }
-        .modal-exit {
-            opacity: 1;
-            transform: scale(1);
-        }
-        .modal-exit-active {
-            opacity: 0;
-            transform: scale(0.9);
             transition: opacity 300ms, transform 300ms;
         }
     </style>
@@ -127,7 +119,7 @@
     </div>
 
     <script>
-        // Konfigurasi Endpoint
+        // Konfigurasi Endpoint (Sudah diatur ke data_beautyfestv1)
         const SUPABASE_URL = 'https://zxsyggyekdbxtumdpisq.supabase.co/rest/v1/data_beautyfestv1';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4c3lnZ3lla2RieHR1bWRwaXNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NzI5MTgsImV4cCI6MjEwNTU0ODkxOH0.b2HoXlKgchtRwOmqRyb9pPQp9tHCQ6x4EibLH6W_tQI';
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbwGJUednCwfarRGxz_SnfpQ2Kc6rx7122PhQe29dSmz66SyaTQlNItVxrhT7MbapTdd/exec';
@@ -137,7 +129,6 @@
         const modalOverlay = document.getElementById('modalOverlay');
         const modalContent = document.getElementById('modalContent');
 
-        // Fungsi Menampilkan Modal
         function showModal(type, title, message) {
             const modalIcon = document.getElementById('modalIcon');
             document.getElementById('modalTitle').textContent = title;
@@ -152,14 +143,12 @@
             }
 
             modalOverlay.classList.remove('hidden');
-            // Sedikit delay agar transisi CSS jalan
             setTimeout(() => {
                 modalContent.classList.remove('scale-90', 'opacity-0');
                 modalContent.classList.add('scale-100', 'opacity-100');
             }, 10);
         }
 
-        // Fungsi Menutup Modal
         function closeModal() {
             modalContent.classList.remove('scale-100', 'opacity-100');
             modalContent.classList.add('scale-90', 'opacity-0');
@@ -168,7 +157,6 @@
             }, 300);
         }
 
-        // Fungsi Tombol Loading
         function setLoading(isLoading) {
             if (isLoading) {
                 submitBtn.disabled = true;
@@ -181,7 +169,6 @@
             }
         }
 
-        // Event Listener Submit Form
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             setLoading(true);
@@ -212,20 +199,19 @@
                 }
 
                 // 2. POST ke Google Apps Script (Spreadsheet)
-                // Menggunakan mode no-cors dan URLSearchParams agar compatible dengan script GAS web app default
                 const gasParams = new URLSearchParams(formData);
                 await fetch(GAS_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // Mencegah blokir CORS dari sisi client
+                    mode: 'no-cors', // Mencegah blokir CORS
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
                     body: gasParams
                 });
 
-                // Jika berhasil melewati dua fetch di atas
+                // Tampilkan sukses
                 showModal('success', 'Pendaftaran Berhasil!', 'Data Anda telah tersimpan dengan aman ke database dan spreadsheet kami. Terima kasih.');
-                form.reset(); // Reset isi form
+                form.reset(); 
 
             } catch (error) {
                 console.error('Error:', error);
