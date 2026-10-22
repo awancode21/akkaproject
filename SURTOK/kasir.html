@@ -619,16 +619,29 @@
         async function loadData() {
             if (!client) return;
             try {
-                const [resItems, resVouchers, resUsers, resSettings] = await Promise.all([
-                    client.from('master_items').select('*').order('name'),
+                // Tarik data Master Items berulang (Paginasi) untuk melewati batas 1.000 data dari Supabase
+                let allItems = [];
+                let page = 0;
+                const limit = 1000;
+                while(true) {
+                    const { data, error } = await client.from('master_items').select('*').range(page * limit, (page + 1) * limit - 1).order('name');
+                    if (error) throw error;
+                    if (data && data.length > 0) {
+                        allItems = allItems.concat(data);
+                        if (data.length < limit) break; // Jika data terakhir kurang dari 1000, berarti sudah habis
+                    } else {
+                        break;
+                    }
+                    page++;
+                }
+
+                const [resVouchers, resUsers, resSettings] = await Promise.all([
                     client.from('vouchers').select('*'),
                     client.from('cashier_users').select('*').order('name'),
                     client.from('store_settings').select('*')
                 ]);
 
-                if (resItems.error) throw resItems.error;
-                
-                state.items = resItems.data || [];
+                state.items = allItems || [];
                 state.vouchers = resVouchers.data || [];
                 state.cashierUsers = resUsers.data || [];
                 
@@ -653,7 +666,10 @@
         function renderProducts() {
             const grid = document.getElementById('product-grid');
             const search = (document.getElementById('search-item').value || '').toLowerCase();
-            const filtered = state.items.filter(i => (i.name||'').toLowerCase().includes(search) || (i.id||'').toLowerCase().includes(search) || (i.orig_code||'').toLowerCase().includes(search));
+            
+            // Batasi tampilan maksimal 60 item agar browser tidak freeze saat data mencapai puluhan ribu
+            // Pencarian tetap berjalan cepat di memori untuk semua 70.000+ data
+            const filtered = state.items.filter(i => (i.name||'').toLowerCase().includes(search) || (i.id||'').toLowerCase().includes(search) || (i.orig_code||'').toLowerCase().includes(search)).slice(0, 60);
 
             grid.innerHTML = filtered.map(item => {
                 const discPercent = parseFloat(item.disc) || 0;
@@ -1178,6 +1194,25 @@
             } catch(e) { showModal("Gagal", e.message); }
         }
 
+        function editVoucher(nama) {
+            const v = state.vouchers.find(x => x.nama === nama);
+            if(!v) return;
+            document.getElementById('v-nama').value = v.nama;
+            document.getElementById('v-tipe').value = v.tipe;
+            document.getElementById('v-nominal').value = v.nominal;
+            document.getElementById('v-keterangan').value = v.keterangan || '';
+            document.getElementById('v-nama').focus();
+        }
+
+        function deleteVoucher(nama) {
+            showModal("Konfirmasi Hapus", `Yakin ingin menghapus voucher ${nama}?`, true, async () => {
+                try {
+                    await client.from('vouchers').delete().eq('nama', nama);
+                    await loadData();
+                } catch(e) { showModal("Gagal Menghapus", e.message); }
+            });
+        }
+
         function renderAdminTable() {
             document.getElementById('total-master-items').innerText = `${state.items.length} Item`;
             document.getElementById('admin-item-table').innerHTML = state.items.slice(0, 100).map(i => `
@@ -1190,10 +1225,19 @@
         }
 
         function renderVoucherTable() {
-            document.getElementById('admin-voucher-table').innerHTML = state.vouchers.map(v => `
-                <tr class="hover:bg-orange-50">
+            const tbody = document.getElementById('admin-voucher-table');
+            if(state.vouchers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center p-4 text-gray-400 text-xs">Belum ada voucher</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = state.vouchers.map(v => `
+                <tr class="hover:bg-orange-50 transition-colors">
                     <td class="p-2.5 font-bold text-orange-600 text-xs uppercase">${v.nama}</td>
                     <td class="p-2.5 text-xs text-gray-600">${v.tipe==='persen'?v.nominal+'%':formatRp(v.nominal)}</td>
+                    <td class="p-2.5 text-right whitespace-nowrap">
+                        <button onclick="editVoucher('${v.nama}')" class="text-blue-500 hover:text-blue-700 p-1 rounded transition-all" title="Edit"><i class="fas fa-edit text-xs"></i></button>
+                        <button onclick="deleteVoucher('${v.nama}')" class="text-red-500 hover:text-red-700 p-1 rounded transition-all ml-1" title="Hapus"><i class="fas fa-trash-alt text-xs"></i></button>
+                    </td>
                 </tr>`).join('');
         }
 
@@ -1230,9 +1274,10 @@
                     
                     status.innerHTML = `<span class="text-blue-600">Mengunggah ${formatted.length} data...</span>`;
                     for(let i=0; i<formatted.length; i+=500) {
+                        status.innerHTML = `<span class="text-blue-600">Mengunggah Batch ${Math.floor(i/500)+1} dari ${Math.ceil(formatted.length/500)}... Jangan tutup halaman.</span>`;
                         await client.from('master_items').upsert(formatted.slice(i, i+500), { onConflict: 'id' });
                     }
-                    status.innerHTML = '<span class="text-green-600">Berhasil!</span>';
+                    status.innerHTML = '<span class="text-green-600">Berhasil! Semua data master diperbarui.</span>';
                     await loadData();
                 } catch (err) { status.innerHTML = `<span class="text-red-600">Error: ${err.message}</span>`; }
             };
