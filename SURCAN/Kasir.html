@@ -755,9 +755,31 @@
         async function loadData() {
             if (!client) return;
             try {
-                const { data: items, error } = await client.from('master_items').select('*').order('name');
-                if (error) throw error;
-                state.items = items || [];
+                let allItems = [];
+                let fetchCount = 1000; // Batas default supabase
+                let from = 0;
+                let to = fetchCount - 1;
+                let keepFetching = true;
+
+                while (keepFetching) {
+                    const { data, error } = await client.from('master_items')
+                        .select('*')
+                        .order('name')
+                        .range(from, to);
+                        
+                    if (error) throw error;
+                    
+                    if (data && data.length > 0) {
+                        allItems = allItems.concat(data);
+                        from += fetchCount;
+                        to += fetchCount;
+                        // Jika data yang didapat kurang dari 1000, berarti sudah di halaman terakhir
+                        if (data.length < fetchCount) keepFetching = false;
+                    } else {
+                        keepFetching = false;
+                    }
+                }
+                state.items = allItems;
                 
                 const { data: voucherData } = await client.from('vouchers').select('*');
                 state.vouchers = voucherData || [];
@@ -814,7 +836,9 @@
                 (i.orig_code || '').toLowerCase().includes(search)
             );
 
-            grid.innerHTML = filtered.map(item => `
+            const limitRender = filtered.slice(0, 100);
+
+            let htmlString = limitRender.map(item => `
                 <div onclick="addToCart('${item.id}')" class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:border-blue-400 hover:shadow-md transition-all flex flex-col h-full active:scale-95 group">
                     <div class="text-xs text-gray-400 mb-2 flex justify-between font-medium items-center">
                         <span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600">${item.id}</span>
@@ -832,6 +856,16 @@
                     </div>
                 </div>
             `).join('');
+
+            if (filtered.length > 100) {
+                htmlString += `
+                <div class="col-span-2 md:col-span-3 xl:col-span-4 text-center py-6 text-gray-400 text-sm">
+                    <i class="fas fa-info-circle mb-2 text-xl opacity-50 block"></i>
+                    Ada <b>${filtered.length - 100}</b> item lainnya tersembunyi.<br>Gunakan fitur PENCARIAN atau SCAN BARCODE untuk memunculkannya.
+                </div>`;
+            }
+
+            grid.innerHTML = htmlString;
         }
 
         function addToCart(id) {
