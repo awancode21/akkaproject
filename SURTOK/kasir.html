@@ -416,7 +416,7 @@
                 </div>
                 <div class="flex-1 overflow-y-auto border rounded-xl bg-gray-50 max-h-48">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-gray-200/50 sticky top-0"><tr><th class="p-2.5 text-xs text-gray-500 font-bold uppercase">Kode & Nilai</th><th class="p-2.5 text-center w-16">Aksi</th></tr></thead>
+                        <thead class="bg-gray-200/50 sticky top-0"><tr><th class="p-2.5 text-xs text-gray-500 font-bold uppercase">Kode & Nilai</th><th class="p-2.5 text-center w-20">Aksi</th></tr></thead>
                         <tbody id="admin-voucher-table" class="bg-white divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
@@ -513,6 +513,7 @@
                 if (!state.html5QrCode) state.html5QrCode = new Html5Qrcode("reader");
                 const config = { fps: 10, qrbox: { width: 250, height: 250 } };
                 state.html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                    closeScannerModal(); // Otomatis menutup kamera segera setelah barcode terbaca
                     handleScannedCode(decodedText);
                 }).catch(err => {
                     console.error(err);
@@ -661,7 +662,6 @@
         async function loadData() {
             if (!client) return;
             try {
-                // Load Settings, Users, Vouchers first
                 const [setRes, usrRes, vouRes] = await Promise.all([
                     client.from('store_settings').select('*'),
                     client.from('cashier_users').select('*').order('name'),
@@ -682,7 +682,6 @@
                 state.cashierUsers = usrRes.data || [];
                 state.vouchers = vouRes.data || [];
 
-                // Fetch All Master Items (Paginated)
                 state.items = await fetchAllItems();
 
                 renderProducts(); renderCart(); renderVoucherList();
@@ -835,9 +834,8 @@
                             activeDiscPercent = tierStatus.val;
                             lineDiscAmount = lineSubtotal * (activeDiscPercent / 100);
                             totalTierDiscount += lineDiscAmount;
-                            badgeHtml = `<span class="text-[10px] bg-orange-100 text-orange-700 px-2 py-1 rounded-md font-bold shadow-sm border border-orange-200">Tier ${tierStatus.label}</span>`;
+                            badgeHtml = `<span class="text-[10px] bg-orange-100 text-orange-700 px-2 py-1 rounded-md font-bold shadow-sm border border-orange-200">-${tierStatus.val}%</span>`;
                         } else {
-                            // Jika diskon tier bentuk rupiah, prorata tidak diaplikasikan per line item di display cart (terlalu kompleks visual), kita potong di grand total saja, badge hilangkan atau tulis "Tier Potongan"
                             badgeHtml = `<span class="text-[10px] bg-orange-100 text-orange-700 px-2 py-1 rounded-md font-bold shadow-sm border border-orange-200">Tier Promo</span>`;
                         }
                     } else {
@@ -869,7 +867,6 @@
 
             let finalSubtotal = subtotal - totalItemDiscount - totalTierDiscount;
             
-            // Apply Flat Rupiah Tier Discount directly to final if applicable
             if(tierStatus.active && tierStatus.type === 'rupiah') {
                 totalTierDiscount = tierStatus.val;
                 if (totalTierDiscount > finalSubtotal) totalTierDiscount = finalSubtotal;
