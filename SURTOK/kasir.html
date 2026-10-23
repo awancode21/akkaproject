@@ -1250,36 +1250,87 @@
         async function handleBulkUpload() {
             const file = document.getElementById('excel-file').files[0];
             const status = document.getElementById('upload-status');
-            if(!file) return;
-            status.innerHTML = '<span class="text-blue-600">Membaca file...</span>'; status.classList.remove('hidden-el');
+            if(!file) {
+                status.innerHTML = '<span class="text-red-600">Pilih file Excel terlebih dahulu.</span>'; 
+                status.classList.remove('hidden-el');
+                return;
+            }
+            status.innerHTML = '<span class="text-blue-600"><i class="fas fa-spinner fa-spin mr-1"></i> Membaca file...</span>'; 
+            status.classList.remove('hidden-el');
             
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
                     const wb = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
-                    const raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                    const raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
+                    
+                    // Fungsi pembersih nama kolom (mengabaikan spasi, simbol, huruf besar/kecil)
+                    const cleanKey = (str) => str ? str.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+                    const getVal = (row, possibleKeys) => {
+                        const normRow = {};
+                        Object.keys(row).forEach(k => normRow[cleanKey(k)] = row[k]);
+                        for (let pk of possibleKeys) {
+                            if (normRow[cleanKey(pk)] !== undefined && normRow[cleanKey(pk)] !== "") return normRow[cleanKey(pk)];
+                        }
+                        return null;
+                    };
+                    
+                    // Fungsi pembersih angka (menghapus Rp, koma, spasi)
+                    const cleanNum = (val) => {
+                        if (!val) return 0;
+                        if (typeof val === 'number') return val;
+                        let str = val.toString().trim().replace(/[^0-9\.\-\,]/g, '');
+                        if (str.includes(',') && str.includes('.')) str = str.replace(/\./g, '').replace(',', '.');
+                        else if (str.includes(',')) str = str.replace(',', '.');
+                        const num = parseFloat(str);
+                        return isNaN(num) ? 0 : num;
+                    };
+
                     let formatted = [];
                     raw.forEach(r => {
-                        const id = r['Kode Stock'] || r['id'] || `STK-${Date.now()}-${Math.floor(Math.random()*100)}`;
-                        const name = r['Nama Barang'] || r['name'];
-                        if(!name) return;
+                        const idRaw = getVal(r, ['Kode Stock', 'kodestock', 'kode', 'id', 'itemid']);
+                        const nameRaw = getVal(r, ['Nama Barang', 'namabarang', 'nama', 'name', 'itemname']);
+                        if(!idRaw && !nameRaw) return; // Lewati baris kosong
+                        
+                        const finalId = (idRaw || `STK-${Date.now()}-${Math.floor(Math.random()*1000)}`).toString().trim();
+                        
                         formatted.push({
-                            id: id.toString().trim(), name: name.toString().trim(), 
-                            kelompok: (r['Kelompok']||'').toString(), family: (r['Family']||'').toString(),
-                            orig_code: (r['Original Code']||r['orig_code']||'').toString(),
-                            disc: parseFloat(r['Disc']||r['diskon'])||0, stock: parseFloat(r['Qty Akhir']||r['qty'])||0,
-                            cost: parseFloat(r['Harga Beli Akhir'])||0, price: parseFloat(r['Harga Jual']||r['harga'])||0
+                            id: finalId, 
+                            name: (nameRaw || 'Unknown').toString().trim(), 
+                            kelompok: (getVal(r, ['Kelompok', 'kelompok', 'brand'])||'').toString(), 
+                            family: (getVal(r, ['Family', 'family'])||'').toString(),
+                            orig_code: (getVal(r, ['Original Code', 'originalcode', 'origcode'])||'').toString(),
+                            disc: cleanNum(getVal(r, ['Disc', 'disc', 'diskon'])), 
+                            stock: cleanNum(getVal(r, ['Qty Akhir', 'qtyakhir', 'qty', 'stok', 'stock'])),
+                            cost: cleanNum(getVal(r, ['Harga Beli Akhir', 'hargabeliakhir', 'hargabeli', 'modal'])), 
+                            price: cleanNum(getVal(r, ['Harga Jual', 'hargajual', 'harga', 'price']))
                         });
                     });
                     
-                    status.innerHTML = `<span class="text-blue-600">Mengunggah ${formatted.length} data...</span>`;
-                    for(let i=0; i<formatted.length; i+=500) {
-                        status.innerHTML = `<span class="text-blue-600">Mengunggah Batch ${Math.floor(i/500)+1} dari ${Math.ceil(formatted.length/500)}... Jangan tutup halaman.</span>`;
-                        await client.from('master_items').upsert(formatted.slice(i, i+500), { onConflict: 'id' });
+                    // Saring jika ada ID ganda di dalam file Excel itu sendiri
+                    const uniqueMap = new Map();
+                    formatted.forEach(item => uniqueMap.set(item.id, item));
+                    const finalData = Array.from(uniqueMap.values());
+
+                    if(finalData.length === 0) throw new Error("Format Excel salah atau tidak ada data yang valid.");
+
+                    status.innerHTML = `<span class="text-blue-600"><i class="fas fa-spinner fa-spin mr-1"></i> Mempersiapkan ${finalData.length} data...</span>`;
+                    
+                    for(let i=0; i<finalData.length; i+=500) {
+                        status.innerHTML = `<span class="text-blue-600"><i class="fas fa-spinner fa-spin mr-1"></i> Mengunggah Batch ${Math.floor(i/500)+1} dari ${Math.ceil(finalData.length/500)}... Jangan tutup halaman.</span>`;
+                        const batch = finalData.slice(i, i+500);
+                        
+                        // onConflict id memastikan jika ID sudah ada, data akan di-update (bukan diabaikan)
+                        const { error } = await client.from('master_items').upsert(batch, { onConflict: 'id' });
+                        if (error) throw error; // Jika Supabase menolak, lempar pesan error
                     }
-                    status.innerHTML = '<span class="text-green-600">Berhasil! Semua data master diperbarui.</span>';
-                    await loadData();
-                } catch (err) { status.innerHTML = `<span class="text-red-600">Error: ${err.message}</span>`; }
+                    
+                    status.innerHTML = '<span class="text-green-600"><i class="fas fa-check-circle mr-1"></i> Berhasil! Semua data master diperbarui.</span>';
+                    document.getElementById('excel-file').value = ''; // Reset input
+                    await loadData(); // Segarkan tabel UI
+                } catch (err) { 
+                    status.innerHTML = `<span class="text-red-600"><i class="fas fa-exclamation-triangle mr-1"></i> Error: ${err.message}</span>`; 
+                }
             };
             reader.readAsArrayBuffer(file);
         }
