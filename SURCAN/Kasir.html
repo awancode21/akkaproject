@@ -449,13 +449,22 @@
             <!-- Upload Database Master -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
                 <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-database text-blue-600 mr-2"></i> Database Produk (Mendukung 70k SKU)</h3>
-                <p class="text-xs text-gray-500 mb-3">Upload file Excel (.xlsx) untuk update / tambah barang.</p>
+                <p class="text-xs text-gray-500 mb-3">Upload file Excel (.xlsx) atau tarik dari link Spreadsheet untuk update / tambah barang.</p>
                 <div class="flex flex-col gap-3 flex-1">
-                    <input type="file" id="excel-file" accept=".xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-gray-200 rounded-xl bg-gray-50">
+                    <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-gray-200 rounded-xl bg-gray-50">
                     <div class="flex gap-2 flex-wrap">
-                        <button onclick="handleBulkUpload()" class="bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold hover:bg-blue-700 shadow-sm flex items-center gap-1.5 text-xs transition-all flex-1 justify-center"><i class="fas fa-cloud-upload-alt"></i> Proses Upload</button>
+                        <button onclick="handleBulkUpload()" class="bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold hover:bg-blue-700 shadow-sm flex items-center gap-1.5 text-xs transition-all flex-1 justify-center"><i class="fas fa-cloud-upload-alt"></i> Upload File</button>
                         <button onclick="downloadTemplate()" class="bg-white border border-gray-300 text-gray-700 px-3 py-2.5 rounded-xl font-bold hover:bg-gray-50 shadow-sm flex items-center gap-1.5 text-xs transition-all"><i class="fas fa-download"></i> Template</button>
                     </div>
+                    
+                    <div class="border-t border-gray-100 pt-3 mt-1">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase">Atau Tarik dari Link Google Sheets (CSV)</label>
+                        <div class="flex gap-2 mt-1">
+                            <input type="text" id="g-sheets-url" placeholder="Paste link Publik CSV..." class="w-full p-2.5 border border-gray-200 rounded-xl text-xs outline-none focus:border-blue-400">
+                            <button onclick="handleGoogleSheets()" class="bg-green-600 text-white px-3 py-2.5 rounded-xl font-bold hover:bg-green-700 shadow-sm flex items-center gap-1.5 text-xs transition-all shrink-0"><i class="fas fa-link"></i> Tarik Data</button>
+                        </div>
+                    </div>
+
                     <div id="upload-status" class="mt-2 p-3 rounded-xl text-xs font-semibold hidden-el bg-gray-100 border border-gray-200"></div>
                     <button onclick="resetDataMaster()" class="mt-auto bg-red-50 text-red-600 border border-red-200 px-4 py-2.5 rounded-xl font-bold hover:bg-red-100 transition-all text-xs flex justify-center items-center gap-2"><i class="fas fa-trash-alt"></i> Hapus Seluruh Database Produk</button>
                 </div>
@@ -1199,6 +1208,49 @@
         function deleteVoucher(nama) { showModal("Konfirmasi", `Hapus voucher "${nama}"?`, true, async () => { await client.from('vouchers').delete().eq('nama', nama); await loadData(); }); }
 
         // EXCEL BULK UPLOAD ROBUST PARSER & PROGRESS
+        async function processWorkbookData(workbook, statusEl) {
+            const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+            if (rawData.length === 0) throw new Error("Data spreadsheet kosong");
+
+            const cleanKey = str => str ? str.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+            const getVal = (row, keys) => {
+                const norm = {}; Object.keys(row).forEach(k => norm[cleanKey(k)] = row[k]);
+                for(let k of keys) if(norm[cleanKey(k)] !== undefined && norm[cleanKey(k)] !== "") return norm[cleanKey(k)]; return null;
+            };
+            const cleanNum = val => {
+                if(!val) return 0; if(typeof val === 'number') return val;
+                let s = val.toString().trim().replace(/[^0-9\.\-\,]/g, '');
+                if(s.includes(',')&&s.includes('.')) s = s.replace(/\./g, '').replace(',', '.'); else if(s.includes(',')) s = s.replace(',', '.');
+                return isNaN(parseFloat(s)) ? 0 : parseFloat(s);
+            };
+
+            let formatted = [];
+            rawData.forEach(r => {
+                const id = getVal(r, ['Kode Stock', 'kodestock', 'id']); const name = getVal(r, ['Nama Barang', 'nama', 'name']);
+                if(!id && !name) return;
+                formatted.push({
+                    id: (id || `STK-${Date.now()}-${Math.floor(Math.random()*1000)}`).toString().trim(),
+                    name: (name || 'Unknown').toString().trim(),
+                    kelompok: (getVal(r, ['Kelompok', 'brand']) || '').toString().trim(), family: (getVal(r, ['Family']) || '').toString().trim(),
+                    orig_code: (getVal(r, ['Original Code', 'origcode']) || '').toString().trim(),
+                    disc: cleanNum(getVal(r, ['Disc', 'diskon'])), stock: cleanNum(getVal(r, ['Qty Akhir', 'stok', 'qty'])),
+                    cost: cleanNum(getVal(r, ['Harga Beli Akhir', 'modal'])), price: cleanNum(getVal(r, ['Harga Jual', 'price']))
+                });
+            });
+
+            const uniqMap = new Map(); formatted.forEach(i => uniqMap.set(i.id, i)); const finalData = Array.from(uniqMap.values());
+            const batchSize = 1000;
+            for (let i = 0; i < finalData.length; i += batchSize) {
+                statusEl.innerHTML = `<span class="text-blue-600"><i class="fas fa-spinner fa-spin"></i> Memproses Data ${i} s.d ${i+batchSize} (Total ${finalData.length})...</span>`;
+                const batch = finalData.slice(i, i + batchSize);
+                const { error } = await client.from('master_items').upsert(batch, { onConflict: 'id' });
+                if (error) throw error;
+            }
+            
+            statusEl.innerHTML = `<span class="text-green-700"><i class="fas fa-check-circle"></i> Berhasil update & tambah ${finalData.length} data.</span>`;
+            await loadData();
+        }
+
         async function handleBulkUpload() {
             const file = document.getElementById('excel-file').files[0]; const statusEl = document.getElementById('upload-status');
             if (!file) return (statusEl.innerHTML = '<span class="text-red-500">Pilih file Excel!</span>', statusEl.classList.remove('hidden-el'));
@@ -1209,50 +1261,30 @@
             reader.onload = async (e) => {
                 try {
                     const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
-                    const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
-                    if (rawData.length === 0) throw new Error("File kosong");
-
-                    const cleanKey = str => str ? str.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
-                    const getVal = (row, keys) => {
-                        const norm = {}; Object.keys(row).forEach(k => norm[cleanKey(k)] = row[k]);
-                        for(let k of keys) if(norm[cleanKey(k)] !== undefined && norm[cleanKey(k)] !== "") return norm[cleanKey(k)]; return null;
-                    };
-                    const cleanNum = val => {
-                        if(!val) return 0; if(typeof val === 'number') return val;
-                        let s = val.toString().trim().replace(/[^0-9\.\-\,]/g, '');
-                        if(s.includes(',')&&s.includes('.')) s = s.replace(/\./g, '').replace(',', '.'); else if(s.includes(',')) s = s.replace(',', '.');
-                        return isNaN(parseFloat(s)) ? 0 : parseFloat(s);
-                    };
-
-                    let formatted = [];
-                    rawData.forEach(r => {
-                        const id = getVal(r, ['Kode Stock', 'kodestock', 'id']); const name = getVal(r, ['Nama Barang', 'nama', 'name']);
-                        if(!id && !name) return;
-                        formatted.push({
-                            id: (id || `STK-${Date.now()}-${Math.floor(Math.random()*1000)}`).toString().trim(),
-                            name: (name || 'Unknown').toString().trim(),
-                            kelompok: (getVal(r, ['Kelompok', 'brand']) || '').toString().trim(), family: (getVal(r, ['Family']) || '').toString().trim(),
-                            orig_code: (getVal(r, ['Original Code', 'origcode']) || '').toString().trim(),
-                            disc: cleanNum(getVal(r, ['Disc', 'diskon'])), stock: cleanNum(getVal(r, ['Qty Akhir', 'stok', 'qty'])),
-                            cost: cleanNum(getVal(r, ['Harga Beli Akhir', 'modal'])), price: cleanNum(getVal(r, ['Harga Jual', 'price']))
-                        });
-                    });
-
-                    const uniqMap = new Map(); formatted.forEach(i => uniqMap.set(i.id, i)); const finalData = Array.from(uniqMap.values());
-                    const batchSize = 1000;
-                    for (let i = 0; i < finalData.length; i += batchSize) {
-                        statusEl.innerHTML = `<span class="text-blue-600"><i class="fas fa-spinner fa-spin"></i> Upload Data ${i} s.d ${i+batchSize} (Total ${finalData.length})...</span>`;
-                        const batch = finalData.slice(i, i + batchSize);
-                        const { error } = await client.from('master_items').upsert(batch, { onConflict: 'id' });
-                        if (error) throw error;
-                    }
-                    
-                    statusEl.innerHTML = `<span class="text-green-700"><i class="fas fa-check-circle"></i> Berhasil update ${finalData.length} data.</span>`;
-                    document.getElementById('excel-file').value = ''; await loadData();
+                    await processWorkbookData(workbook, statusEl);
+                    document.getElementById('excel-file').value = '';
                 } catch(err) { statusEl.innerHTML = `<span class="text-red-600"><i class="fas fa-times-circle"></i> Gagal: ${err.message}</span>`; }
             };
             reader.readAsArrayBuffer(file);
         }
+
+        async function handleGoogleSheets() {
+            const url = document.getElementById('g-sheets-url').value.trim();
+            const statusEl = document.getElementById('upload-status');
+            if (!url) return (statusEl.innerHTML = '<span class="text-red-500">Masukkan link CSV!</span>', statusEl.classList.remove('hidden-el'));
+            
+            statusEl.innerHTML = '<span class="text-blue-600"><i class="fas fa-spinner fa-spin"></i> Menarik data dari Spreadsheet...</span>'; statusEl.classList.remove('hidden-el');
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("Gagal mendownload data. Pastikan link bisa diakses publik.");
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(new Uint8Array(arrayBuffer), {type: 'array'});
+                await processWorkbookData(workbook, statusEl);
+                document.getElementById('g-sheets-url').value = '';
+            } catch(err) { statusEl.innerHTML = `<span class="text-red-600"><i class="fas fa-times-circle"></i> Gagal: ${err.message}</span>`; }
+        }
+
         function downloadTemplate() {
             const ws = XLSX.utils.aoa_to_sheet([["Kode Stock", "Nama Barang", "Kelompok", "Family", "Original Code", "Disc", "Qty Akhir", "Harga Beli Akhir", "Harga Jual"], ["STK-001", "PRODUK CONTOH", "KOSMETIK", "EMINA", "E-01", 10, 50, 15000, 25000]]);
             const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Master"); XLSX.writeFile(wb, "Template_Grosir.xlsx");
