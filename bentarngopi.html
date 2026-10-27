@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bentar Ngopi - Tester & Review</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f5f5f4; }
+        ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+        
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        coffee: {
+                            50: '#fdf8f6',
+                            100: '#f2e8e5',
+                            200: '#eaddd7',
+                            300: '#e0cec7',
+                            400: '#d2bab0',
+                            500: '#a37a6a',
+                            600: '#8b5e4c',
+                            700: '#694132',
+                            800: '#523023',
+                            900: '#3e2217',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-stone-50 text-stone-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-coffee-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center gap-2 text-xl font-bold cursor-pointer" onclick="navigate('request')">
+                    <i class="fa-solid fa-mug-hot text-amber-500"></i>
+                    <span>Bentar<span class="text-amber-500">Ngopi</span></span>
+                </div>
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex space-x-6 items-center">
+                    <button onclick="navigate('request')" class="nav-btn hover:text-amber-400 transition" data-target="request">Minta Sampel</button>
+                    <button onclick="navigate('admin')" class="nav-btn hover:text-amber-400 transition" data-target="admin">Admin Panel</button>
+                    <button onclick="navigate('member')" class="nav-btn hover:text-amber-400 transition" data-target="member">Member Area</button>
+                    <button onclick="navigate('scan')" class="nav-btn bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-full font-medium transition" data-target="scan">
+                        <i class="fa-solid fa-qrcode mr-2"></i>Scan Review
+                    </button>
+                </div>
+                <!-- Mobile Menu Button -->
+                <button class="md:hidden text-2xl focus:outline-none" onclick="toggleMobileMenu()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobileMenu" class="hidden md:hidden bg-coffee-800 pb-4 px-4 space-y-3 shadow-inner">
+            <button onclick="navigate('request'); toggleMobileMenu()" class="block w-full text-left text-white py-2 hover:text-amber-400">Minta Sampel</button>
+            <button onclick="navigate('admin'); toggleMobileMenu()" class="block w-full text-left text-white py-2 hover:text-amber-400">Admin Panel</button>
+            <button onclick="navigate('member'); toggleMobileMenu()" class="block w-full text-left text-white py-2 hover:text-amber-400">Member Area</button>
+            <button onclick="navigate('scan'); toggleMobileMenu()" class="block w-full bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg font-medium text-center">
+                <i class="fa-solid fa-qrcode mr-2"></i>Scan Review
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow flex items-center justify-center p-4 md:p-8" id="mainContent">
+        <!-- Content will be injected here via JS -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-stone-200 text-center py-6 text-stone-600 text-sm mt-auto">
+        <p>&copy; 2026 BentarNgopi App. Dibuat untuk pecinta kopi.</p>
+    </footer>
+
+    <!-- Toast Notification (Replaces alert) -->
+    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 z-50 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl flex items-center gap-3">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toastMsg">Berhasil!</span>
+    </div>
+
+    <script>
+        // --- Supabase Config & State Management ---
+        const SUPABASE_URL = 'https://fqaewybhgsxlkgkvjnjv.supabase.co/rest/v1';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxYWV3eWJoZ3N4bGtna3Zqbmp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyODc4MzQsImV4cCI6MjEwNjg2MzgzNH0.s4Frl_Mpj77Fc321j7MWykvxaXA7XWkKjWzJKEn-LXE';
+        const headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+        };
+
+        let currentMemberPhone = null;
+        let currentView = 'request';
+        let reviewRating = 0; // For star rating
+
+        // --- Core Functions ---
+        async function api(endpoint, method = 'GET', body = null) {
+            const opts = { method, headers: { ...headers } };
+            if (body) opts.body = JSON.stringify(body);
+            try {
+                const res = await fetch(`${SUPABASE_URL}/${endpoint}`, opts);
+                if(!res.ok) throw new Error('API Error');
+                return method !== 'DELETE' ? await res.json() : null;
+            } catch(e) {
+                console.error(e);
+                showToast('Gagal terhubung ke database', 'error');
+                return null;
+            }
+        }
+
+        function generateId() {
+            return 'SMPL-' + Math.floor(1000 + Math.random() * 9000);
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const msg = document.getElementById('toastMsg');
+            const icon = toast.querySelector('i');
+            msg.textContent = message;
+            if (type === 'success') {
+                toast.className = 'fixed bottom-5 right-5 transform transition-all duration-300 z-50 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl flex items-center gap-3';
+                icon.className = 'fa-solid fa-circle-check';
+            } else {
+                toast.className = 'fixed bottom-5 right-5 transform transition-all duration-300 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-xl flex items-center gap-3';
+                icon.className = 'fa-solid fa-circle-exclamation';
+            }
+            toast.style.transform = 'translateY(0)';
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.transform = 'translateY(20px)';
+                toast.style.opacity = '0';
+            }, 3000);
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
+        }
+
+        function navigate(view) {
+            currentView = view;
+            render();
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if(btn.dataset.target === view) {
+                    btn.classList.add('text-amber-500', 'font-semibold');
+                    btn.classList.remove('text-white');
+                } else {
+                    btn.classList.remove('text-amber-500', 'font-semibold');
+                    if(!btn.classList.contains('bg-amber-600')) btn.classList.add('text-white');
+                }
+            });
+        }
+
+        // --- Form Submission Handlers (Async) ---
+        window.submitRequestForm = async function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const btn = form.querySelector('button[type="submit"]');
+            btn.disabled = true; btn.innerText = 'Mengirim...';
+
+            const newReq = {
+                id: generateId(),
+                name: form.name.value,
+                phone: form.phone.value,
+                address: form.address.value,
+                type: form.type.value,
+                status: 'pending',
+                date: new Date().toLocaleDateString('id-ID')
+            };
+
+            const res = await api('nama_bentarngopi', 'POST', newReq);
+            if(res) {
+                showToast('Permintaan sampel berhasil dikirim!');
+                form.reset();
+            }
+            btn.disabled = false; btn.innerText = 'Kirim Permintaan';
+        }
+
+        window.approveRequest = async function(id) {
+            const res = await api(`nama_bentarngopi?id=eq.${id}`, 'PATCH', { status: 'approved' });
+            if(res) {
+                showToast(`Permintaan disetujui. QR Code dibuat!`);
+                render(); 
+            }
+        }
+
+        window.handleScan = async function(e) {
+            e.preventDefault();
+            const code = document.getElementById('scanCode').value.trim();
+            const resultArea = document.getElementById('scanResult');
+            resultArea.innerHTML = `<div class="text-center mt-6"><i class="fa-solid fa-spinner fa-spin text-amber-500 text-3xl"></i></div>`;
+            
+            const reqs = await api(`nama_bentarngopi?id=eq.${code}`);
+            if(!reqs || reqs.length === 0) {
+                resultArea.innerHTML = `<div class="p-4 bg-red-100 text-red-700 rounded-lg text-center mt-6 fade-in"><i class="fa-solid fa-triangle-exclamation text-2xl mb-2"></i><br>Kode sampel tidak ditemukan.</div>`;
+                return;
+            }
+            const req = reqs[0];
+
+            if(req.status === 'pending') {
+                 resultArea.innerHTML = `<div class="p-4 bg-yellow-100 text-yellow-700 rounded-lg text-center mt-6 fade-in"><i class="fa-solid fa-clock text-2xl mb-2"></i><br>Sampel ini belum disetujui oleh admin.</div>`;
+                 return;
+            }
+
+            if(req.status === 'reviewed') {
+                resultArea.innerHTML = `
+                    <div class="p-6 bg-stone-100 rounded-xl mt-6 fade-in border border-stone-200">
+                        <div class="text-center mb-4 text-green-600"><i class="fa-solid fa-check-circle text-4xl"></i><br><span class="font-bold mt-2 inline-block">Sudah Direview</span></div>
+                        <p class="text-sm text-stone-600 text-center mb-2">Anda sudah memberikan ulasan untuk sampel <b>${req.type}</b> ini.</p>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <div class="text-amber-500 mb-2">${renderStars(req.review_rating)}</div>
+                            <p class="text-stone-800">"${req.review_comment}"</p>
+                        </div>
+                    </div>`;
+                return;
+            }
+
+            reviewRating = 0;
+            resultArea.innerHTML = `
+                <div class="mt-8 p-6 bg-white border border-stone-200 shadow-lg rounded-xl fade-in relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-2 bg-amber-500"></div>
+                    <h3 class="text-xl font-bold text-coffee-800 mb-1">Beri Ulasan Sampel</h3>
+                    <p class="text-stone-500 text-sm mb-6">Jenis Kopi: <span class="font-semibold text-coffee-600">${req.type}</span></p>
+                    <form onsubmit="submitReview(event, '${req.id}', '${req.phone}', '${req.name}')" class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-medium text-stone-700 mb-2">Rating</label>
+                            <div class="flex gap-2 text-3xl text-stone-300" id="starContainer">
+                                ${[1,2,3,4,5].map(num => `<i class="fa-solid fa-star cursor-pointer hover:text-amber-400 transition" onclick="setRating(${num})" id="star-${num}"></i>`).join('')}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-stone-700 mb-1">Komentar Rasa</label>
+                            <textarea rows="4" id="reviewComment" required class="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"></textarea>
+                        </div>
+                        <button type="submit" id="btnSubmitReview" class="w-full bg-coffee-800 text-white py-3 rounded-lg font-semibold hover:bg-coffee-900 transition">Kirim Ulasan</button>
+                    </form>
+                </div>
+            `;
+        }
+
+        window.setRating = function(val) {
+            reviewRating = val;
+            for(let i=1; i<=5; i++) {
+                const star = document.getElementById(`star-${i}`);
+                if(i <= val) { star.classList.replace('text-stone-300', 'text-amber-500'); } 
+                else { star.classList.replace('text-amber-500', 'text-stone-300'); }
+            }
+        }
+
+        window.submitReview = async function(e, reqId, phone, name) {
+            e.preventDefault();
+            if(reviewRating === 0) return showToast('Berikan rating bintang!', 'error');
+            
+            const btn = document.getElementById('btnSubmitReview');
+            btn.disabled = true; btn.innerText = 'Menyimpan...';
+            const comment = document.getElementById('reviewComment').value;
+
+            // Update status review
+            await api(`nama_bentarngopi?id=eq.${reqId}`, 'PATCH', { 
+                status: 'reviewed', review_rating: reviewRating, review_comment: comment 
+            });
+
+            // Update Member Stamps (Double Stamp +2)
+            const mems = await api(`members_bentarngopi?phone=eq.${phone}`);
+            let totalStamps = 2;
+            if(mems && mems.length > 0) {
+                totalStamps = mems[0].stamps + 2;
+                await api(`members_bentarngopi?phone=eq.${phone}`, 'PATCH', { stamps: totalStamps });
+            } else {
+                await api('members_bentarngopi', 'POST', { phone: phone, name: name, stamps: totalStamps });
+            }
+
+            showToast('Ulasan disimpan!');
+            document.getElementById('scanCode').value = '';
+            document.getElementById('scanResult').innerHTML = `
+                <div class="text-center p-8 bg-green-50 rounded-xl mt-6 border border-green-200 fade-in">
+                    <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fa-solid fa-star"></i></div>
+                    <h3 class="text-xl font-bold text-green-800">Ulasan Terkirim!</h3>
+                    <div class="bg-white p-4 rounded-lg shadow-sm border border-green-100 mb-4 mt-4">
+                        <div class="text-amber-500 text-2xl mb-1"><i class="fa-solid fa-ticket"></i> x 2</div>
+                        <p class="font-bold text-coffee-900">Selamat! Anda dapat Double Stamp</p>
+                        <p class="text-sm text-stone-600">Total Stamp Anda sekarang: <b>${totalStamps}</b></p>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.loginMember = async function(e) {
+            e.preventDefault();
+            const phone = document.getElementById('loginPhone').value.trim();
+            const btn = e.target.querySelector('button');
+            btn.innerText = 'Mengecek...';
+            if(phone) {
+                const mems = await api(`members_bentarngopi?phone=eq.${phone}`);
+                if(!mems || mems.length === 0) {
+                    await api('members_bentarngopi', 'POST', { phone: phone, name: 'Pelanggan Baru', stamps: 0 });
+                }
+                currentMemberPhone = phone;
+                showToast('Berhasil masuk');
+                render();
+            }
+        }
+
+        window.logoutMember = function() {
+            currentMemberPhone = null;
+            render();
+        }
+
+        window.claimReward = async function() {
+            const mems = await api(`members_bentarngopi?phone=eq.${currentMemberPhone}`);
+            if(mems && mems.length > 0 && mems[0].stamps >= 15) {
+                await api(`members_bentarngopi?phone=eq.${currentMemberPhone}`, 'PATCH', { stamps: mems[0].stamps - 15 });
+                showToast('Hore! Klaim Free Kopi berhasil.', 'success');
+                render();
+            }
+        }
+
+        window.addTransactionStamp = async function(e) {
+            e.preventDefault();
+            const phone = document.getElementById('trxPhone').value.trim();
+            if(phone) {
+                const mems = await api(`members_bentarngopi?phone=eq.${phone}`);
+                let total = 1;
+                if(mems && mems.length > 0) {
+                    total = mems[0].stamps + 1;
+                    await api(`members_bentarngopi?phone=eq.${phone}`, 'PATCH', { stamps: total });
+                } else {
+                    await api('members_bentarngopi', 'POST', { phone: phone, name: 'Pelanggan', stamps: total });
+                }
+                showToast(`1 Stamp ditambahkan ke ${phone}. Total: ${total}`);
+                document.getElementById('trxPhone').value = '';
+                render(); 
+            }
+        }
+
+        function renderStars(rating) {
+            let html = '';
+            for(let i=1; i<=5; i++) html += i <= rating ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>';
+            return html;
+        }
+
+        // --- Render Views (Async Fetch Integration) ---
+        async function render() {
+            const main = document.getElementById('mainContent');
+            
+            if (currentView === 'request') {
+                main.innerHTML = `
+                    <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden fade-in">
+                        <div class="bg-coffee-800 p-6 text-center text-white">
+                            <h2 class="text-2xl font-bold mb-1">Minta Sampel Kopi</h2>
+                            <p class="text-coffee-200 text-sm">Isi form di bawah untuk mendapatkan sampel gratis</p>
+                        </div>
+                        <form onsubmit="submitRequestForm(event)" class="p-6 md:p-8 space-y-5">
+                            <div><label class="block text-sm font-medium text-stone-700 mb-1">Nama Lengkap</label><input type="text" name="name" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"></div>
+                            <div><label class="block text-sm font-medium text-stone-700 mb-1">Nomor WhatsApp</label><input type="tel" name="phone" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"></div>
+                            <div><label class="block text-sm font-medium text-stone-700 mb-1">Alamat Pengiriman</label><textarea name="address" required rows="2" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"></textarea></div>
+                            <div>
+                                <label class="block text-sm font-medium text-stone-700 mb-1">Jenis Sampel</label>
+                                <select name="type" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                                    <option value="Arabica Gayo - Light Roast">Arabica Gayo - Light Roast</option>
+                                    <option value="Arabica Toraja - Medium Roast">Arabica Toraja - Medium Roast</option>
+                                    <option value="Robusta Lampung - Dark Roast">Robusta Lampung - Dark Roast</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="w-full bg-amber-600 text-white py-3 rounded-lg font-bold shadow-md">Kirim Permintaan</button>
+                        </form>
+                    </div>`;
+            } 
+            else if (currentView === 'admin') {
+                main.innerHTML = '<div class="text-center"><i class="fa-solid fa-spinner fa-spin text-3xl text-amber-500"></i></div>';
+                const requests = await api('nama_bentarngopi?select=*') || [];
+                
+                let listHtml = requests.length === 0 ? `<div class="p-8 text-center text-stone-500">Belum ada permintaan.</div>` : '';
+                
+                // Sort manual (pending on top)
+                requests.sort((a,b) => (a.status === 'pending' ? -1 : 1)).forEach(req => {
+                    const statusColors = { 'pending': 'bg-yellow-100 text-yellow-800', 'approved': 'bg-blue-100 text-blue-800', 'reviewed': 'bg-green-100 text-green-800' };
+                    let actionArea = req.status === 'pending' 
+                        ? `<button onclick="approveRequest('${req.id}')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium">Setujui</button>`
+                        : `<img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${req.id}" class="border p-1 bg-white shadow-sm mb-1"><span class="text-xs bg-stone-100 px-2 py-1 rounded border">${req.id}</span>`;
+                    
+                    listHtml += `
+                        <div class="flex justify-between items-center p-4 border-b hover:bg-stone-50">
+                            <div>
+                                <h4 class="font-bold text-coffee-900">${req.name} <span class="text-xs px-2 py-0.5 rounded-full ${statusColors[req.status]}">${req.status.toUpperCase()}</span></h4>
+                                <p class="text-sm text-stone-600">${req.type}</p>
+                                ${req.status === 'reviewed' ? `<div class="mt-2 p-2 bg-white border shadow-sm text-sm"><div class="text-amber-500">${renderStars(req.review_rating)}</div><p>"${req.review_comment}"</p></div>` : ''}
+                            </div>
+                            <div class="flex flex-col items-end">${actionArea}</div>
+                        </div>`;
+                });
+
+                main.innerHTML = `
+                    <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden fade-in">
+                        <div class="bg-coffee-900 p-6 text-white"><h2 class="text-2xl font-bold">Dashboard Admin</h2></div>
+                        <div class="bg-amber-50 p-4 border-b border-amber-200">
+                            <h3 class="font-bold text-amber-900 mb-2"><i class="fa-solid fa-cash-register mr-2"></i>Transaksi Reguler (+1 Stamp)</h3>
+                            <form onsubmit="addTransactionStamp(event)" class="flex gap-2 max-w-md">
+                                <input type="tel" id="trxPhone" required placeholder="No. HP / Scan" class="flex-1 px-3 py-2 border rounded focus:ring-2 focus:ring-amber-500 outline-none">
+                                <button type="submit" class="bg-amber-600 text-white px-4 py-2 rounded font-semibold">Tambah</button>
+                            </form>
+                        </div>
+                        <div class="max-h-[60vh] overflow-y-auto">${listHtml}</div>
+                    </div>`;
+            }
+            else if (currentView === 'member') {
+                if (!currentMemberPhone) {
+                    main.innerHTML = `
+                        <div class="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden p-8 text-center fade-in">
+                            <h2 class="text-2xl font-bold text-coffee-900 mb-2">Member Area</h2>
+                            <form onsubmit="loginMember(event)" class="space-y-4">
+                                <input type="tel" id="loginPhone" required placeholder="Nomor WhatsApp" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-center font-bold">
+                                <button type="submit" class="w-full bg-coffee-800 text-white py-3 rounded-lg font-bold shadow-md">Masuk</button>
+                            </form>
+                        </div>`;
+                } else {
+                    main.innerHTML = '<div class="text-center"><i class="fa-solid fa-spinner fa-spin text-3xl text-amber-500"></i></div>';
+                    const mems = await api(`members_bentarngopi?phone=eq.${currentMemberPhone}`);
+                    const member = mems && mems.length > 0 ? mems[0] : { name: 'Pelanggan', stamps: 0 };
+                    const stamps = member.stamps;
+                    const max = 15;
+                    
+                    let dots = '';
+                    for(let i=1; i<=max; i++) {
+                        if(i <= stamps) dots += `<div class="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-check"></i></div>`;
+                        else dots += `<div class="w-8 h-8 rounded-full bg-stone-100 border flex items-center justify-center text-xs text-stone-300">${i}</div>`;
+                    }
+
+                    main.innerHTML = `
+                        <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden fade-in">
+                            <div class="bg-gradient-to-r from-coffee-900 to-coffee-700 p-6 text-white relative">
+                                <button onclick="logoutMember()" class="absolute top-4 right-4 text-coffee-200"><i class="fa-solid fa-sign-out-alt"></i> Keluar</button>
+                                <h2 class="text-2xl font-bold">Kartu Member</h2><p>${member.name}</p>
+                            </div>
+                            <div class="p-6">
+                                <div class="text-center mb-4"><img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${currentMemberPhone}" class="mx-auto w-24 border p-1 rounded-xl shadow-sm mb-1"><p class="font-mono font-bold">${currentMemberPhone}</p></div>
+                                <div class="bg-stone-50 p-5 rounded-xl border">
+                                    <div class="flex justify-between mb-2"><b>Kopi Stamps</b><span class="text-amber-600 font-bold">${stamps}/15</span></div>
+                                    <div class="flex flex-wrap gap-2 justify-center mb-5">${dots}</div>
+                                    ${stamps >= max ? `<button onclick="claimReward()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold shadow-md animate-pulse">Klaim Free Kopi!</button>` : `<button disabled class="w-full bg-stone-200 text-stone-400 py-3 rounded-lg font-bold">Kurang ${max - stamps} Stamp</button>`}
+                                </div>
+                            </div>
+                        </div>`;
+                }
+            }
+            else if (currentView === 'scan') {
+                main.innerHTML = `
+                    <div class="w-full max-w-md fade-in">
+                        <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                            <div class="p-8 text-center">
+                                <h2 class="text-2xl font-bold text-coffee-900 mb-6"><i class="fa-solid fa-qrcode text-amber-500 mr-2"></i>Scan Sampel</h2>
+                                <form onsubmit="handleScan(event)" class="flex gap-2">
+                                    <input type="text" id="scanCode" required placeholder="SMPL-1234" class="flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 outline-none uppercase text-center font-bold">
+                                    <button type="submit" class="bg-amber-600 text-white px-6 py-3 rounded-lg font-bold">Cari</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div id="scanResult"></div>
+                    </div>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => { navigate('request'); });
+    </script>
+</body>
+</html>
