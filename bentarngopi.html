@@ -57,7 +57,6 @@
                 <!-- Desktop Menu -->
                 <div class="hidden md:flex space-x-6 items-center">
                     <button onclick="navigate('request')" class="nav-btn hover:text-amber-400 transition" data-target="request">Minta Sampel</button>
-                    <button onclick="navigate('admin')" class="nav-btn hover:text-amber-400 transition" data-target="admin">Admin Panel</button>
                     <button onclick="navigate('member')" class="nav-btn hover:text-amber-400 transition" data-target="member">Member Area</button>
                     <button onclick="navigate('scan')" class="nav-btn bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-full font-medium transition" data-target="scan">
                         <i class="fa-solid fa-qrcode mr-2"></i>Scan Review
@@ -72,7 +71,6 @@
         <!-- Mobile Menu Dropdown -->
         <div id="mobileMenu" class="hidden md:hidden bg-coffee-800 pb-4 px-4 space-y-3 shadow-inner">
             <button onclick="navigate('request'); toggleMobileMenu()" class="block w-full text-left text-white py-2 hover:text-amber-400">Minta Sampel</button>
-            <button onclick="navigate('admin'); toggleMobileMenu()" class="block w-full text-left text-white py-2 hover:text-amber-400">Admin Panel</button>
             <button onclick="navigate('member'); toggleMobileMenu()" class="block w-full text-left text-white py-2 hover:text-amber-400">Member Area</button>
             <button onclick="navigate('scan'); toggleMobileMenu()" class="block w-full bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg font-medium text-center">
                 <i class="fa-solid fa-qrcode mr-2"></i>Scan Review
@@ -156,6 +154,14 @@
 
         function navigate(view) {
             currentView = view;
+            
+            // Set URL hash untuk halaman admin
+            if(view === 'admin' && window.location.hash !== '#ngopidulu') {
+                history.pushState(null, null, '#ngopidulu');
+            } else if (view !== 'admin' && window.location.hash === '#ngopidulu') {
+                history.pushState(null, null, ' '); 
+            }
+
             render();
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 if(btn.dataset.target === view) {
@@ -477,7 +483,24 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => { navigate('request'); });
+        function checkHashRoute() {
+            if (window.location.hash === '#ngopidulu') {
+                navigate('admin');
+            } else {
+                navigate('request'); // Default halaman utama
+            }
+        }
+
+        // Deteksi jika user mengetik #ngopidulu secara manual di URL
+        window.addEventListener('hashchange', () => {
+            if (window.location.hash === '#ngopidulu') {
+                navigate('admin');
+            } else if (currentView === 'admin') {
+                navigate('request');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => { checkHashRoute(); });
     </script>
 </body>
 </html>
