@@ -458,7 +458,7 @@
 
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-50">
-                <h3 class="font-bold text-lg"><i class="fas fa-list-ul text-purple-500 mr-2"></i> Daftar Transaksi</h3>
+                <h3 class="font-bold text-lg"><i class="fas fa-list-ul text-purple-500 mr-2"></i> Daftar Transaksi per Struk</h3>
                 <span id="report-tx-count" class="bg-purple-50 text-purple-600 px-3 py-1 rounded-full text-sm font-bold">0 Transaksi</span>
             </div>
             <div class="overflow-x-auto">
@@ -478,6 +478,35 @@
                 </table>
             </div>
         </div>
+        <!-- Ranking penjualan produk berdasarkan QTY untuk rentang laporan aktif -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 mb-6">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4 pb-3 border-b border-gray-50">
+                <div>
+                    <h3 class="font-bold text-lg"><i class="fas fa-ranking-star text-purple-500 mr-2"></i> Produk Terjual (QTY Terbanyak)</h3>
+                    <p class="text-xs text-gray-500 mt-1">Akumulasi per kode produk sesuai tanggal dan kasir yang dipilih.</p>
+                </div>
+                <span id="report-products-count" class="bg-purple-50 text-purple-600 px-3 py-1 rounded-full text-sm font-bold self-start">0 Produk</span>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 mb-3">
+                <input id="report-products-search" type="search" oninput="renderSoldProducts()" placeholder="Cari kode atau nama produk..." class="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-purple-400">
+                <span id="report-products-qty" class="text-xs text-gray-600 font-bold self-center">Total: 0 pcs</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm whitespace-nowrap">
+                    <thead class="bg-slate-50 text-slate-500"><tr>
+                        <th class="p-3 text-xs uppercase">Rank</th>
+                        <th class="p-3 text-xs uppercase">Kode Produk</th>
+                        <th class="p-3 text-xs uppercase">Nama Produk</th>
+                        <th class="p-3 text-xs uppercase text-right">QTY Terjual</th>
+                        <th class="p-3 text-xs uppercase text-right">Omzet Item</th>
+                    </tr></thead>
+                    <tbody id="report-products-table" class="divide-y divide-gray-50"><tr><td colspan="5" class="p-6 text-center text-gray-400">Pilih periode lalu muat laporan.</td></tr></tbody>
+                </table>
+            </div>
+            <div id="report-products-footer" class="mt-3 text-xs text-gray-500"></div>
+        </div>
+
+
     </main>
 
     <!-- Halaman Admin -->
@@ -566,6 +595,20 @@
 
     </main>
 
+    <!-- Modal edit master item (khusus admin) -->
+    <div id="edit-master-modal" class="hidden-el fixed inset-0 z-[120] bg-black/60 p-4 flex items-center justify-center">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+        <h3 class="text-xl font-bold mb-1">Edit Master Item</h3>
+        <p id="edit-master-name" class="text-sm text-gray-500 mb-4"></p>
+        <form id="edit-master-form" onsubmit="saveMasterItemEdit(event)" class="space-y-3">
+          <div><label class="block text-sm font-semibold mb-1">Stok</label><input id="edit-master-stock" type="number" step="1" required class="w-full p-3 border rounded-xl"></div>
+          <div><label class="block text-sm font-semibold mb-1">Diskon (%)</label><input id="edit-master-disc" type="number" min="0" max="100" step="0.01" required class="w-full p-3 border rounded-xl"></div>
+          <div><label class="block text-sm font-semibold mb-1">Harga Jual (Rp)</label><input id="edit-master-price" type="number" min="0" step="1" required class="w-full p-3 border rounded-xl"></div>
+          <p id="edit-master-error" class="text-sm text-red-600 hidden-el"></p>
+          <div class="flex gap-2 pt-2"><button type="button" onclick="closeMasterItemEdit()" class="flex-1 bg-gray-100 p-3 rounded-xl font-bold">Batal</button><button id="edit-master-save" type="submit" class="flex-1 bg-purple-600 text-white p-3 rounded-xl font-bold">Simpan</button></div>
+        </form>
+      </div>
+    </div>
     <!-- Master Item: admin dapat mengubah; kasir hanya melihat -->
     <main id="master-view" class="flex-1 overflow-y-auto p-6 hidden-el bg-gray-50 pb-20">
         <h2 class="text-2xl font-extrabold mb-6 text-gray-800 tracking-tight">Master Item</h2>
@@ -619,6 +662,7 @@
                             <th class="p-3 font-semibold text-xs uppercase tracking-wider text-center">Stok</th>
                             <th class="p-3 font-semibold text-xs uppercase tracking-wider text-center">Diskon</th>
                             <th class="p-3 font-semibold text-xs uppercase tracking-wider text-right">Harga Jual</th>
+                            <th class="p-3 font-semibold text-xs uppercase tracking-wider text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="admin-item-table" class="divide-y divide-gray-100 bg-white"></tbody>
@@ -1225,9 +1269,16 @@
                     const lineTotal = lineSubtotal - lineDiscAmount;
                     subtotal += lineSubtotal;
 
+                    // Ambil kode dari master item pada saat checkout supaya tersimpan
+                    // sebagai snapshot pada setiap baris detail transaksi.
+                    const masterProduct = state.items.find(p => String(p.id) === String(item.id));
+                    const stockCode = String(masterProduct?.id ?? item.id ?? '').trim();
+                    const originalCode = String(masterProduct?.orig_code ?? item.orig_code ?? '').trim();
+                    if (!stockCode) throw new Error(`Kode Stock tidak ditemukan untuk produk: ${item.name}`);
+
                     detailsToInsert.push({
                         order_id: orderId, date: dateStr, time: timeStr, invoice_no: orderId.replace("ORD", "INV"),
-                        item_id: item.id, orig_code: item.orig_code, name: item.name, kelompok: item.kelompok, family: item.family,
+                        item_id: stockCode, orig_code: originalCode, name: item.name, kelompok: item.kelompok, family: item.family,
                         qty: item.qty, price: item.price, subtotal: lineSubtotal,
                         discount_amount: lineDiscAmount, discount_percent: appliedDiscPercent, total: lineTotal,
                         user_role: state.currentUser, payment_method: paymentDesc
@@ -1307,7 +1358,7 @@
                 <tr class="align-top">
                     <td class="pb-2">
                         <div class="font-bold">${item.name}</div>
-                        <div class="text-[10px] text-gray-500">Kode Stok: ${item.item_id || item.id || '-'}</div>
+                        <div class="text-[10px] text-gray-500">Kode Stock: ${String(item.item_id ?? item.id ?? '').trim() || '-'}</div>
                         ${item.orig_code ? `<div class="text-[10px] text-gray-500">Kode Original: ${item.orig_code}</div>` : ''}
                         <div class="text-[10px] text-gray-500">${item.qty} x ${formatRp(item.price)}</div>
                         ${item.discount_amount > 0 ? `<div class="text-[10px] text-red-500">Diskon: -${item.discount_percent ? item.discount_percent+'%' : formatRp(item.discount_amount)}</div>` : ''}
@@ -1342,16 +1393,61 @@
             const inv = document.getElementById('dtl-inv').innerText; const date = document.getElementById('dtl-date').innerText;
             const items = Array.from(document.querySelectorAll('#detail-items-table tr')).map(tr => {
                 const name = tr.querySelector('td:nth-child(1) .font-bold').innerText;
-                const qtyPrice = tr.querySelector('td:nth-child(1) .text-gray-500').innerText;
+                const itemMeta = Array.from(tr.querySelectorAll('td:nth-child(1) .text-gray-500')).map(el => el.innerText);
+                const qtyPrice = itemMeta.join('\n');
                 const discEl = tr.querySelector('td:nth-child(1) .text-red-500');
                 const tot = tr.querySelector('td:nth-child(2)').innerText;
-                return `*${name}*\n${qtyPrice} ${discEl ? '('+discEl.innerText+')' : ''}\n=> ${tot}`;
+                return `*${name}*\n${qtyPrice}${discEl ? '\n('+discEl.innerText+')' : ''}\n=> ${tot}`;
             }).join('\n\n');
             const footer = Array.from(document.querySelectorAll('#dtl-payment-summary div')).map(d => d.innerText.replace('\n', ': ')).join('\n');
             const msg = encodeURIComponent(`*STRUK SURYATOKOKU*\nNo: ${inv}\nTanggal: ${date}\n\n*Rincian Barang:*\n${items}\n\n*Pembayaran:*\n${footer}\n\nTerima Kasih!`);
             window.open(`https://wa.me/?text=${msg}`, '_blank');
         }
 
+        // EDIT MASTER ITEM: hanya role admin boleh menggunakan UI ini.
+        let editingMasterId = null;
+        function openMasterItemEdit(id) {
+            if (!requireMasterAdmin()) return;
+            const item = state.items.find(x => String(x.id) === String(id));
+            if (!item) return showModal('Tidak ditemukan', 'Produk tidak ditemukan.');
+            editingMasterId = String(id);
+            document.getElementById('edit-master-name').textContent = `${item.name} (${item.id})`;
+            document.getElementById('edit-master-stock').value = Number(item.stock) || 0;
+            document.getElementById('edit-master-disc').value = Number(item.disc) || 0;
+            document.getElementById('edit-master-price').value = Number(item.price) || 0;
+            document.getElementById('edit-master-error').classList.add('hidden-el');
+            document.getElementById('edit-master-modal').classList.remove('hidden-el');
+        }
+        function closeMasterItemEdit() {
+            document.getElementById('edit-master-modal').classList.add('hidden-el');
+            editingMasterId = null;
+        }
+        async function saveMasterItemEdit(event) {
+            event.preventDefault();
+            if (!requireMasterAdmin() || editingMasterId === null) return;
+            const stock = Number(document.getElementById('edit-master-stock').value);
+            const disc = Number(document.getElementById('edit-master-disc').value);
+            const price = Number(document.getElementById('edit-master-price').value);
+            const errEl = document.getElementById('edit-master-error');
+            if (![stock, disc, price].every(Number.isFinite) || !Number.isInteger(stock) || disc < 0 || disc > 100 || price < 0 || !Number.isInteger(price)) {
+                errEl.textContent = 'Periksa nilai: stok harus bilangan bulat, diskon 0–100%, dan harga jual bilangan bulat tidak negatif.';
+                errEl.classList.remove('hidden-el'); return;
+            }
+            const saveBtn = document.getElementById('edit-master-save');
+            saveBtn.disabled = true; saveBtn.textContent = 'Menyimpan...';
+            try {
+                const { data, error } = await client.from('master_items').update({stock, disc, price}).eq('id', editingMasterId).select('id,stock,disc,price');
+                if (error) throw error;
+                if (!data || !data.length) throw new Error('Tidak ada data yang diperbarui. Periksa izin Supabase.');
+                const item = state.items.find(x => String(x.id) === editingMasterId);
+                if (item) Object.assign(item, {stock: data[0].stock, disc: data[0].disc, price: data[0].price});
+                closeMasterItemEdit(); renderAdminTable(); renderProducts(); renderCart();
+                showModal('Berhasil', 'Stok, diskon, dan harga jual produk telah diperbarui.');
+            } catch (e) {
+                errEl.textContent = 'Gagal menyimpan: ' + (e.message || String(e));
+                errEl.classList.remove('hidden-el');
+            } finally { saveBtn.disabled = false; saveBtn.textContent = 'Simpan'; }
+        }
         // ADMIN FUNCTIONS
         function renderAdminTable() {
             if (!state.adminPage) state.adminPage = 1;
@@ -1386,11 +1482,12 @@
                     <td class="p-3 text-center font-bold ${item.stock <= 5 ? 'text-red-600 bg-red-50' : 'text-gray-700'}">${item.stock}</td>
                     <td class="p-3 text-center font-bold text-orange-600">${item.disc ? item.disc+'%' : '-'}</td>
                     <td class="p-3 text-right font-bold text-gray-800">${formatRp(item.price)}</td>
+                    <td class="p-3 text-center">${state.role === 'admin' ? `<button type="button" onclick="openMasterItemEdit(decodeURIComponent('${encodeURIComponent(String(item.id))}'))" class="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg font-bold text-xs hover:bg-purple-100">✎ Edit</button>` : '<span class="text-gray-400 text-xs">Lihat saja</span>'}</td>
                 </tr>
             `).join('');
 
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-xs text-gray-400 bg-gray-50 font-medium">Barang tidak ditemukan.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center p-4 text-xs text-gray-400 bg-gray-50 font-medium">Barang tidak ditemukan.</td></tr>`;
             }
 
             const paginationContainer = document.getElementById('admin-pagination');
@@ -1636,13 +1733,65 @@
             const sDate = document.getElementById('filter-date-start').value; const eDate = document.getElementById('filter-date-end').value; const usr = document.getElementById('filter-user').value;
             if(!sDate || !eDate) return;
             try {
-                let txQ = client.from('transactions').select('*').gte('date', sDate).lte('date', eDate).order('date', {ascending:false}).order('time', {ascending:false});
-                let dtQ = client.from('transaction_details').select('*').gte('date', sDate).lte('date', eDate);
-                if (usr) { txQ = txQ.eq('role', usr); dtQ = dtQ.eq('user_role', usr); }
-                const [txRes, dtRes] = await Promise.all([txQ, dtQ]);
-                state.reports.transactions = txRes.data || []; state.reports.details = dtRes.data || [];
+                const [txData, details] = await Promise.all([
+                    fetchAllReportRows('transactions', sDate, eDate, usr, 'role', true),
+                    fetchAllReportRows('transaction_details', sDate, eDate, usr, 'user_role')
+                ]);
+                state.reports.transactions = txData.sort((a,b) => String(b.date+' '+b.time).localeCompare(String(a.date+' '+a.time)));
+                state.reports.details = details;
                 renderReportUI();
             } catch (err) { showModal("Gagal Load Laporan", err.message); }
+        }
+
+        // Kumpulkan semua halaman hasil agar laporan tidak terpotong batas 1000 baris Supabase.
+        async function fetchAllReportRows(table, startDate, endDate, user, userField, newestFirst = false) {
+            const rows = []; const pageSize = 1000;
+            for (let offset = 0; ; offset += pageSize) {
+                let q = client.from(table).select('*').gte('date', startDate).lte('date', endDate)
+                    .order('date', {ascending: !newestFirst}).range(offset, offset + pageSize - 1);
+                if (user) q = q.eq(userField, user);
+                const { data, error } = await q;
+                if (error) throw error;
+                rows.push(...(data || []));
+                if (!data || data.length < pageSize) break;
+            }
+            return rows;
+        }
+
+        function getSoldProducts() {
+            const grouped = new Map();
+            for (const d of state.reports.details || []) {
+                const code = String(d.item_id ?? '').trim();
+                const name = String(d.name ?? '').trim();
+                const key = code || `NAMA:${name.toLowerCase()}`;
+                if (!grouped.has(key)) grouped.set(key, {code: code || '-', name: name || '(Tanpa nama)', qty: 0, omzet: 0});
+                const row = grouped.get(key);
+                row.qty += Number(d.qty) || 0;
+                row.omzet += Number(d.total) || 0;
+            }
+            return [...grouped.values()].sort((a,b) => b.qty - a.qty || a.name.localeCompare(b.name, 'id'));
+        }
+
+        function escapeReportHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
+        }
+
+        function renderSoldProducts() {
+            const all = getSoldProducts();
+            const query = (document.getElementById('report-products-search').value || '').trim().toLowerCase();
+            const filtered = all.filter(p => p.code.toLowerCase().includes(query) || p.name.toLowerCase().includes(query));
+            const number = value => Number(value).toLocaleString('id-ID', {maximumFractionDigits: 3});
+            document.getElementById('report-products-count').textContent = `${number(all.length)} Produk`;
+            document.getElementById('report-products-qty').textContent = `Total: ${number(all.reduce((sum,p) => sum+p.qty,0))} pcs`;
+            document.getElementById('report-products-table').innerHTML = filtered.length ? filtered.map(p => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-3 text-xs font-bold text-gray-500">${all.indexOf(p)+1}</td>
+                    <td class="p-3 font-mono text-xs">${escapeReportHtml(p.code)}</td>
+                    <td class="p-3 font-semibold whitespace-normal min-w-[180px]">${escapeReportHtml(p.name)}</td>
+                    <td class="p-3 text-right font-extrabold text-purple-600">${number(p.qty)}</td>
+                    <td class="p-3 text-right">${formatRp(p.omzet)}</td>
+                </tr>`).join('') : '<tr><td colspan="5" class="p-6 text-center text-gray-400">Tidak ada produk terjual yang cocok.</td></tr>';
+            document.getElementById('report-products-footer').textContent = `Menampilkan ${number(filtered.length)} dari ${number(all.length)} produk, urutan QTY tertinggi.`;
         }
 
         function renderReportUI() {
@@ -1660,6 +1809,7 @@
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-purple-100 flex items-center gap-4"><div class="w-12 h-12 bg-purple-50 text-purple-500 rounded-xl flex items-center justify-center text-xl"><i class="fas fa-shopping-cart"></i></div><div><div class="text-xs text-gray-500 font-bold mb-1">Total Struk</div><div class="text-xl font-extrabold text-gray-800">${txData.length}</div></div></div>
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-orange-100 flex items-center gap-4"><div class="w-12 h-12 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center text-xl"><i class="fas fa-tags"></i></div><div><div class="text-xs text-gray-500 font-bold mb-1">Total Diskon</div><div class="text-xl font-extrabold text-gray-800">${formatRp(sumDisc)}</div></div></div>
             `;
+            renderSoldProducts();
             document.getElementById('report-tx-count').innerText = `${txData.length} Transaksi`;
             document.getElementById('report-klerek-table').innerHTML = Object.keys(kMap).map(u => `
                 <tr class="hover:bg-slate-50"><td class="p-3 font-bold">${u}</td><td class="p-3 text-center">${kMap[u].count}</td><td class="p-3 text-right">${formatRp(kMap[u].subtotal)}</td><td class="p-3 text-right text-gray-500">${formatRp(kMap[u].dReg)}</td><td class="p-3 text-right text-orange-500">${formatRp(kMap[u].dTier)}</td><td class="p-3 text-right text-purple-500">${formatRp(kMap[u].dVou)}</td><td class="p-3 text-right">${formatRp(kMap[u].cash)}</td><td class="p-3 text-right">${formatRp(kMap[u].qris)}</td><td class="p-3 text-right">${formatRp(kMap[u].tf)}</td><td class="p-3 text-right font-bold text-purple-600">${formatRp(kMap[u].total)}</td></tr>
@@ -1672,7 +1822,7 @@
         function showPastReceipt(orderId) {
             const tx = state.reports.transactions.find(t => t.order_id === orderId); const items = state.reports.details.filter(d => d.order_id === orderId); if(!tx) return;
             const rData = {
-                orderId: orderId, time: tx.time, cashier: tx.role, date: tx.date, items: items.map(i => ({ name: i.name, qty: i.qty, price: i.price, total: i.total, discount_amount: i.discount_amount, discount_percent: i.discount_percent })),
+                orderId: orderId, time: tx.time, cashier: tx.role, date: tx.date, items: items.map(i => ({ item_id: i.item_id, orig_code: i.orig_code, name: i.name, qty: i.qty, price: i.price, total: i.total, discount_amount: i.discount_amount, discount_percent: i.discount_percent })),
                 subtotal: tx.subtotal, discount: tx.discount, total: tx.total, cash: 0, change: 0, paymentMethod: tx.payment_method, tierName: tx.tier_promo_name, tierDisc: tx.tier_promo_disc, voucherName: tx.voucher_nama, voucherDisc: tx.voucher_diskon
             };
             showSuccessReceiptModal(rData);
@@ -1683,7 +1833,7 @@
             const txData = state.reports.transactions.map(t => ({ "Tanggal": t.date, "Jam": t.time, "Invoice": t.order_id.replace("ORD", "INV"), "Kasir": t.role, "Pembayaran": t.payment_method, "Subtotal": t.subtotal, "Diskon Tier": t.tier_promo_disc, "Voucher": t.voucher_nama||'-', "Diskon Voucher": t.voucher_diskon, "Total Diskon": t.discount, "Pendapatan Bersih": t.total }));
             const dtData = state.reports.details.map(d => {
                 const pt = state.reports.transactions.find(tx => tx.order_id === d.order_id);
-                return { "Tanggal": d.date, "Invoice": d.invoice_no, "Kasir": d.user_role, "Pembayaran": d.payment_method, "Kode": d.item_id, "Barang": d.name, "Family": d.family||'-', "Qty": d.qty, "Harga": d.price, "Subtotal": d.subtotal, "Diskon (%)": d.discount_percent, "Diskon Rp": d.discount_amount, "PROMO TIER": pt && pt.tier_promo_name ? "Aktif" : "-", "Total Bersih": d.total };
+                return { "Tanggal": d.date, "Invoice": d.invoice_no, "Kasir": d.user_role, "Pembayaran": d.payment_method, "Kode Stock": String(d.item_id ?? '').trim() || '-', "Kode Original": String(d.orig_code ?? '').trim() || '-', "Barang": d.name, "Family": d.family||'-', "Qty": d.qty, "Harga": d.price, "Subtotal": d.subtotal, "Diskon (%)": d.discount_percent, "Diskon Rp": d.discount_amount, "PROMO TIER": pt && pt.tier_promo_name ? "Aktif" : "-", "Total Bersih": d.total };
             });
             const klerekArr = [];
             document.querySelectorAll('#report-klerek-table tr').forEach(tr => { const tds = tr.querySelectorAll('td'); if(tds.length === 10) klerekArr.push({"User": tds[0].innerText, "Jml Struk": tds[1].innerText, "Subtotal": tds[2].innerText, "Diskon Reg": tds[3].innerText, "Diskon Tier": tds[4].innerText, "Diskon Vou": tds[5].innerText, "Cash": tds[6].innerText, "QRIS": tds[7].innerText, "Transfer": tds[8].innerText, "Total Pendapatan": tds[9].innerText}); });
@@ -1691,6 +1841,8 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(txData), "Transaksi Utama");
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dtData), "Detail Barang");
+            const productRows = getSoldProducts().map((p, i) => ({ "Rank": i+1, "Kode Produk": p.code, "Nama Produk": p.name, "QTY Terjual": p.qty, "Omzet Item": p.omzet }));
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(productRows.length ? productRows : [{"Rank":"", "Kode Produk":"", "Nama Produk":"", "QTY Terjual":0, "Omzet Item":0}]), "Produk Terlaris");
             XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(klerekArr), "Laporan Klerek");
             XLSX.writeFile(wb, `Laporan_Suryatokoku_${document.getElementById('filter-date-start').value}.xlsx`);
         }
