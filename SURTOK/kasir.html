@@ -459,7 +459,11 @@
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-50">
                 <h3 class="font-bold text-lg"><i class="fas fa-list-ul text-purple-500 mr-2"></i> Daftar Transaksi per Struk</h3>
-                <span id="report-tx-count" class="bg-purple-50 text-purple-600 px-3 py-1 rounded-full text-sm font-bold">0 Transaksi</span>
+                <div class="flex flex-wrap items-center gap-2">
+                    <label for="filter-struk-user" class="text-xs font-bold text-gray-500">Filter User:</label>
+                    <select id="filter-struk-user" onchange="renderReceiptTransactionList()" class="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"><option value="">Semua User</option></select>
+                    <span id="report-tx-count" class="bg-purple-50 text-purple-600 px-3 py-1 rounded-full text-sm font-bold">0 Transaksi</span>
+                </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm whitespace-nowrap">
@@ -1864,13 +1868,65 @@
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-orange-100 flex items-center gap-4"><div class="w-12 h-12 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center text-xl"><i class="fas fa-tags"></i></div><div><div class="text-xs text-gray-500 font-bold mb-1">Total Diskon</div><div class="text-xl font-extrabold text-gray-800">${formatRp(sumDisc)}</div></div></div>
             `;
             renderSoldProducts();
-            document.getElementById('report-tx-count').innerText = `${txData.length} Transaksi`;
+            updateReceiptUserOptions();
+            renderReceiptTransactionList();
             document.getElementById('report-klerek-table').innerHTML = Object.keys(kMap).map(u => `
                 <tr class="hover:bg-slate-50"><td class="p-3 font-bold">${u}</td><td class="p-3 text-center">${kMap[u].count}</td><td class="p-3 text-right">${formatRp(kMap[u].subtotal)}</td><td class="p-3 text-right text-gray-500">${formatRp(kMap[u].dReg)}</td><td class="p-3 text-right text-orange-500">${formatRp(kMap[u].dTier)}</td><td class="p-3 text-right text-purple-500">${formatRp(kMap[u].dVou)}</td><td class="p-3 text-right">${formatRp(kMap[u].cash)}</td><td class="p-3 text-right">${formatRp(kMap[u].qris)}</td><td class="p-3 text-right">${formatRp(kMap[u].tf)}</td><td class="p-3 text-right font-bold text-purple-600">${formatRp(kMap[u].total)}</td></tr>
             `).join('');
-            document.getElementById('report-table').innerHTML = txData.map(tx => `
-                <tr class="hover:bg-slate-50"><td class="p-3 text-xs whitespace-nowrap">${tx.date} ${tx.time.substring(0,5)}</td><td class="p-3 font-bold font-mono text-xs">${tx.order_id.replace("ORD", "INV")}</td><td class="p-3 text-xs">${tx.role||'Admin'}</td><td class="p-3 text-[10px] font-bold uppercase">${tx.payment_method||'CASH'}</td><td class="p-3 text-[10px] uppercase">${tx.tier_promo_name ? tx.tier_promo_name+'<br>' : ''}${tx.voucher_nama||'-'}</td><td class="p-3 text-right font-extrabold text-purple-600">${formatRp(tx.total)}</td><td class="p-3 text-center"><button onclick="showPastReceipt('${tx.order_id}')" class="bg-purple-50 text-purple-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-100">Struk</button></td></tr>
-            `).join('');
+        }
+
+        // Filter ini hanya memengaruhi Daftar Transaksi per Struk, tidak mengubah ringkasan atau ranking produk.
+        function updateReceiptUserOptions() {
+            const el = document.getElementById('filter-struk-user');
+            const previous = el.value;
+            const users = [...new Set((state.reports.transactions || []).map(t => String(t.role || 'Admin')))].sort((a,b) => a.localeCompare(b, 'id'));
+            el.innerHTML = '<option value="">Semua User</option>' + users.map(u => `<option value="${escapeReportHtml(u)}">${escapeReportHtml(u)}</option>`).join('');
+            el.value = users.includes(previous) ? previous : '';
+        }
+
+        function renderReceiptTransactionList() {
+            const chosen = document.getElementById('filter-struk-user').value;
+            const rows = (state.reports.transactions || []).filter(t => !chosen || String(t.role || 'Admin') === chosen);
+            document.getElementById('report-tx-count').innerText = `${rows.length} Transaksi`;
+            document.getElementById('report-table').innerHTML = rows.length ? rows.map(tx => {
+                const safeOrder = encodeURIComponent(String(tx.order_id));
+                return `<tr class="hover:bg-slate-50">
+                    <td class="p-3 text-xs whitespace-nowrap">${escapeReportHtml(tx.date)} ${escapeReportHtml(String(tx.time||'').substring(0,5))}</td>
+                    <td class="p-3 font-bold font-mono text-xs">${escapeReportHtml(String(tx.order_id).replace('ORD','INV'))}</td>
+                    <td class="p-3 text-xs">${escapeReportHtml(tx.role||'Admin')}</td>
+                    <td class="p-3 text-[10px] font-bold uppercase">${escapeReportHtml(tx.payment_method||'CASH')}</td>
+                    <td class="p-3 text-[10px] uppercase">${escapeReportHtml(tx.tier_promo_name||'')}${tx.tier_promo_name ? '<br>' : ''}${escapeReportHtml(tx.voucher_nama||'-')}</td>
+                    <td class="p-3 text-right font-extrabold text-purple-600">${formatRp(tx.total)}</td>
+                    <td class="p-3 text-center"><div class="flex justify-center items-center gap-2">
+                        <button onclick="showPastReceipt(decodeURIComponent('${safeOrder}'))" class="bg-purple-50 text-purple-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-100">Struk</button>
+                        ${state.role === 'admin' ? `<button onclick="confirmDeleteReceipt(decodeURIComponent('${safeOrder}'))" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100" title="Hapus struk dan detail transaksi">Hapus</button>` : ''}
+                    </div></td>
+                </tr>`;
+            }).join('') : '<tr><td colspan="7" class="p-6 text-center text-gray-400">Tidak ada transaksi untuk filter user ini.</td></tr>';
+        }
+
+        function confirmDeleteReceipt(orderId) {
+            if (state.role !== 'admin') return showModal('Akses Ditolak', 'Hanya Admin yang boleh menghapus transaksi.');
+            const tx = state.reports.transactions.find(t => String(t.order_id) === String(orderId));
+            if (!tx) return showModal('Tidak Ditemukan', 'Transaksi tidak ada pada laporan yang dimuat.');
+            showModal('Konfirmasi Hapus Struk', `Hapus permanen invoice ${String(orderId).replace('ORD','INV')} milik ${tx.role||'Admin'} senilai ${formatRp(tx.total)}? Detail barang ikut dihapus. Stok TIDAK otomatis dikembalikan. Tindakan ini tidak bisa dibatalkan.`, true, () => deleteReceiptTransaction(orderId));
+        }
+
+        async function deleteReceiptTransaction(orderId) {
+            if (state.role !== 'admin' || !client) return showModal('Akses Ditolak', 'Hanya Admin yang boleh menghapus transaksi.');
+            try {
+                // Hapus detail lebih dulu untuk menghindari orphan ketika relasi belum CASCADE.
+                const { error: detailError } = await client.from('transaction_details').delete().eq('order_id', orderId);
+                if (detailError) throw new Error('Gagal menghapus detail: ' + detailError.message);
+                const { data: removed, error: headerError } = await client.from('transactions').delete().eq('order_id', orderId).select('order_id');
+                if (headerError) throw new Error('Detail mungkin sudah terhapus, tetapi header gagal: ' + headerError.message);
+                if (!removed || removed.length !== 1) throw new Error('Header transaksi tidak terhapus. Periksa kebijakan DELETE Supabase (RLS) dan data invoice.');
+                await loadReport();
+                showModal('Struk Dihapus', 'Transaksi berhasil dihapus dari laporan. Stok barang tidak diubah.');
+            } catch (err) {
+                await loadReport();
+                showModal('Gagal Hapus Struk', err.message + ' Periksa Supabase sebelum mencoba kembali.');
+            }
         }
 
         function showPastReceipt(orderId) {
