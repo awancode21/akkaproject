@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#9333ea">
     
-    <title>Suryatokoku - Mega POS</title>
+    <title>Suryatokoku POS - Verifikasi Kode Stock v2</title>
 
     <script>
         const manifestJSON = {
@@ -1315,8 +1315,63 @@
                 });
                 if(txError) throw txError;
 
-                const { error: dtError } = await client.from('transaction_details').insert(detailsToInsert);
-                if(dtError) throw dtError;
+                // Simpan kode stok dan kode original sebagai snapshot transaksi.
+                // RETURNING + SELECT memverifikasi bahwa Supabase benar-benar menyimpan item_id.
+                const { data: savedDetails, error: dtError } = await client
+                    .from('transaction_details')
+                    .insert(detailsToInsert)
+                    .select('order_id,item_id,orig_code');
+                if (dtError) {
+                    const detail = [dtError.message, dtError.details, dtError.hint].filter(Boolean).join(' | ');
+                    if (/item_id|orig_code|column|schema cache/i.test(detail)) {
+                        throw new Error('Detail transaksi gagal disimpan: periksa kolom item_id dan orig_code pada tabel transaction_details di Supabase. ' + detail + ' (Header transaksi mungkin sudah tersimpan; periksa nomor invoice sebelum mengulang pembayaran.)');
+                    }
+                    throw new Error('Detail transaksi gagal disimpan: ' + detail + ' (Periksa invoice sebelum mengulang pembayaran.)');
+                }
+                if (!savedDetails || savedDetails.length !== detailsToInsert.length) {
+                    throw new Error('Jumlah detail tersimpan tidak sesuai. Periksa transaksi '+orderId+' di Supabase sebelum mengulang pembayaran.');
+                }
+                const expectedCodes = new Map();
+                detailsToInsert.forEach(row => {
+                    const key = String(row.item_id).trim();
+                    expectedCodes.set(key, (expectedCodes.get(key) || 0) + 1);
+                });
+                for (const row of savedDetails) {
+                    const code = String(row.item_id ?? '').trim();
+                    const remaining = expectedCodes.get(code) || 0;
+                    if (!code || remaining < 1) {
+                        throw new Error('Kode Stock (item_id) tidak tersimpan sesuai data keranjang pada transaksi '+orderId+'. Periksa trigger/policy database; jangan ulangi pembayaran sebelum dicek.');
+                    }
+                    expectedCodes.set(code, remaining - 1);
+                }
+                if ([...expectedCodes.values()].some(n => n !== 0)) {
+                    throw new Error('Verifikasi Kode Stock tidak cocok untuk transaksi '+orderId+'. Periksa data di Supabase.');
+                }
+
+                // Baca ulang dari Supabase dengan request terpisah untuk memastikan
+                // item_id benar-benar tersimpan (bukan sekadar RETURNING insert).
+                const { data: readBack, error: readBackError } = await client
+                    .from('transaction_details')
+                    .select('order_id,item_id,orig_code')
+                    .eq('order_id', orderId);
+                if (readBackError) {
+                    throw new Error('Detail transaksi sudah dikirim, tetapi verifikasi pembacaan ulang gagal untuk '+orderId+': '+readBackError.message+'. Periksa invoice sebelum mengulang.');
+                }
+                const actualCodes = new Map();
+                (readBack || []).forEach(row => {
+                    const code = String(row.item_id ?? '').trim();
+                    actualCodes.set(code, (actualCodes.get(code) || 0) + 1);
+                });
+                const requestedCodes = new Map();
+                detailsToInsert.forEach(row => {
+                    const code = String(row.item_id).trim();
+                    requestedCodes.set(code, (requestedCodes.get(code) || 0) + 1);
+                });
+                if (readBack?.length !== detailsToInsert.length ||
+                    [...requestedCodes].some(([code, count]) => actualCodes.get(code) !== count)) {
+                    console.error('Verifikasi detail gagal', {orderId, expected: detailsToInsert, actual: readBack});
+                    throw new Error('Kode Stock pada transaction_details belum sesuai setelah dibaca ulang untuk '+orderId+'. Jangan ulangi pembayaran; cek invoice di Supabase dan jalankan Diagnostik_Kode_Stock_Supabase.sql.');
+                }
 
                 for(let item of state.cart) {
                     const dbItem = state.items.find(i => i.id === item.id);
