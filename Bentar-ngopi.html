@@ -8,47 +8,44 @@ const fmt=v=>v?new Date(v).toLocaleString('id-ID'):'';
 const qr=v=>'https://api.qrserver.com/v1/create-qr-code/?size=210x210&data='+encodeURIComponent(v);
 let toastTimer;
 function toast(t,bad=false){const x=document.getElementById('toast');x.textContent=t;x.className='fixed bottom-5 right-4 left-4 sm:left-auto z-50 rounded-xl px-4 py-3 text-white shadow-2xl '+(bad?'bg-red-700':'bg-green-700');clearTimeout(toastTimer);toastTimer=setTimeout(()=>x.classList.add('hidden'),3600)}
-async function api(endpoint,method='GET',body){try{const r=await fetch(BASE+'/'+endpoint,{method,headers:{apikey:KEY,Authorization:'Bearer '+(state.adminSession?.access_token||KEY),'Content-Type':'application/json',Prefer:'return=representation'},...(body!==undefined?{body:JSON.stringify(body)}:{})});if(!r.ok){let e=await r.json().catch(()=>({}));throw Error(e.message||'HTTP '+r.status)}return r.status===204?true:await r.json()}catch(e){console.error('Supabase',endpoint,e);toast(e.message||'Database tidak tersedia',true);throw e}}
+async function api(endpoint,method='GET',body){try{const r=await fetch(BASE+'/'+endpoint,{method,headers:{apikey:KEY,Authorization:'Bearer '+KEY,...(state.adminSession?.token?{'x-bn-session':state.adminSession.token}:{}),'Content-Type':'application/json',Prefer:'return=representation'},...(body!==undefined?{body:JSON.stringify(body)}:{})});if(!r.ok){let e=await r.json().catch(()=>({}));throw Error(e.message||'HTTP '+r.status)}return r.status===204?true:await r.json()}catch(e){console.error('Supabase',endpoint,e);toast(e.message||'Database tidak tersedia',true);throw e}}
 
-const AUTH_BASE=BASE.replace('/rest/v1','/auth/v1');
-async function authRequest(path,body,token){
- const response=await fetch(AUTH_BASE+path,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body)});
- const data=await response.json().catch(()=>({}));
- if(!response.ok)throw Error(data.msg||data.error_description||data.message||'Autentikasi gagal');
- return data;
-}
-async function verifyAdmin(session){
- const r=await fetch(BASE+'/rpc/bn_is_admin',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:'{}'});
- if(!r.ok||await r.json()!==true)throw Error('Akun ini tidak memiliki akses Admin');
+// Autentikasi custom dengan tabel bn_app_users (tanpa Supabase Auth).
+async function staffRPC(name,data){
+ const response=await fetch(BASE+'/rpc/'+name,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(data)});
+ const result=await response.json().catch(()=>null);
+ if(!response.ok)throw Error(result?.message||'Login gagal');
+ return result;
 }
 async function restoreAdmin(){
- const raw=sessionStorage.getItem('bnAdminSession');if(!raw)return;
- try{
-  let session=JSON.parse(raw);
-  if(!session.access_token||!session.refresh_token)throw Error('Session tidak valid');
-  if(Date.now()/1000>=(session.expires_at||0)-60){
-   const updated=await authRequest('/token?grant_type=refresh_token',{refresh_token:session.refresh_token});
-   session={...updated,expires_at:Math.floor(Date.now()/1000)+updated.expires_in};
-  }
-  await verifyAdmin(session);state.adminSession=session;sessionStorage.setItem('bnAdminSession',JSON.stringify(session));
- }catch(err){console.warn('Sesi admin tidak valid:',err.message);state.adminSession=null;sessionStorage.removeItem('bnAdminSession')}
+ const raw=sessionStorage.getItem('bnStaffSession');if(!raw)return;
+ try{const old=JSON.parse(raw);if(!old.token)throw Error('Sesi kosong');
+ const profile=await staffRPC('bn_staff_validate',{p_token:old.token});
+ if(!profile||!['admin','kasir'].includes(profile.role))throw Error('Sesi berakhir');
+ state.adminSession={...profile,token:old.token};
+ }catch(e){state.adminSession=null;sessionStorage.removeItem('bnStaffSession')}
 }
 function renderAdminLogin(){
- app.innerHTML='<div class="card max-w-md mx-auto fade"><div class="text-center mb-5"><div class="text-4xl text-amber-700 mb-3">'+icon('shield-halved')+'</div>'+title('Login Admin','Masuk menggunakan akun Admin Supabase Auth. URL #ngopidulu bukan akses otomatis.')+'</div><form onsubmit="loginAdmin(event)" class="space-y-4"><label class="block font-semibold">Email Admin</label><input class="field" type="email" id="adminEmail" autocomplete="username" required placeholder="admin@contoh.com"><label class="block font-semibold">Password</label><input class="field" type="password" id="adminPassword" autocomplete="current-password" required minlength="8"><button id="adminLoginButton" class="btn w-full">Masuk ke Dashboard</button></form><button class="mt-5 underline text-sm" onclick="nav(\'home\')">Kembali ke Beranda</button></div>';
+ app.innerHTML='<div class="card max-w-md mx-auto fade"><div class="text-center mb-5"><div class="text-4xl text-amber-700 mb-3">'+icon('shield-halved')+'</div>'+title('Login Petugas','Masuk menggunakan username dan PIN yang dibuat di tabel user Supabase.')+'</div><form onsubmit="loginAdmin(event)" class="space-y-4"><label class="block font-semibold">Username</label><input class="field" type="text" id="adminUsername" autocomplete="username" autocapitalize="none" maxlength="32" required placeholder="adminutama / kasir01"><label class="block font-semibold">PIN</label><input class="field" type="password" inputmode="numeric" id="adminPin" autocomplete="current-password" pattern="[0-9]{8,12}" required minlength="8" maxlength="12" placeholder="8–12 angka"><button id="adminLoginButton" class="btn w-full">Masuk</button></form><button class="mt-5 underline text-sm" onclick="nav(\'home\')">Kembali ke Beranda</button></div>';
 }
 async function loginAdmin(e){
  e.preventDefault();const btn=document.getElementById('adminLoginButton');btn.disabled=true;btn.textContent='Memeriksa akun...';
- try{const session=await authRequest('/token?grant_type=password',{email:document.getElementById('adminEmail').value.trim(),password:document.getElementById('adminPassword').value});
- session.expires_at=Math.floor(Date.now()/1000)+session.expires_in;await verifyAdmin(session);state.adminSession=session;sessionStorage.setItem('bnAdminSession',JSON.stringify(session));toast('Login Admin berhasil');await nav('admin');
- }catch(err){toast(err.message,true);btn.disabled=false;btn.textContent='Masuk ke Dashboard'}
+ try{const username=document.getElementById('adminUsername').value.trim().toLowerCase();const pin=document.getElementById('adminPin').value;
+ if(!/^[a-z0-9_]{3,32}$/.test(username)||!/^[0-9]{8,12}$/.test(pin))throw Error('Username atau PIN tidak valid');
+ const session=await staffRPC('bn_staff_login',{p_username:username,p_pin:pin});
+ if(!session?.token||!['admin','kasir'].includes(session.role))throw Error(session?.error||'Login gagal');
+ state.adminSession=session;sessionStorage.setItem('bnStaffSession',JSON.stringify(session));toast('Selamat datang, '+session.username);await nav('admin');
+ }catch(err){toast(err.message||'Login gagal',true);btn.disabled=false;btn.textContent='Masuk';}
 }
 async function logoutAdmin(){
- const token=state.adminSession?.access_token;
- state.adminSession=null;sessionStorage.removeItem('bnAdminSession');sessionStorage.removeItem('bnAdminVisited');
- if(token)fetch(AUTH_BASE+'/logout',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+token}}).catch(console.warn);
- toast('Anda telah keluar dari Admin');await nav('home');
+ const token=state.adminSession?.token;
+ state.adminSession=null;sessionStorage.removeItem('bnStaffSession');sessionStorage.removeItem('bnAdminVisited');
+ if(token)staffRPC('bn_staff_logout',{p_token:token}).catch(console.warn);
+ toast('Anda telah keluar');await nav('home');
 }
-
+function renderKasirLimited(){
+ app.innerHTML='<div class="card max-w-xl mx-auto fade">'+title('Area Kasir','Halo, '+esc(state.adminSession.username))+'<p class="muted">Akun dengan role kasir berhasil masuk. Pengelolaan pengaturan, produk, dan sampel hanya tersedia untuk Admin.</p><div class="mt-4 rounded-xl bg-amber-50 p-4">Fitur transaksi kasir masih ditunda sesuai permintaan. Silakan minta Admin apabila perlu perubahan program.</div><button class="btn mt-5" onclick="logoutAdmin()">Keluar</button></div>';
+}
 const q=s=>encodeURIComponent(s);
 async function loadCore(){const [m,c]=await Promise.all([api('menu_bentarngopi?select=*&order=name.asc'),api('bn_settings?id=eq.1&select=*')]);state.menu=m||[];state.settings=c?.[0]||null}
 async function stopCamera(){if(state.camera){try{await state.camera.stop()}catch(e){}try{state.camera.clear()}catch(e){}state.camera=null}}
@@ -87,6 +84,8 @@ async function saveReview(e){e.preventDefault();if(state.ratings.some(x=>!x))ret
 function optionMenu(pred=()=>true){return state.menu.filter(pred).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join('')}
 async function renderAdmin(){
  if(!state.adminSession){renderAdminLogin();return;}
+ if(state.adminSession.role==='kasir'){renderKasirLimited();return;}
+ if(state.adminSession.role!=='admin'){renderAdminLogin();return;}
 
  const [samples,purchases,memberRows]=await Promise.all([
   api('nama_bentarngopi?select=*&order=created_at.desc'),
@@ -126,12 +125,12 @@ async function renderAdmin(){
  applyAdminTab();drawCart();
 }
 
-async function saveSettings(e){if(!state.adminSession){toast('Login Admin diperlukan',true);return nav('admin');}e.preventDefault();let v={sample_open:document.getElementById('sampleOpen').checked,sample_quota:Number(document.getElementById('quota').value),sample_per_member:Number(document.getElementById('perMember').value),stamp_per_item:Number(document.getElementById('stampPer').value),stamp_max_transaction:Number(document.getElementById('maxStamp').value),reward_cost:Number(document.getElementById('rewardCost').value),updated_at:new Date().toISOString()};try{await api('bn_settings?id=eq.1','PATCH',v);toast('Pengaturan tersimpan');nav('admin')}catch(e){}}
-async function addProduct(e){if(!state.adminSession){toast('Login Admin diperlukan',true);return nav('admin');}e.preventDefault();let data={id:'MENU-'+crypto.randomUUID().slice(0,12),name:document.getElementById('itemName').value.trim(),category:document.getElementById('itemCategory').value,price_normal:Number(document.getElementById('normalPrice').value),price_member:Number(document.getElementById('memberPrice').value),sample_enabled:document.getElementById('sampleEligible').checked,stamp_enabled:document.getElementById('stampEligible').checked,active:true};try{await api('menu_bentarngopi','POST',data);toast('Produk ditambahkan');nav('admin')}catch(e){}}
-async function editProduct(id){if(!state.adminSession){toast('Login Admin diperlukan',true);return nav('admin');}let x=state.menu.find(y=>y.id===id);if(!x)return;let name=prompt('Nama produk',x.name);if(name===null)return;let normal=prompt('Harga normal',x.price_normal);if(normal===null)return;let member=prompt('Harga member',x.price_member);if(member===null)return;let cat=prompt('Kategori: kopi / non-kopi',x.category);if(cat===null)return;let sampel=confirm('Aktifkan produk untuk pengajuan sampel?');let stamp=confirm('Produk ini menghasilkan stamp?');if(!name.trim()||!['kopi','non-kopi'].includes(cat)||Number(normal)<0||Number(member)<0)return toast('Data produk tidak valid',true);try{await api('menu_bentarngopi?id=eq.'+q(id),'PATCH',{name:name.trim(),category:cat,price_normal:Number(normal),price_member:Number(member),sample_enabled:sampel,stamp_enabled:stamp});toast('Produk diperbarui');nav('admin')}catch(e){}}
-async function deleteProduct(id){if(!state.adminSession){toast('Login Admin diperlukan',true);return nav('admin');}if(!confirm('Nonaktifkan produk ini? Riwayat pembelian tetap ada.'))return;try{await api('menu_bentarngopi?id=eq.'+q(id),'PATCH',{active:false,sample_enabled:false});toast('Produk dinonaktifkan');nav('admin')}catch(e){}}
-async function saveSampleETA(id){if(!state.adminSession){toast('Login Admin diperlukan',true);return nav('admin');}const field=document.getElementById('eta-'+id);if(!field)return;const value=field.value||null;try{const changed=await api('nama_bentarngopi?id=eq.'+q(id),'PATCH',{estimated_received_date:value});if(!changed?.length)throw Error('Permintaan sampel tidak ditemukan');toast(value?'Estimasi tanggal berhasil disimpan':'Estimasi tanggal dihapus');nav('admin')}catch(e){toast(e.message||'Gagal menyimpan estimasi',true)}}
-async function advanceSample(id,next){if(!state.adminSession){toast('Login Admin diperlukan',true);return nav('admin');}const previous={approved:'pending',processing:'approved',received:'processing'}[next];if(!previous)return;try{const changed=await api('nama_bentarngopi?id=eq.'+q(id)+'&status=eq.'+previous,'PATCH',{status:next});if(!changed?.length)throw Error('Status telah berubah, refresh terlebih dahulu');toast('Status sampel: '+statusLabel(next));nav('admin')}catch(e){toast(e.message||'Gagal memperbarui status',true)}}
+async function saveSettings(e){if(state.adminSession?.role!=='admin'){toast('Role Admin diperlukan',true);return nav('admin');}e.preventDefault();let v={sample_open:document.getElementById('sampleOpen').checked,sample_quota:Number(document.getElementById('quota').value),sample_per_member:Number(document.getElementById('perMember').value),stamp_per_item:Number(document.getElementById('stampPer').value),stamp_max_transaction:Number(document.getElementById('maxStamp').value),reward_cost:Number(document.getElementById('rewardCost').value),updated_at:new Date().toISOString()};try{await api('bn_settings?id=eq.1','PATCH',v);toast('Pengaturan tersimpan');nav('admin')}catch(e){}}
+async function addProduct(e){if(state.adminSession?.role!=='admin'){toast('Role Admin diperlukan',true);return nav('admin');}e.preventDefault();let data={id:'MENU-'+crypto.randomUUID().slice(0,12),name:document.getElementById('itemName').value.trim(),category:document.getElementById('itemCategory').value,price_normal:Number(document.getElementById('normalPrice').value),price_member:Number(document.getElementById('memberPrice').value),sample_enabled:document.getElementById('sampleEligible').checked,stamp_enabled:document.getElementById('stampEligible').checked,active:true};try{await api('menu_bentarngopi','POST',data);toast('Produk ditambahkan');nav('admin')}catch(e){}}
+async function editProduct(id){if(state.adminSession?.role!=='admin'){toast('Role Admin diperlukan',true);return nav('admin');}let x=state.menu.find(y=>y.id===id);if(!x)return;let name=prompt('Nama produk',x.name);if(name===null)return;let normal=prompt('Harga normal',x.price_normal);if(normal===null)return;let member=prompt('Harga member',x.price_member);if(member===null)return;let cat=prompt('Kategori: kopi / non-kopi',x.category);if(cat===null)return;let sampel=confirm('Aktifkan produk untuk pengajuan sampel?');let stamp=confirm('Produk ini menghasilkan stamp?');if(!name.trim()||!['kopi','non-kopi'].includes(cat)||Number(normal)<0||Number(member)<0)return toast('Data produk tidak valid',true);try{await api('menu_bentarngopi?id=eq.'+q(id),'PATCH',{name:name.trim(),category:cat,price_normal:Number(normal),price_member:Number(member),sample_enabled:sampel,stamp_enabled:stamp});toast('Produk diperbarui');nav('admin')}catch(e){}}
+async function deleteProduct(id){if(state.adminSession?.role!=='admin'){toast('Role Admin diperlukan',true);return nav('admin');}if(!confirm('Nonaktifkan produk ini? Riwayat pembelian tetap ada.'))return;try{await api('menu_bentarngopi?id=eq.'+q(id),'PATCH',{active:false,sample_enabled:false});toast('Produk dinonaktifkan');nav('admin')}catch(e){}}
+async function saveSampleETA(id){if(state.adminSession?.role!=='admin'){toast('Role Admin diperlukan',true);return nav('admin');}const field=document.getElementById('eta-'+id);if(!field)return;const value=field.value||null;try{const changed=await api('nama_bentarngopi?id=eq.'+q(id),'PATCH',{estimated_received_date:value});if(!changed?.length)throw Error('Permintaan sampel tidak ditemukan');toast(value?'Estimasi tanggal berhasil disimpan':'Estimasi tanggal dihapus');nav('admin')}catch(e){toast(e.message||'Gagal menyimpan estimasi',true)}}
+async function advanceSample(id,next){if(state.adminSession?.role!=='admin'){toast('Role Admin diperlukan',true);return nav('admin');}const previous={approved:'pending',processing:'approved',received:'processing'}[next];if(!previous)return;try{const changed=await api('nama_bentarngopi?id=eq.'+q(id)+'&status=eq.'+previous,'PATCH',{status:next});if(!changed?.length)throw Error('Status telah berubah, refresh terlebih dahulu');toast('Status sampel: '+statusLabel(next));nav('admin')}catch(e){toast(e.message||'Gagal memperbarui status',true)}}
 function addCart(){let id=document.getElementById('purchaseItem').value,qty=Number(document.getElementById('purchaseQty').value);if(!id||!Number.isInteger(qty)||qty<1||qty>100)return toast('Produk/jumlah tidak valid',true);let line=state.cart.find(x=>x.id===id);if(line)line.qty+=qty;else state.cart.push({id,qty});drawCart()}
 function removeCart(i){state.cart.splice(i,1);drawCart()}
 function drawCart(){const el=document.getElementById('cartList');if(!el)return;el.innerHTML=state.cart.length?state.cart.map((x,i)=>{let m=state.menu.find(z=>z.id===x.id);return '<div class=\"flex justify-between border-b py-2\"><span>'+esc(m?.name)+' × '+x.qty+'</span><button type=\"button\" class=\"text-red-700\" onclick=\"removeCart('+i+')\">Hapus</button></div>'}).join('')+'<p class=\"muted mt-2\">Estimasi stamp: '+Math.min(state.settings.stamp_max_transaction,state.cart.reduce((sum,x)=>{let m=state.menu.find(y=>y.id===x.id);return sum+(m?.stamp_enabled?x.qty:0)},0)*state.settings.stamp_per_item)+'</p>':'<p class=\"muted\">Belum ada produk dimasukkan ke transaksi.</p>'}
