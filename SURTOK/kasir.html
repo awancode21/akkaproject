@@ -107,7 +107,7 @@
                 order: 3;
                 flex: 1 0 100%;
                 display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
+                grid-template-columns: repeat(4, minmax(0, 1fr));
                 gap: .4rem;
             }
             #nav-menu .nav-btn {
@@ -338,6 +338,7 @@
         <nav class="flex gap-2" id="nav-menu">
             <button onclick="switchTab('pos')" id="nav-pos" class="nav-btn bg-purple-100 text-purple-700 px-3 md:px-4 py-2 rounded-lg font-bold shadow-sm transition-all text-sm"><i class="fas fa-cash-register mr-1"></i> POS</button>
             <button onclick="switchTab('laporan')" id="nav-laporan" class="nav-btn text-gray-500 hover:bg-gray-100 px-3 md:px-4 py-2 rounded-lg font-semibold transition-all text-sm"><i class="fas fa-chart-line mr-1"></i> Laporan</button>
+            <button onclick="switchTab('master')" id="nav-master" class="nav-btn text-gray-500 hover:bg-gray-100 px-3 md:px-4 py-2 rounded-lg font-semibold hidden-el transition-all text-sm"><i class="fas fa-boxes mr-1"></i> Master Item</button>
             <button onclick="switchTab('admin')" id="nav-admin" class="nav-btn text-gray-500 hover:bg-gray-100 px-3 md:px-4 py-2 rounded-lg font-semibold hidden-el transition-all text-sm"><i class="fas fa-cog mr-1"></i> Admin</button>
         </nav>
         <button onclick="logout()" class="text-red-500 font-bold hover:bg-red-50 px-3 py-2 rounded-lg transition-colors" title="Keluar"><i class="fas fa-sign-out-alt"></i></button>
@@ -496,6 +497,13 @@
                 </div>
             </div>
 
+            <!-- Pengaturan kunci stok -->
+            <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 flex flex-col">
+                <h3 class="font-bold text-lg mb-3"><i class="fas fa-lock mr-2 text-purple-600"></i>Kontrol Stok Penjualan</h3>
+                <p id="stock-lock-status" class="text-sm font-bold mb-3">LOCK STOK aktif</p>
+                <p class="text-xs text-gray-500 mb-4">LOCK: penjualan tidak boleh melebihi stok. UNLOCK: stok kosong atau minus tetap bisa dijual dan stok dapat menjadi negatif.</p>
+                <button id="stock-lock-toggle" onclick="toggleStockLock()" class="w-full bg-purple-600 text-white px-4 py-3 rounded-xl font-bold">Ubah Mode Stok</button>
+            </div>
             <!-- Tier Discount -->
             <div class="bg-white rounded-2xl shadow-sm border border-orange-100 p-6 flex flex-col">
                 <h3 class="font-bold text-lg mb-4 border-b border-orange-100 pb-3"><i class="fas fa-star text-orange-500 mr-2"></i> Promo Belanja (Tier)</h3>
@@ -554,6 +562,14 @@
                 </div>
             </div>
 
+        </div>
+
+    </main>
+
+    <!-- Master Item: admin dapat mengubah; kasir hanya melihat -->
+    <main id="master-view" class="flex-1 overflow-y-auto p-6 hidden-el bg-gray-50 pb-20">
+        <h2 class="text-2xl font-extrabold mb-6 text-gray-800 tracking-tight">Master Item</h2>
+        <div id="master-admin-controls" class="grid lg:grid-cols-2 gap-6 mb-6">
             <!-- Upload Database Master -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
                 <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-database text-purple-600 mr-2"></i> Database Produk (Mendukung 70k SKU)</h3>
@@ -566,9 +582,14 @@
                     </div>
                     
                     <div class="border-t border-gray-100 pt-3 mt-1">
-                        <label class="text-[10px] font-bold text-gray-500 uppercase">Atau Tarik dari Link Google Sheets (CSV)</label>
+                        <label class="text-[10px] font-bold text-gray-500 uppercase">URL Google Apps Script Web App (/exec)</label>
+                        <input type="url" id="gas-webapp-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full p-2.5 mt-1 border border-gray-200 rounded-xl text-xs outline-none focus:border-purple-400">
+                        <p class="text-[10px] text-gray-500 mt-1">Deploy Apps Script terlebih dahulu. URL tersimpan di browser ini. Data dibaca lewat JSONP untuk menghindari CORS.</p>
+                    </div>
+                    <div class="border-t border-gray-100 pt-3 mt-1">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase">Tarik dari Link Google Sheets (pilih tab lewat gid)</label>
                         <div class="flex gap-2 mt-1">
-                            <input type="text" id="g-sheets-url" placeholder="Paste link Publik CSV..." class="w-full p-2.5 border border-gray-200 rounded-xl text-xs outline-none focus:border-purple-400">
+                            <input type="text" id="g-sheets-url" placeholder="Paste link Google Sheets (docs.google.com/spreadsheets/...)" class="w-full p-2.5 border border-gray-200 rounded-xl text-xs outline-none focus:border-purple-400">
                             <button onclick="handleGoogleSheets()" class="bg-green-600 text-white px-3 py-2.5 rounded-xl font-bold hover:bg-green-700 shadow-sm flex items-center gap-1.5 text-xs transition-all shrink-0"><i class="fas fa-link"></i> Tarik Data</button>
                         </div>
                     </div>
@@ -578,7 +599,7 @@
                 </div>
             </div>
         </div>
-
+        <div id="master-readonly-notice" class="hidden-el mb-4 rounded-xl bg-purple-50 border border-purple-200 p-3 text-sm text-purple-800"><i class="fas fa-eye mr-2"></i>Mode lihat saja: kasir dapat mencari dan melihat produk, tetapi tidak dapat mengubah database.</div>
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
                 <h3 class="font-bold text-lg"><i class="fas fa-box text-purple-600 mr-2"></i> Data Master Item</h3>
@@ -621,7 +642,7 @@
             role: null, currentUser: null, items: [], cart: [], vouchers: [], cashierUsers: [],
             storeSettings: { 
                 bankName: 'BCA', bankAcc: '1234567890', bankOwner: 'Suryatokoku Official',
-                tierMinSpend: 0, tierDiscVal: 0, tierDiscType: 'persen', tierFamily: '' 
+                tierMinSpend: 0, tierDiscVal: 0, tierDiscType: 'persen', tierFamily: '', stockLocked: true 
             },
             appliedVoucher: null,
             reports: { transactions: [], details: [] },
@@ -738,6 +759,8 @@
             state.currentUser = user.name;
             
             document.getElementById('nav-admin').classList.toggle('hidden-el', state.role !== 'admin');
+            document.getElementById('nav-master').classList.remove('hidden-el');
+            updateMasterAccess();
             document.getElementById('login-screen').classList.add('hidden-el');
             document.getElementById('main-header').classList.remove('hidden-el');
             document.getElementById('header-user-badge').innerText = `${state.currentUser} (${state.role})`;
@@ -755,11 +778,26 @@
             document.getElementById('main-header').classList.add('hidden-el');
             document.getElementById('pos-view').classList.add('hidden-el');
             document.getElementById('admin-view').classList.add('hidden-el');
+            document.getElementById('master-view').classList.add('hidden-el');
             document.getElementById('laporan-view').classList.add('hidden-el');
             initLoginOptions();
         }
 
+        function updateMasterAccess() {
+            const admin = state.role === 'admin';
+            document.getElementById('master-admin-controls').classList.toggle('hidden-el', !admin);
+            document.getElementById('master-readonly-notice').classList.toggle('hidden-el', admin);
+        }
+
+        function requireMasterAdmin() {
+            if (state.role === 'admin') return true;
+            showModal('Akses Ditolak', 'Hanya admin yang dapat mengubah Master Item.');
+            return false;
+        }
+
         function switchTab(tab) {
+            if (tab === 'admin' && state.role !== 'admin') return;
+            if (tab === 'master') updateMasterAccess();
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('bg-purple-100', 'text-purple-700', 'shadow-sm');
                 btn.classList.add('text-gray-500', 'bg-transparent');
@@ -767,7 +805,7 @@
             const activeBtn = document.getElementById('nav-' + tab);
             if(activeBtn) { activeBtn.classList.add('bg-purple-100', 'text-purple-700', 'shadow-sm'); activeBtn.classList.remove('text-gray-500', 'bg-transparent'); }
             
-            ['pos', 'admin', 'laporan'].forEach(t => document.getElementById(t+'-view').classList.add('hidden-el'));
+            ['pos', 'admin', 'laporan', 'master'].forEach(t => document.getElementById(t+'-view').classList.add('hidden-el'));
             document.getElementById(tab+'-view').classList.remove('hidden-el');
 
             if(tab === 'pos') renderProducts();
@@ -779,8 +817,9 @@
                 document.getElementById('setting-tier-min').value = state.storeSettings.tierMinSpend;
                 document.getElementById('setting-tier-val').value = state.storeSettings.tierDiscVal;
                 document.getElementById('setting-tier-type').value = state.storeSettings.tierDiscType;
-                renderAdminTable(); renderVoucherTable(); renderCashierUserTable();
+                renderVoucherTable(); renderCashierUserTable(); renderStockLockControl();
             }
+            if(tab === 'master') renderAdminTable();
             if(tab === 'laporan') {
                 const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
                 const today = now.toISOString().split('T')[0];
@@ -818,6 +857,7 @@
                 
                 if(!setRes.error && setRes.data) {
                     setRes.data.forEach(s => {
+                        if(s.setting_key === 'stock_locked') state.storeSettings.stockLocked = s.setting_value !== 'false';
                         if(s.setting_key === 'bank_name') state.storeSettings.bankName = s.setting_value;
                         if(s.setting_key === 'bank_account') state.storeSettings.bankAcc = s.setting_value;
                         if(s.setting_key === 'bank_owner') state.storeSettings.bankOwner = s.setting_value;
@@ -832,7 +872,7 @@
 
                 state.items = await fetchAllItems();
 
-                renderProducts(); renderCart(); renderVoucherList();
+                renderProducts(); renderCart(); renderVoucherList(); renderStockLockControl();
                 if(state.role === 'admin') { renderAdminTable(); renderVoucherTable(); renderCashierUserTable(); }
             } catch (err) {
                 console.error("Gagal load:", err); showModal("Gagal Terhubung", "Gagal memuat data dari server.");
@@ -937,15 +977,36 @@
             document.querySelector('#product-grid').parentElement.scrollTo({top: 0, behavior: 'smooth'});
         }
 
+        function renderStockLockControl() {
+            const label = document.getElementById('stock-lock-status');
+            const btn = document.getElementById('stock-lock-toggle');
+            if (!label || !btn) return;
+            const locked = state.storeSettings.stockLocked;
+            label.textContent = locked ? '🔒 LOCK STOK — batas stok aktif' : '🔓 UNLOCK STOK — stok minus diizinkan';
+            btn.textContent = locked ? '🔓 UNLOCK STOK' : '🔒 LOCK STOK';
+            btn.className = 'w-full text-white px-4 py-3 rounded-xl font-bold ' + (locked ? 'bg-amber-600' : 'bg-purple-600');
+        }
+        async function toggleStockLock() {
+            if (state.role !== 'admin') return showModal('Akses Ditolak', 'Hanya admin yang dapat mengubah mode stok.');
+            const next = !state.storeSettings.stockLocked;
+            try {
+                const { error } = await client.from('store_settings').upsert(
+                    { setting_key: 'stock_locked', setting_value: String(next) }, { onConflict: 'setting_key' });
+                if (error) throw error;
+                state.storeSettings.stockLocked = next;
+                renderStockLockControl(); renderProducts();
+                showModal('Pengaturan Tersimpan', next ? 'LOCK STOK aktif. Penjualan dibatasi stok tersedia.' : 'UNLOCK STOK aktif. Penjualan tanpa stok diperbolehkan.');
+            } catch(e) { showModal('Gagal Menyimpan', e.message); }
+        }
         function addToCart(id) {
             const item = state.items.find(i => i.id === id);
             if (!item) return;
             const exist = state.cart.find(c => c.id === id);
             if (exist) {
-                if(exist.qty < item.stock) exist.qty++;
+                if(!state.storeSettings.stockLocked || exist.qty < item.stock) exist.qty++;
                 else showModal("Stok Habis", `Stok maksimal ${item.stock}.`);
             } else {
-                if(item.stock > 0) state.cart.push({ ...item, qty: 1 });
+                if(!state.storeSettings.stockLocked || item.stock > 0) state.cart.push({ ...item, qty: 1 });
                 else showModal("Stok Kosong", `Barang ${item.name} kosong.`);
             }
             renderCart();
@@ -957,7 +1018,7 @@
                 const dbItem = state.items.find(i => i.id === id);
                 item.qty += delta;
                 if (item.qty <= 0) state.cart.splice(itemIndex, 1);
-                else if (item.qty > dbItem.stock) { item.qty = dbItem.stock; showModal("Stok Maksimal", "Sisa stok tercapai."); }
+                else if (state.storeSettings.stockLocked && item.qty > dbItem.stock) { item.qty = dbItem.stock; showModal("Stok Maksimal", "Sisa stok tercapai."); }
             }
             renderCart();
         }
@@ -1081,6 +1142,7 @@
         // CHECKOUT & PAYMENT MODAL
         function processCheckout() {
             if (state.cart.length === 0 || !client) { if(state.cart.length === 0) showModal("Peringatan", "Keranjang kosong!"); return; }
+            if (state.storeSettings.stockLocked && state.cart.some(i => i.qty > (state.items.find(p => p.id === i.id)?.stock ?? 0))) return showModal('Stok Tidak Cukup', 'Ada barang yang melebihi stok tersedia.');
             setPaymentMethod('cash');
             document.getElementById('pay-modal-total').innerText = formatRp(state.currentCalculatedTotal);
             document.getElementById('pay-cash-input').value = '';
@@ -1129,6 +1191,7 @@
                 if(ref) paymentDesc += ` (${ref})`;
             }
 
+            if (state.storeSettings.stockLocked && state.cart.some(i => i.qty > (state.items.find(p => p.id === i.id)?.stock ?? 0))) return showModal('Stok Tidak Cukup', 'Ada barang yang melebihi stok tersedia.');
             closePaymentModal();
             const btn = document.getElementById('btn-confirm-pay');
             const oriHtml = btn.innerHTML; btn.innerHTML = '<div class="loader mr-2"></div> Memproses...'; btn.disabled = true;
@@ -1206,7 +1269,8 @@
 
                 for(let item of state.cart) {
                     const dbItem = state.items.find(i => i.id === item.id);
-                    await client.from('master_items').update({ stock: dbItem.stock - item.qty }).eq('id', item.id);
+                    const { error: stockError } = await client.from('master_items').update({ stock: dbItem.stock - item.qty }).eq('id', item.id);
+                    if (stockError) throw stockError;
                 }
 
                 const paidItems = [...detailsToInsert];
@@ -1243,6 +1307,8 @@
                 <tr class="align-top">
                     <td class="pb-2">
                         <div class="font-bold">${item.name}</div>
+                        <div class="text-[10px] text-gray-500">Kode Stok: ${item.item_id || item.id || '-'}</div>
+                        ${item.orig_code ? `<div class="text-[10px] text-gray-500">Kode Original: ${item.orig_code}</div>` : ''}
                         <div class="text-[10px] text-gray-500">${item.qty} x ${formatRp(item.price)}</div>
                         ${item.discount_amount > 0 ? `<div class="text-[10px] text-red-500">Diskon: -${item.discount_percent ? item.discount_percent+'%' : formatRp(item.discount_amount)}</div>` : ''}
                     </td>
@@ -1452,6 +1518,7 @@
         }
 
         async function handleBulkUpload() {
+            if (!requireMasterAdmin()) return;
             const file = document.getElementById('excel-file').files[0]; const statusEl = document.getElementById('upload-status');
             if (!file) return (statusEl.innerHTML = '<span class="text-red-500">Pilih file Excel!</span>', statusEl.classList.remove('hidden-el'));
             
@@ -1468,28 +1535,100 @@
             reader.readAsArrayBuffer(file);
         }
 
-        async function handleGoogleSheets() {
-            const url = document.getElementById('g-sheets-url').value.trim();
-            const statusEl = document.getElementById('upload-status');
-            if (!url) return (statusEl.innerHTML = '<span class="text-red-500">Masukkan link CSV!</span>', statusEl.classList.remove('hidden-el'));
-            
-            statusEl.innerHTML = '<span class="text-purple-600"><i class="fas fa-spinner fa-spin"></i> Menarik data dari Spreadsheet...</span>'; statusEl.classList.remove('hidden-el');
-            
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error("Gagal mendownload data. Pastikan link bisa diakses publik.");
-                const arrayBuffer = await response.arrayBuffer();
-                const workbook = XLSX.read(new Uint8Array(arrayBuffer), {type: 'array'});
-                await processWorkbookData(workbook, statusEl);
-                document.getElementById('g-sheets-url').value = '';
-            } catch(err) { statusEl.innerHTML = `<span class="text-red-600"><i class="fas fa-times-circle"></i> Gagal: ${err.message}</span>`; }
+        function normalizeGoogleSheetsUrl(input) {
+            const u = new URL(input);
+            if (u.protocol !== 'https:') throw new Error('Gunakan link HTTPS Google Sheets.');
+            if (u.hostname !== 'docs.google.com') throw new Error('Link harus berasal dari docs.google.com/spreadsheets.');
+            const match = u.pathname.match(/^\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+            if (!match) throw new Error('ID Google Sheets tidak ditemukan pada link.');
+            const hashGid = u.hash.match(/gid=(\d+)/);
+            const gid = u.searchParams.get('gid') || (hashGid ? hashGid[1] : '0');
+            return `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv&gid=${encodeURIComponent(gid)}`;
         }
 
+        // JSONP: Google Apps Script Web App tidak menyediakan CORS untuk fetch() dari file HTML.
+        // Hanya gunakan endpoint Apps Script yang Anda deploy sendiri.
+        function gasJsonp(endpoint, params, timeoutMs = 30000) {
+            return new Promise((resolve, reject) => {
+                const callbackName = '__suryatokokuGas' + Date.now() + '_' + Math.random().toString(36).slice(2);
+                const script = document.createElement('script');
+                let finished = false;
+                const cleanup = () => {
+                    if (finished) return;
+                    finished = true;
+                    clearTimeout(timer);
+                    script.remove();
+                    try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
+                };
+                const timer = setTimeout(() => { cleanup(); reject(new Error('Apps Script tidak merespons (timeout). Periksa URL /exec dan izin deployment.')); }, timeoutMs);
+                window[callbackName] = payload => { cleanup(); resolve(payload); };
+                script.onerror = () => { cleanup(); reject(new Error('Tidak dapat memuat Apps Script. Periksa deployment, koneksi, dan URL /exec.')); };
+                const url = new URL(endpoint);
+                Object.entries({ ...params, callback: callbackName, _: Date.now() }).forEach(([k,v]) => url.searchParams.set(k, String(v)));
+                script.src = url.toString();
+                document.head.appendChild(script);
+            });
+        }
+
+        async function handleGoogleSheets() {
+            if (!requireMasterAdmin()) return;
+            const input = document.getElementById('g-sheets-url').value.trim();
+            const endpoint = document.getElementById('gas-webapp-url').value.trim();
+            const statusEl = document.getElementById('upload-status');
+            statusEl.classList.remove('hidden-el', 'text-red-600');
+            if (!input || !endpoint) { statusEl.textContent = 'Masukkan URL Google Sheets dan URL Web App Apps Script.'; return; }
+            try {
+                const u = new URL(endpoint);
+                if (u.protocol !== 'https:' || u.hostname !== 'script.google.com' || !/^\/macros\/s\/[^/]+\/exec$/.test(u.pathname)) {
+                    throw new Error('URL Apps Script harus berbentuk https://script.google.com/macros/s/.../exec');
+                }
+                const sheetUrl = new URL(input);
+                if (sheetUrl.protocol !== 'https:' || sheetUrl.hostname !== 'docs.google.com') throw new Error('Gunakan link Google Sheets resmi.');
+                const match = sheetUrl.pathname.match(/^\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+                if (!match) throw new Error('ID Google Sheets tidak ditemukan.');
+                const hashGid = sheetUrl.hash.match(/gid=(\d+)/);
+                const gid = sheetUrl.searchParams.get('gid') || (hashGid ? hashGid[1] : '0');
+                localStorage.setItem('suryatokoku_gas_url', endpoint);
+                statusEl.textContent = 'Menghubungi Google Apps Script...';
+                let offset = 0, header = null, allRows = [], total = null;
+                const limit = 400;
+                do {
+                    const data = await gasJsonp(endpoint, { spreadsheetId: match[1], gid, offset, limit });
+                    if (!data || data.ok !== true) throw new Error(data?.error || 'Respons Apps Script tidak valid.');
+                    if (!Array.isArray(data.header) || !Array.isArray(data.rows)) throw new Error('Format data Apps Script tidak sesuai.');
+                    if (!header) header = data.header;
+                    if (JSON.stringify(header) !== JSON.stringify(data.header)) throw new Error('Header berubah saat proses impor.');
+                    if (!Number.isSafeInteger(data.total) || data.total < 0) throw new Error('Jumlah baris dari Apps Script tidak valid.');
+                    if (total !== null && total !== data.total) throw new Error('Isi spreadsheet berubah selama impor. Ulangi proses.');
+                    total = data.total;
+                    if (data.rows.length === 0 && offset < total) throw new Error('Apps Script mengirim halaman kosong sebelum selesai.');
+                    allRows.push(...data.rows);
+                    offset += data.rows.length;
+                    statusEl.textContent = `Mengambil ${offset} dari ${total} baris Google Sheets...`;
+                } while (offset < total);
+                if (!header?.length || !allRows.length) throw new Error('Spreadsheet kosong atau hanya berisi header.');
+                const ws = XLSX.utils.aoa_to_sheet([header, ...allRows]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Google Sheets');
+                await processWorkbookData(wb, statusEl);
+            } catch (err) {
+                statusEl.textContent = 'Gagal: ' + (err.message || String(err));
+                statusEl.classList.add('text-red-600');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const field = document.getElementById('gas-webapp-url');
+            if (field) field.value = localStorage.getItem('suryatokoku_gas_url') || '';
+        });
+
         function downloadTemplate() {
+            if (!requireMasterAdmin()) return;
             const ws = XLSX.utils.aoa_to_sheet([["Kode Stock", "Nama Barang", "Kelompok", "Family", "Original Code", "Disc", "Qty Akhir", "Harga Beli Akhir", "Harga Jual"], ["STK-001", "PRODUK CONTOH", "KOSMETIK", "EMINA", "E-01", 10, 50, 15000, 25000]]);
             const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Master"); XLSX.writeFile(wb, "Template_Grosir.xlsx");
         }
-        function resetDataMaster() { showModal("BAHAYA", "Hapus SEMUA data produk permanen?", true, async () => { await client.from('master_items').delete().neq('id', 'kosong'); await loadData(); }); }
+        function resetDataMaster() {
+            if (!requireMasterAdmin()) return; showModal("BAHAYA", "Hapus SEMUA data produk permanen?", true, async () => { await client.from('master_items').delete().neq('id', 'kosong'); await loadData(); }); }
 
         // LAPORAN & EXCEL EXPORT
         async function loadReport() {
