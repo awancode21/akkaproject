@@ -1358,8 +1358,7 @@
                 <tr class="align-top">
                     <td class="pb-2">
                         <div class="font-bold">${item.name}</div>
-                        <div class="text-[10px] text-gray-500">Kode Stock: ${String(item.item_id ?? item.id ?? '').trim() || '-'}</div>
-                        ${item.orig_code ? `<div class="text-[10px] text-gray-500">Kode Original: ${item.orig_code}</div>` : ''}
+                        <div class="text-[10px] text-gray-500">Kode: ${String(item.orig_code ?? '').trim() || String(item.item_id ?? item.id ?? '').trim() || '-'}</div>
                         <div class="text-[10px] text-gray-500">${item.qty} x ${formatRp(item.price)}</div>
                         ${item.discount_amount > 0 ? `<div class="text-[10px] text-red-500">Diskon: -${item.discount_percent ? item.discount_percent+'%' : formatRp(item.discount_amount)}</div>` : ''}
                     </td>
