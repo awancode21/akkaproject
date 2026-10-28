@@ -312,14 +312,15 @@ function bnUpdateCartUI(id){
   else{
    const qty=row.querySelector('[data-bn-qty]');
    if(qty && qty.value!==String(x.qty))qty.value=String(x.qty);
-   const toppings=(x.toppings||[]).reduce((sum,tid)=>{
-    const topping=bnChoices(x.id).find(t=>t.id===tid);
-    return sum+Number(topping?.price||0);
-   },0);
+   const prices=bnProductPricing(x);
    const extras=row.querySelector('[data-bn-extras]');
+   const unit=row.querySelector('[data-bn-unit]');
+   const formula=row.querySelector('[data-bn-formula]');
    const subtotal=row.querySelector('[data-bn-subtotal]');
-   if(extras)extras.textContent=money(toppings);
-   if(subtotal)subtotal.textContent=money(onlineItemTotal(x));
+   if(extras)extras.textContent=money(prices.topping);
+   if(unit)unit.textContent=money(prices.unit);
+   if(formula)formula.textContent='('+money(prices.base)+' + '+money(prices.topping)+') × '+prices.qty;
+   if(subtotal)subtotal.textContent=money(prices.subtotal);
   }
  }
  const list=document.getElementById('bnCartRows');
@@ -365,7 +366,15 @@ function changeOnlineQty(id,delta){
  else x.qty=Math.min(100,q);
  bnUpdateCartUI(id);
 }
-function onlineItemTotal(x){const m=state.menu.find(z=>z.id===x.id);if(!m)return 0;const extras=(x.toppings||[]).reduce((sum,id)=>sum+Number(bnChoices(x.id).find(t=>t.id===id)?.price||0),0);return (Number(state.phone?m.price_member:m.price_normal)+extras)*x.qty}
+function bnProductPricing(x){
+ const m=state.menu.find(z=>z.id===x.id);
+ if(!m)return {base:0,topping:0,unit:0,qty:0,subtotal:0};
+ const base=Number(state.phone?m.price_member:m.price_normal)||0;
+ const topping=(x.toppings||[]).reduce((sum,id)=>sum+Number(bnChoices(x.id).find(t=>t.id===id)?.price||0),0);
+ const qty=Math.min(100,Math.max(1,Math.floor(Number(x.qty)||1)));
+ return {base,topping,unit:base+topping,qty,subtotal:(base+topping)*qty};
+}
+function onlineItemTotal(x){return bnProductPricing(x).subtotal}
 function onlineCalc(){return state.onlineCart.reduce((sum,x)=>sum+onlineItemTotal(x),0)}
 function setOnlineType(t){syncOnlineMember();renderOnlineOrder()}
 function renderOnlineOrder(){
@@ -377,10 +386,10 @@ function renderOnlineOrder(){
   const m=state.menu.find(z=>z.id===x.id&&z.active);if(!m)return '';if(m.sugar_enabled===false)x.sugar='none';
   const select=(field,label)=>'<label class="text-sm font-semibold">'+label+'<select class="field mt-1" onchange="bnSelect('+bnArg(x.id)+','+JSON.stringify(field)+',this.value)">'+['less','normal','extra'].map(v=>'<option value="'+v+'" '+((x[field]||'normal')===v?'selected':'')+'>'+({less:'Less',normal:'Normal',extra:'Extra'}[v])+'</option>').join('')+'</select></label>';
   const topping=bnChoices(x.id).map(t=>'<label class="flex items-center justify-between gap-2 text-sm py-1"><span><input type="checkbox" '+((x.toppings||[]).includes(t.id)?'checked':'')+' onchange="bnTopping('+bnArg(x.id)+','+bnArg(t.id)+',this.checked)"> '+esc(t.name)+'</span><span>+'+money(t.price)+'</span></label>').join('');
-  return '<div class="border-b py-4" data-bn-item="'+encodeURIComponent(String(x.id))+'"><div class="flex justify-between items-center gap-2"><div><b>'+esc(m.name)+'</b><p class="muted">'+money(member?m.price_member:m.price_normal)+' / produk</p></div><div class="flex items-center gap-2"><button type="button" class="border rounded-lg px-3 py-1" onclick="changeOnlineQty('+bnArg(x.id)+',-1)">−</button><input aria-label="Jumlah produk" data-bn-qty type="number" min="1" max="100" class="w-14 border rounded-lg text-center p-1" value="'+x.qty+'" onchange="setOnlineQty('+bnArg(x.id)+',this.value)"><button type="button" class="border rounded-lg px-3 py-1" onclick="changeOnlineQty('+bnArg(x.id)+',1)">+</button></div></div><div class="grid grid-cols-2 gap-3 mt-3">'+(m.sugar_enabled===false?'<div class="text-sm bg-stone-100 rounded-xl p-3">Sugar: <b>No Sugar</b></div>':select('sugar','Sugar'))+select('ice','Ice')+'</div>'+(topping?'<div class="mt-3"><b class="text-sm">Extra Topping</b>'+topping+'</div>':'<p class="text-xs text-amber-800 mt-2">Belum ada topping aktif yang dihubungkan ke produk ini. Atur di Manajemen Produk.</p>')+'<div class="text-right mt-2 text-xs text-stone-600">Tambahan topping / produk: '+money((x.toppings||[]).reduce((n,id)=>n+Number(bnChoices(x.id).find(t=>t.id===id)?.price||0),0))+'</div><div class="text-right mt-2 font-bold text-amber-800">Subtotal: '+money(onlineItemTotal(x))+'</div></div>';
+  return '<div class="border-b py-4" data-bn-item="'+encodeURIComponent(String(x.id))+'"><div class="flex justify-between items-center gap-2"><div><b>'+esc(m.name)+'</b><p class="muted">'+money(member?m.price_member:m.price_normal)+' / produk</p></div><div class="flex items-center gap-2"><button type="button" class="border rounded-lg px-3 py-1" onclick="changeOnlineQty('+bnArg(x.id)+',-1)">−</button><input aria-label="Jumlah produk" data-bn-qty type="number" min="1" max="100" class="w-14 border rounded-lg text-center p-1" value="'+x.qty+'" onchange="setOnlineQty('+bnArg(x.id)+',this.value)"><button type="button" class="border rounded-lg px-3 py-1" onclick="changeOnlineQty('+bnArg(x.id)+',1)">+</button></div></div><div class="grid grid-cols-2 gap-3 mt-3">'+(m.sugar_enabled===false?'<div class="text-sm bg-stone-100 rounded-xl p-3">Sugar: <b>No Sugar</b></div>':select('sugar','Sugar'))+select('ice','Ice')+'</div>'+(topping?'<div class="mt-3"><b class="text-sm">Extra Topping</b>'+topping+'</div>':'<p class="text-xs text-amber-800 mt-2">Belum ada topping aktif yang dihubungkan ke produk ini. Atur di Manajemen Produk.</p>')+'<div class="mt-3 rounded-xl bg-amber-50/80 border border-amber-100 px-3 py-3 text-sm space-y-1"><div class="flex justify-between gap-2 text-stone-600"><span>Tambahan topping / gelas</span><span data-bn-extras>'+money(bnProductPricing(x).topping)+'</span></div><div class="flex justify-between gap-2 text-stone-700"><span>Harga per gelas termasuk topping</span><b data-bn-unit>'+money(bnProductPricing(x).unit)+'</b></div><div class="text-right text-xs text-stone-500" data-bn-formula>('+money(bnProductPricing(x).base)+' + '+money(bnProductPricing(x).topping)+') × '+bnProductPricing(x).qty+'</div><div class="flex items-center justify-between gap-2 border-t border-amber-200 pt-2 font-extrabold text-amber-900"><span>Subtotal produk</span><span class="text-lg tabular-nums" data-bn-subtotal>'+money(bnProductPricing(x).subtotal)+'</span></div></div></div>';
  }).join('');
  app.innerHTML='<div class="fade max-w-2xl mx-auto w-full space-y-4 pb-28"><div class="flex justify-between items-center"><h1 class="text-2xl font-black text-coffee-900">Pesan Minuman</h1><button class="underline" onclick="nav(\'home\')">← Katalog</button></div>'+
-'<div class="card"><h2 class="font-bold mb-3">Keranjang Pesanan · Edit Qty & Topping <span class="text-xs text-amber-700">FIX 4 · Smooth Cart</span></h2>'+'<div id="bnCartRows">'+(rows||'<p class="muted">Keranjang masih kosong. Pilih minuman dari katalog.</p>')+'</div>'+'<div class="flex justify-between font-bold text-lg mt-4"><span>Total Estimasi</span><span data-bn-cart-total>'+money(onlineCalc())+'</span></div></div>'+
+'<div class="card"><h2 class="font-bold mb-3">Keranjang Pesanan · Edit Qty & Topping <span class="text-xs text-amber-700">FIX 5 · Subtotal Per Produk</span></h2>'+'<div id="bnCartRows">'+(rows||'<p class="muted">Keranjang masih kosong. Pilih minuman dari katalog.</p>')+'</div>'+'<div class="flex justify-between font-bold text-lg mt-4"><span>Total Estimasi</span><span data-bn-cart-total>'+money(onlineCalc())+'</span></div></div>'+
 '<div class="card"><h2 class="font-bold mb-3">Data Pemesan</h2><p class="muted mb-3">'+(member?'Anda masuk sebagai Member. Harga Member otomatis berlaku.':'Belum masuk Member. Harga Normal berlaku. Masuk Member untuk mendapatkan harga Member.')+'</p>'+
 (member?'<label class="flex items-center gap-2 text-sm mb-3"><input type="checkbox" id="onlineUseMember" onchange="fillOnlineMember(this.checked)" '+(state.member&&state.phone?'checked':'')+'> Gunakan data sama seperti profil member</label>':'')+
 '<form onsubmit="submitOnlineOrder(event)" class="space-y-3">'+
@@ -390,7 +399,7 @@ function renderOnlineOrder(){
 '<label class="block text-sm font-semibold">Catatan (opsional)<textarea id="onNotes" maxlength="500" rows="2" class="field mt-1" placeholder="Contoh: less ice, tanpa gula"></textarea></label>'+
 '<p class="muted">'+(member?'Harga member berlaku jika nomor WA terdaftar.':'Harga normal untuk non-member.')+' Pesanan tercatat terlebih dahulu, lalu bisa dibagikan melalui WhatsApp.</p>'+
 '<button type="submit" data-bn-submit-order class="btn w-full" '+(!state.onlineCart.length?'disabled':'')+'>Kirim Pesanan</button></form></div></div>'+
-'<div class="fixed bottom-0 left-0 right-0 z-50 bg-amber-50 border-t-4 border-amber-600 shadow-2xl p-3"><div class="max-w-2xl mx-auto flex justify-between items-center gap-3"><div><div class="text-xs text-stone-500">Keranjang · '+state.onlineCart.reduce((n,x)=>n+x.qty,0)+' item</div><b data-bn-cart-total class="text-lg text-amber-800">'+money(onlineCalc())+'</b></div><button class="btn" onclick="document.getElementById(\'onName\')?.scrollIntoView({behavior: \'smooth\',block: \'center\'})">Lanjut Checkout</button></div></div>';
+'<div class="fixed bottom-0 left-0 right-0 z-50 bg-amber-50 border-t-4 border-amber-600 shadow-2xl p-3"><div class="max-w-2xl mx-auto flex justify-between items-center gap-3"><div><div class="text-xs text-stone-500">Keranjang · <span data-bn-cart-count>'+state.onlineCart.reduce((n,x)=>n+x.qty,0)+'</span> item</div><b data-bn-cart-total class="text-lg text-amber-800">'+money(onlineCalc())+'</b></div><button class="btn" onclick="document.getElementById(\'onName\')?.scrollIntoView({behavior: \'smooth\',block: \'center\'})">Lanjut Checkout</button></div></div>';
  bnRestoreOrderForm(oldForm);
 }
 function bnRestoreOrderForm(values){
