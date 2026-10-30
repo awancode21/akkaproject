@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="id" class="dark">
+<html lang="id" >
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Aplikasi Stok Opname Mobile Web</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -33,6 +33,200 @@
       object-fit: cover !important;
       border-radius: 0.75rem;
     }
+
+/* Mobile reading and touch comfort */
+:root{color-scheme:light;--ink:#233e36;--muted:#5f756d;--line:#dce6e0;--accent:#18775f}
+body{background:#f3f6f2!important;color:var(--ink)!important;font-size:15px;line-height:1.55;user-select:auto;padding-bottom:100px!important}
+header{background:#fdfefb!important;border-color:var(--line)!important;box-shadow:0 3px 18px #25463708!important;padding:16px!important}
+header h1{font-size:20px!important;letter-spacing:-.6px;line-height:1.3!important}
+header p{font-size:11px!important;margin-top:4px!important}
+main{max-width:1120px!important;padding:22px!important}
+[class~="bg-slate-900"]{background:#fffefa!important}
+[class~="bg-slate-950"]{background:#f4f7f3!important}
+[class~="bg-slate-800"],[class~="bg-slate-700"]{background:#eaf0eb!important}
+[class*="border-slate-"]{border-color:var(--line)!important}
+[class~="text-white"],[class~="text-slate-100"],[class~="text-slate-200"],[class~="text-slate-300"]{color:var(--ink)!important}
+[class~="text-slate-400"],[class~="text-slate-500"]{color:var(--muted)!important}
+[class~="text-emerald-300"],[class~="text-emerald-400"],[class~="text-teal-300"],[class~="text-teal-400"]{color:#13745a!important}
+[class~="text-amber-300"],[class~="text-amber-400"]{color:#966016!important}
+[class~="bg-teal-950"],[class*="bg-emerald-950/"]{background:#e7f2ea!important}
+[class*="bg-emerald-500/"]{background:#e7f1e9!important}
+[class*="bg-amber-500/"]{background:#fff3d9!important}
+[class~="bg-emerald-600"],[class~="bg-teal-600"]{background:#18775f!important;color:#fff!important}
+[class~="bg-emerald-500"]{background:#dceee2!important;color:#15543f!important}
+[class~="shadow-md"],[class~="shadow-lg"],[class~="shadow-2xl"]{box-shadow:0 8px 28px #244d3410!important}
+section>div.rounded-2xl{border-radius:22px!important}
+input:not([type=checkbox]):not([type=file]),select{font-size:16px!important;min-height:50px;border-radius:13px!important;padding-top:12px!important;padding-bottom:12px!important;color:var(--ink)!important;background:#f5f8f3!important}
+input::placeholder{color:#819087!important;font-weight:400;letter-spacing:0}
+input:focus,select:focus,button:focus-visible{outline:3px solid #82bda080!important;outline-offset:3px}
+input:disabled,select:disabled{opacity:.75;background:#edf2ec!important}
+input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+button{min-height:44px;touch-action:manipulation;font-weight:650!important}
+button:disabled{opacity:.6}
+button:active{transform:scale(.98)}
+#input-barcode-scan{min-height:64px;font-size:18px!important;border:2px solid #a5cbb5!important}
+#btn-submit-scan{min-width:58px;background:#18775f!important;color:white!important}
+#btn-toggle-sound,#btn-sync-all{width:44px;min-height:44px;justify-content:center;border-radius:14px}
+#tab-scanner>div{padding:22px!important}
+#tab-scanner>div:first-child>div:first-child{align-items:center;gap:12px;padding-bottom:16px}
+#tab-scanner label{font-size:12px!important;letter-spacing:.02em}
+#btn-toggle-session-lock{min-height:46px;font-size:13px!important;white-space:normal;background:#e6f0e6!important;color:#18563f!important}
+#recent-raks-container{gap:7px;padding-top:6px}
+.btn-recent-rak{min-height:34px;font-size:11px!important;padding:5px 10px!important}
+#btn-refresh-petugas{min-height:30px;padding:2px 8px}
+#btn-mode-gun,#btn-mode-camera{font-size:13px!important;min-height:48px;line-height:1.3;padding:8px 12px!important}
+#modal-confirm-qty,#modal-finish-rak{background:#203f35aa!important;backdrop-filter:blur(5px)}
+#modal-confirm-qty>div,#modal-finish-rak>div{border:1px solid #dbe9dc!important;border-radius:26px!important;padding:24px!important;max-width:460px!important;max-height:90dvh;box-shadow:0 24px 80px #163b3433!important}
+#confirm-item-nama{font-size:20px!important;line-height:1.4!important}
+#confirm-item-sku,#confirm-item-orig{font-size:13px!important}
+#input-confirm-qty{font-size:34px!important;min-width:0;height:74px}
+#btn-modal-qty-minus,#btn-modal-qty-plus{width:50px;height:60px;font-size:25px}
+.btn-modal-preset{flex:1;min-width:46px;min-height:44px;font-size:14px!important}
+#btn-modal-save,#btn-modal-cancel,#btn-confirm-finish{min-height:54px;font-size:14px!important}
+#recent-scans-list>div{padding:14px!important;border-radius:16px!important;margin-bottom:8px}
+#recent-scans-list p{font-size:13px!important;line-height:1.5}
+#recent-scans-list [class*="text-[8px]"]{font-size:10px!important;padding:3px 6px}
+#sync-banner{position:sticky;top:77px;z-index:35;font-size:13px;line-height:1.5;padding:12px 18px;background:#e8f1ed!important;color:#235342!important;border-color:#c4dacf!important}
+#sync-banner[class*="rose"]{background:#fff0ed!important;color:#9a392e!important;border-color:#ebc2ba!important}
+nav{background:#fdfefbf5!important;border-color:var(--line)!important;box-shadow:0 -6px 25px #1b513409;padding:10px 16px calc(10px + env(safe-area-inset-bottom))!important;gap:8px}
+nav button{flex:1;min-height:54px;border-radius:16px!important}
+nav button.text-emerald-400{background:#e7f1e7!important}
+nav button span{font-size:12px!important}
+.backup-tools{line-height:1.7;padding:20px!important;margin-bottom:16px!important}
+.backup-tools button,.backup-tools label{display:inline-flex;align-items:center;min-height:44px;padding:8px 12px;border-radius:12px;background:#e5ece5;text-decoration:none!important;color:#315c48!important}
+.backup-tools p{font-size:12px;max-width:560px}
+table td,table th{padding:14px!important}table{font-size:13px!important}
+@media(max-width:640px){
+ main{padding:16px 12px!important}header{padding:14px 16px!important}
+ #tab-scanner>div{padding:17px!important}
+ #tab-scanner>div:first-child>div:first-child{flex-direction:column;align-items:stretch}
+ #btn-toggle-session-lock{width:100%;margin-top:2px}
+ #tab-scanner>div:first-child .grid{gap:15px!important}
+ #tab-scanner .space-y-2>div.flex.items-center.justify-between.text-xs{flex-wrap:wrap;gap:10px}
+ #tab-scanner .space-y-2>div.flex.items-center.justify-between.text-xs>span{font-size:13px}
+ #modal-confirm-qty,#modal-finish-rak{align-items:flex-end;padding:10px 8px calc(10px + env(safe-area-inset-bottom))!important;z-index:70}
+ #modal-confirm-qty>div,#modal-finish-rak>div{padding:20px!important;border-radius:26px!important;max-height:88dvh!important}
+ #tab-results table thead{display:none}#table-results-body{display:block;padding:10px}
+ #table-results-body tr{display:grid;grid-template-columns:1fr 58px;gap:9px;background:#f6f9f4;border:1px solid #dfe8df;border-radius:16px;padding:14px;margin-bottom:10px}
+ #table-results-body td{padding:0!important;border:0!important;white-space:normal!important}
+ #table-results-body td:nth-child(1){grid-column:1;font-size:12px}
+ #table-results-body td:nth-child(2){grid-column:1;grid-row:2}
+ #table-results-body td:nth-child(2) p:first-child{font-size:15px;line-height:1.5}
+ #table-results-body td:nth-child(3){grid-column:2;grid-row:1 / 3;font-size:24px!important;align-self:center}
+ #table-results-body td:nth-child(4){grid-column:1;font-size:12px}
+ #table-results-body td:nth-child(5){grid-column:2;grid-row:3}
+ #table-results-body td[colspan]{grid-column:1 / -1}
+ #tab-results .grid{gap:10px}#tab-results .grid>div{padding:16px}
+ #tab-results .grid p:first-child{font-size:11px}
+ #tab-results .grid p:nth-child(2){font-size:27px}
+ #tab-master table{min-width:560px}
+ .backup-tools{padding:10px 16px!important}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+
+[class~="bg-emerald-950"],[class~="bg-cyan-950/60"],[class~="bg-cyan-950"]{background:#e7f2ec!important}
+[class~="bg-rose-950"],[class~="bg-rose-900/60"]{background:#fff0ed!important;color:#963d34!important}
+[class~="bg-blue-600"],[class~="bg-blue-500"]{background:#326c7d!important;color:white!important}
+[class~="text-cyan-200"],[class~="text-cyan-300"]{color:#316274!important}
+[class~="text-rose-200"],[class~="text-rose-300"],[class~="text-rose-400"]{color:#963d34!important}
+  .config-hidden,[hidden]{display:none!important}
+
+#connection-dialog{width:min(94vw,620px);max-height:90dvh;overflow:auto;padding:24px;border:1px solid #dbe5dc;border-radius:24px;background:#fffefa;color:#233e36;box-shadow:0 24px 80px #163b3433}
+#connection-dialog::backdrop{background:#203f35aa;backdrop-filter:blur(4px)}
+#connection-dialog header{position:static!important;display:flex;align-items:center;justify-content:space-between;padding:0 0 12px!important;box-shadow:none!important}
+#connection-dialog h2{font-size:20px;font-weight:750}#connection-dialog label{display:block;font-size:13px;font-weight:650;margin:16px 0}
+#connection-dialog input,#connection-dialog textarea{display:block;width:100%;box-sizing:border-box;padding:12px;margin-top:7px;border:1px solid #ccdacf;border-radius:12px;background:#f5f8f3;color:#254638;font:14px monospace}
+#connection-dialog button{padding:10px 15px;border-radius:12px;background:#e7efe6;color:#234c39}
+#connection-dialog .connection-actions{display:flex;gap:10px;flex-wrap:wrap}#connection-dialog .connection-actions button:first-child{background:#18775f;color:white}
+#connection-message{white-space:pre-wrap;font-size:13px;line-height:1.6;margin-top:16px;padding:12px;background:#edf3eb;border-radius:12px}.connection-help{font-size:13px;color:#5f756d}
+#app-title{touch-action:manipulation;user-select:none}
+
+
+/* Focused mobile workspace */
+html{scroll-padding-bottom:110px}body{overflow-x:hidden}main,section,.grid>div{min-width:0}
+header>div:first-child{gap:10px}header h1{white-space:nowrap}header button svg{flex-shrink:0}
+#session-card>div:first-child{flex-direction:row!important;align-items:center!important;border-bottom:0;padding-bottom:4px!important;margin-bottom:12px}
+.session-step{font-size:10px;color:#688274;letter-spacing:.08em;font-weight:700;white-space:nowrap}
+.session-action{margin-top:16px}.session-action #btn-toggle-session-lock{width:100%;font-size:14px!important;min-height:50px;background:#18775f!important;color:white!important;border:0;box-shadow:0 4px 10px #18775f12}
+.session-compact .session-action #btn-toggle-session-lock{background:#fff2da!important;color:#78511f!important;border:1px solid #edd9b2}
+.session-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 4px;padding:12px 14px;background:#eff5ec;border-radius:16px}
+.session-summary small{display:block;color:#627b68;font-size:9px;font-weight:750;letter-spacing:.1em}
+.session-summary strong{display:block;color:#24513a;font-size:23px;letter-spacing:-.6px;overflow-wrap:anywhere;line-height:1.4}
+.session-summary span{display:block;font-size:12px;color:#5c7363;overflow-wrap:anywhere}
+#session-expand{flex-shrink:0;min-height:40px;font-size:11px;color:#326145;padding:8px;border-radius:10px;background:#e1ecde}
+#session-fields{margin-top:8px}#session-fields label{display:flex;align-items:center;min-height:28px}
+#last-scanned-card{border:1px solid #cbe0cd!important;background:#f0f6ec!important;padding:16px!important}
+#last-scanned-name{font-size:16px!important;line-height:1.45!important}
+#last-scanned-sku-orig{font-size:11px!important;overflow-wrap:anywhere}
+#last-scanned-card>div:first-child{flex-wrap:wrap;gap:8px}
+#last-scanned-qty{font-size:27px!important}
+#tab-scanner>div:nth-child(2){border-color:#c9ddcb!important;box-shadow:0 6px 22px #28553b08!important}
+#recent-scans-list{overscroll-behavior:contain;scrollbar-width:thin}
+#recent-scans-list>div{gap:12px}#recent-scans-list>div>div:first-child{min-width:0}#recent-scans-list p{overflow-wrap:anywhere}
+#tab-results .relative>svg,#tab-master .relative>svg{top:17px}
+#tab-results table td p{overflow-wrap:anywhere}
+#tab-master tbody td{max-width:280px;overflow-wrap:anywhere}
+#modal-confirm-qty>div>div:last-child{position:sticky;bottom:-20px;background:#fffefa;padding-bottom:8px;z-index:2}
+#modal-confirm-qty .btn-modal-preset{background:#eff5ed!important;color:#2b6042!important;border-color:#d4e3cf!important;box-shadow:none!important}
+#modal-confirm-qty .btn-modal-preset:active{background:#d6e9d6!important}
+#modal-confirm-qty input[type=number]{appearance:textfield}
+#modal-confirm-qty input::-webkit-inner-spin-button,#modal-confirm-qty input::-webkit-outer-spin-button{appearance:none;margin:0}
+.backup-tools{border-top:1px solid #dde6da;margin-top:10px}.backup-tools summary{font-size:12px;color:#6b7f70;cursor:pointer;min-height:40px;padding:9px 0;list-style:none;display:flex;justify-content:space-between;align-items:center}
+.backup-tools summary::after{content:'+';font-size:20px}.backup-tools[open] summary::after{content:'−'}.backup-content{padding-top:6px}
+@media(max-width:640px){
+ body{padding-bottom:calc(96px + env(safe-area-inset-bottom))!important}
+ header{padding:12px 14px!important}header h1{font-size:19px!important}header p{font-size:10px!important}
+ header>div:first-child>div:first-child{gap:8px}header>div:first-child>div:first-child>div:first-child{padding:8px}
+ main{padding:12px 10px 18px!important}#tab-scanner{display:flex;flex-direction:column;gap:12px}#tab-scanner.hidden{display:none!important}#tab-scanner>div{margin-top:0!important;padding:16px!important;border-radius:20px!important}
+ #session-fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px!important}#session-fields>div:last-child{grid-column:1 / -1}
+ #session-fields select{padding-left:10px!important;padding-right:20px!important;font-size:14px!important}
+ #session-card.session-compact:not(.session-expanded) #session-fields{display:none!important}
+ #session-card.session-compact>div:first-child{margin-bottom:6px;padding-bottom:0!important}
+ .session-action{margin-top:12px}.session-summary{margin-top:0;padding:12px}
+ #tab-scanner>div:nth-child(2)>div:first-child{gap:4px;padding:4px!important}
+ #btn-mode-gun,#btn-mode-camera{font-size:12px!important;min-height:45px;padding:8px 6px!important}
+ #btn-mode-gun svg,#btn-mode-camera svg{width:16px;height:16px;flex-shrink:0}
+ #input-barcode-scan{width:0;min-width:0;min-height:60px;font-size:16px!important;padding:12px!important;letter-spacing:0}
+ #btn-submit-scan{width:52px;min-width:52px;padding:0!important}
+ #tab-scanner>div:nth-child(2) .space-y-2>div.flex.items-center.justify-between.text-xs{gap:8px}
+ #tab-scanner>div:nth-child(2) .space-y-2>div.flex.items-center.justify-between.text-xs>span{font-size:12px;line-height:1.5}
+ #recent-scans-list{max-height:380px!important;padding-right:0!important}
+ #recent-scans-list>div{padding:12px!important}#recent-scans-list p.font-mono{font-family:Inter,system-ui,sans-serif!important;font-size:11px!important}
+ #last-scanned-time,#last-scanned-rak{font-size:10px!important}
+ #tab-results .grid{grid-template-columns:1fr 1fr 1fr!important;gap:7px!important}#tab-results .grid>div{grid-column:auto!important;padding:12px 9px!important;border-radius:16px!important}
+ #tab-results .grid p:first-child{font-size:9px;line-height:1.5;min-height:28px}#tab-results .grid p:nth-child(2){font-size:23px}
+ #btn-push-supabase,#btn-push-sheet{flex-basis:calc(50% - 8px);font-size:11px!important;padding:10px 5px!important}#btn-export-csv{width:100%;justify-content:center}
+ #tab-master>div:first-child{padding:16px!important}#tab-master>div:first-child>div:first-child>div:last-child{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ #btn-sync-sheet-to-supabase{grid-column:1 / -1;justify-content:center}#btn-pull-master-supabase,#btn-pull-master-sheet{font-size:11px!important;justify-content:center;padding:10px 6px!important}
+ #modal-confirm-qty,#modal-finish-rak{padding:0!important;align-items:flex-end!important}
+ #modal-confirm-qty>div,#modal-finish-rak>div{max-width:100%!important;width:100%;border-radius:26px 26px 0 0!important;padding:20px 18px calc(16px + env(safe-area-inset-bottom))!important;max-height:92dvh!important;margin:0!important}
+ #modal-confirm-qty>div::before,#modal-finish-rak>div::before{content:'';display:block;width:38px;height:4px;border-radius:8px;background:#d5dfd2;margin: -8px auto 14px}
+ #modal-confirm-qty>div>div:last-child{bottom:calc(-16px - env(safe-area-inset-bottom));padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+ #confirm-item-nama{font-size:19px!important}#confirm-item-family{font-size:10px!important;max-width:45%;text-align:right}
+ #input-confirm-qty{height:74px!important;font-size:36px!important}.btn-modal-preset{min-width:0!important;min-height:46px;font-size:14px!important}
+ #btn-modal-cancel{width:28%}#btn-modal-save{width:72%;font-size:13px!important}
+ #sync-banner{top:70px;max-height:120px;overflow-y:auto;padding:10px 14px!important;font-size:12px}
+ nav{padding:8px 12px calc(8px + env(safe-area-inset-bottom))!important;gap:6px}
+ nav button{min-height:52px}nav button svg{width:21px;height:21px}nav button span{font-size:11px!important}
+ #connection-dialog{width:100%;max-height:94dvh;border-radius:24px 24px 0 0;margin:auto 0 0;padding:20px}
+}
+@media(max-width:360px){header h1{font-size:17px!important}header h1>span{display:none}#tab-scanner>div{padding:13px!important}.session-summary strong{font-size:21px}.session-step{font-size:9px}}
+
+
+/* Keep the displayed image aligned with the library scan coordinates. */
+#camera-viewport{padding:0!important;max-width:520px;width:100%;margin:12px auto!important;border:1px solid #c7d8cc!important;border-radius:20px!important;overflow:hidden;background:#122b24!important;box-sizing:border-box}
+#camera-viewport>:not([hidden]){margin-top:0!important}
+.camera-topline{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#17372d;color:#d8ece2;font:650 10px/1.4 Inter,system-ui;letter-spacing:.09em}
+.camera-live-dot{width:7px;height:7px;border-radius:50%;background:#86d1a3;box-shadow:0 0 0 4px #86d1a31c}
+#reader{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;line-height:0;background:#122b24;overflow:hidden}
+#reader video{display:block!important;width:100%!important;max-width:100%!important;height:auto!important;object-fit:contain!important;border-radius:0!important;transform:none!important;margin:0!important}
+#reader__scan_region{padding:0!important;border:0!important}
+#camera-viewport .camera-hint{margin:0!important;padding:13px 16px 8px;font-size:12px;line-height:1.6;color:#e0eee5;background:#17372d}
+#camera-viewport>div:last-child{padding:4px 14px 14px;background:#17372d}
+#btn-stop-camera{width:100%;min-height:44px!important;background:#e6eee6!important;border:0!important;color:#294d3b!important;font-size:13px!important;border-radius:12px!important}
+@media(max-width:640px){#camera-viewport{border-radius:16px!important;margin:10px 0!important}.camera-topline{padding:10px 13px}#camera-viewport .camera-hint{font-size:11px;padding:11px 13px 7px}}
+
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col pb-20 md:pb-0 select-none">
@@ -45,10 +239,10 @@
           <svg class="w-5 h-5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
         </div>
         <div>
-          <h1 class="font-black text-sm sm:text-base leading-none text-white flex items-center gap-1.5">
+          <h1 id="app-title" tabindex="0" class="font-black text-sm sm:text-base leading-none text-white flex items-center gap-1.5">
             ScanOpname <span class="bg-emerald-500/20 text-emerald-400 text-[10px] px-1.5 py-0.5 rounded-md border border-emerald-500/30">Mobile</span>
           </h1>
-          <p class="text-[10px] text-slate-400 mt-0.5">Real-time Auto-Sync Supabase & Sheet</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">Hitung stok dengan lebih nyaman</p>
         </div>
       </div>
 
@@ -68,7 +262,7 @@
     <!-- DESKTOP NAVIGATION TABS -->
     <div class="hidden md:flex max-w-7xl mx-auto gap-2 mt-2.5 pt-2 border-t border-slate-800">
       <button data-tab="scanner" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition bg-emerald-500 text-slate-950">
-        <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Scan HP / Manual
+        <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Scan barang
       </button>
       <button data-tab="results" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800">
         <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Hasil SO (<span id="count-badge-results">0</span>)
@@ -76,11 +270,9 @@
       <button data-tab="master" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800">
         <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> Master SKU (<span id="count-badge-master">0</span>)
       </button>
-      <button data-tab="settings" class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition text-slate-400 hover:bg-slate-800">
-        <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Config & Credentials
-      </button>
-    </div>
-  </header>
+      </div>
+  
+</header>
 
   <!-- AUTO-SYNC STATUS BANNER -->
   <div id="sync-banner" class="hidden px-4 py-2.5 text-xs font-medium flex items-center justify-between gap-2 border-b bg-cyan-950 text-cyan-200 border-cyan-800 transition-all">
@@ -98,18 +290,16 @@
     <section id="tab-scanner" class="space-y-3.5">
       
       <!-- SESSION CONTEXT -->
-      <div class="bg-slate-900 rounded-2xl p-3 sm:p-4 border border-slate-800 shadow-md">
+      <div id="session-card" class="bg-slate-900 rounded-2xl p-3 sm:p-4 border border-slate-800 shadow-md">
         <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2.5">
           <div class="flex items-center gap-2">
             <svg class="w-4 h-4 text-emerald-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span class="text-xs font-extrabold text-slate-200">Sesi Scan & Lokasi Rak SO</span>
+            <span class="text-xs font-extrabold text-slate-200">Sesi penghitungan</span>
           </div>
-          <button id="btn-toggle-session-lock" class="text-[11px] px-3 py-1.5 rounded-xl font-black border transition bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700">
-            🔒 Kunci Sesi & Mulai Scan
-          </button>
+<span class="session-step">01 / Sesi</span>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+        <div id="session-summary" class="session-summary" hidden><div><small>RAK AKTIF</small><strong id="session-rak-text"></strong><span id="session-person-text"></span></div><button type="button" id="session-expand" aria-expanded="false" onclick="toggleSessionFields()">Detail sesi</button></div><div id="session-fields" class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
           <div>
             <label class="text-[10px] font-bold text-slate-400 uppercase">Tim Opname</label>
             <select id="select-team" class="session-input w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-white font-bold outline-none mt-1">
@@ -121,7 +311,7 @@
 
           <div>
             <label class="text-[10px] font-bold text-slate-400 uppercase flex items-center justify-between">
-              <span>Nama Petugas (Sheet)</span>
+              <span>Petugas</span>
               <button id="btn-refresh-petugas" class="text-emerald-400 hover:text-emerald-300 flex items-center gap-0.5" title="Tarik data terbaru dari Sheet">
                 <svg class="w-3 h-3 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
                 Sync
@@ -134,8 +324,8 @@
 
           <div>
             <label class="text-[10px] font-bold text-amber-400 uppercase flex items-center justify-between">
-              <span>Nama Rak SO (Manual)</span>
-              <span id="label-rak-status" class="text-[9px] text-slate-400 font-normal">Free Text</span>
+              <span>Nama rak</span>
+              <span id="label-rak-status" class="text-[9px] text-slate-400 font-normal"></span>
             </label>
             <input id="input-rak-manual" type="text" placeholder="Ketik Kode Rak (mis: RAK-A-01)" value="" class="session-input w-full bg-slate-950 border-2 border-emerald-500/60 rounded-xl px-2.5 py-2 text-emerald-300 font-mono font-extrabold outline-none uppercase mt-1">
             
@@ -143,6 +333,9 @@
             </div>
           </div>
         </div>
+        <div class="session-action"><button id="btn-toggle-session-lock" class="text-[11px] px-3 py-1.5 rounded-xl font-black border transition bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700">
+            Mulai hitung rak
+          </button></div>
       </div>
 
       <!-- SCANNING WORKSPACE -->
@@ -150,7 +343,7 @@
         
         <div class="flex items-center justify-between bg-slate-950 p-1.5 rounded-xl border border-slate-800">
           <button id="btn-mode-gun" class="flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow">
-            <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg> Scanner Gun / USB / Keyboard
+            <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg> Scanner / Keyboard
           </button>
           <button id="btn-mode-camera" class="flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 text-slate-400">
             <svg class="w-4 h-4 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Kamera HP
@@ -158,13 +351,13 @@
         </div>
 
         <div id="camera-viewport" class="hidden bg-black rounded-xl p-3 border border-emerald-500/40 text-center space-y-2">
-          <div id="reader" class="w-full max-w-sm mx-auto overflow-hidden rounded-xl border-2 border-emerald-500/50"></div>
+          <div class="camera-topline"><span>KAMERA BELAKANG</span><span class="camera-live-dot" aria-hidden="true"></span></div><div id="reader" class="w-full mx-auto overflow-hidden"></div><p id="camera-hint" class="camera-hint" role="status">Posisikan barcode di dalam bingkai.</p>
           
           <div class="flex items-center justify-center gap-2">
             <button id="btn-stop-camera" class="bg-rose-900/60 border border-rose-700 text-rose-200 text-xs px-3 py-1.5 rounded-lg font-bold">
               ⏹ Tutup Kamera
             </button>
-            <button id="btn-random-scan" class="bg-emerald-600 text-white font-extrabold text-xs px-3 py-1.5 rounded-lg shadow">
+            <button id="btn-random-scan" hidden class="bg-emerald-600 text-white font-extrabold text-xs px-3 py-1.5 rounded-lg shadow">
               🎲 Tes Scan Random
             </button>
           </div>
@@ -172,15 +365,15 @@
 
         <div class="space-y-2">
           <div class="flex items-center justify-between text-xs">
-            <span class="font-extrabold text-slate-300">Scan Barcode / Ketik SKU / Original Code Manual:</span>
+            <span class="font-extrabold text-slate-300">Scan barcode atau ketik kode barang</span>
             <label class="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
               <input id="chk-auto-reset-qty" type="checkbox" checked class="rounded bg-slate-950 border-slate-700 text-emerald-500">
-              Reset Qty = 1
+              Reset Qty
             </label>
           </div>
 
           <div class="flex gap-2">
-            <input id="input-barcode-scan" type="text" placeholder="Ketik SKU manual / scan barcode..." class="flex-1 bg-slate-950 border-2 border-emerald-500/60 rounded-xl px-3.5 py-3 text-base font-mono font-bold text-emerald-300 placeholder-slate-600 outline-none focus:ring-2 focus:ring-emerald-400">
+            <input id="input-barcode-scan" type="text" placeholder="Scan barcode / ketik kode" class="flex-1 bg-slate-950 border-2 border-emerald-500/60 rounded-xl px-3.5 py-3 text-base font-mono font-bold text-emerald-300 placeholder-slate-600 outline-none focus:ring-2 focus:ring-emerald-400">
 
             <button id="btn-submit-scan" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black px-4 rounded-xl text-xs shadow flex items-center justify-center shrink-0">
               Cek Item
@@ -195,7 +388,7 @@
             
             <div class="flex items-center justify-between border-b border-slate-800 pb-2">
               <span class="bg-emerald-500/20 text-emerald-400 text-[10px] sm:text-xs px-2 py-1 rounded-lg font-mono font-extrabold border border-emerald-500/30">
-                1. DETAIL ITEM
+                DETAIL BARANG
               </span>
               <button id="btn-cancel-confirm" class="text-slate-400 hover:text-white font-bold text-xs px-1">✕ Batal</button>
             </div>
@@ -222,7 +415,7 @@
             </div>
 
             <div class="space-y-2">
-              <label class="block text-[10px] sm:text-xs font-black text-amber-400 uppercase">2. Masukkan Qty Fisik:</label>
+              <label class="block text-[10px] sm:text-xs font-black text-amber-400 uppercase">Jumlah fisik</label>
               
               <div class="flex items-center gap-2">
                 <button id="btn-modal-qty-minus" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white font-black w-10 h-10 sm:w-12 sm:h-12 rounded-xl text-xl flex items-center justify-center shrink-0 border border-slate-700">-</button>
@@ -246,7 +439,7 @@
                 ✕ Batal
               </button>
               <button id="btn-modal-save" class="w-2/3 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black py-3 px-2 rounded-xl text-[11px] sm:text-xs shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-1.5 transition-all">
-                ⚡ SIMPAN & SYNC (ENTER)
+                Simpan jumlah · Enter
               </button>
             </div>
           </div>
@@ -326,7 +519,7 @@
       <div class="bg-slate-900 rounded-2xl p-4 border border-slate-800 shadow-md space-y-3">
         <div class="flex items-center justify-between border-b border-slate-800 pb-2">
           <h3 class="font-extrabold text-white text-xs flex items-center gap-1.5">
-            <svg class="w-4 h-4 text-emerald-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Hasil Scan Sesi Ini
+            <svg class="w-4 h-4 text-emerald-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Scan terbaru
           </h3>
           <span id="recent-count-text" class="text-[11px] text-slate-400 font-bold">0 Entry</span>
         </div>
@@ -410,7 +603,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 class="font-extrabold text-white text-base flex items-center gap-2">
-              <svg class="w-5 h-5 text-emerald-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> Master Database SKU
+              <svg class="w-5 h-5 text-emerald-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> Master barang
             </h2>
             <p id="master-count-info" class="text-xs text-slate-400 mt-0.5">0 SKU terdaftar di memori web HP.</p>
           </div>
@@ -421,11 +614,11 @@
             </button>
 
             <button id="btn-pull-master-supabase" class="bg-teal-600 hover:bg-teal-500 text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5">
-              <svg class="w-3.5 h-3.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Pull Supabase
+              <svg class="w-3.5 h-3.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Unduh dari Supabase
             </button>
 
             <button id="btn-pull-master-sheet" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5">
-              <svg class="w-3.5 h-3.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Pull Sheet
+              <svg class="w-3.5 h-3.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Unduh dari Sheet
             </button>
           </div>
         </div>
@@ -464,53 +657,15 @@
     </section>
 
     <!-- TAB SETTINGS -->
-    <section id="tab-settings" class="hidden space-y-4 max-w-2xl mx-auto">
-      <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800 space-y-4">
-        <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
-          <svg class="w-5 h-5 text-emerald-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          <h3 class="font-extrabold text-white text-base">Google Apps Script Web App Endpoint</h3>
-        </div>
 
-        <div>
-          <label class="block text-xs font-bold text-slate-300 mb-1">Web App Deployment URL:</label>
-          <input id="setting-gas-url" type="text" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-emerald-300 font-mono outline-none focus:ring-2 focus:ring-emerald-500">
-        </div>
-
-        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-1 text-slate-400">
-          <p class="font-bold text-slate-200">Link Google Spreadsheet Target:</p>
-          <p class="font-mono text-[11px] text-emerald-400 break-all">
-            https://docs.google.com/spreadsheets/d/1iwIUex4VL_P1ORfPzTUKRgFvg_9bJsoEjdaNi605C_Y/edit
-          </p>
-        </div>
-      </div>
-
-      <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800 space-y-4">
-        <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
-          <svg class="w-5 h-5 text-teal-400 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-          <h3 class="font-extrabold text-white text-base">Supabase Database API Credentials</h3>
-        </div>
-
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs font-bold text-slate-300 mb-1">Supabase Project URL:</label>
-            <input id="setting-supabase-url" type="text" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-teal-300 font-mono outline-none focus:ring-2 focus:ring-teal-500">
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold text-slate-300 mb-1">Supabase Public Anon Key:</label>
-            <textarea id="setting-supabase-key" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-teal-300 font-mono outline-none focus:ring-2 focus:ring-teal-500 break-all"></textarea>
-          </div>
-        </div>
-      </div>
-    </section>
 
   </main>
 
-  <!-- MOBILE BOTTOM NAVIGATION -->
+<details class="backup-tools max-w-6xl mx-auto w-full p-4 mb-16 text-xs text-slate-400"><summary>Cadangan & pemulihan data</summary><div class="backup-content"><button onclick="backupSO()" class="text-emerald-400 underline">Cadangkan JSON</button> · <label class="cursor-pointer text-emerald-400 underline">Pulihkan JSON<input type="file" accept=".json" class="hidden" onchange="restoreSO(this.files[0]);this.value='' "></label><p class="mt-2">Rak yang sudah selesai boleh ditambah lagi. Satu rak dikerjakan di perangkat yang sama agar total tetap lengkap. Cadangkan hasil sebelum menghapus data browser.</p></div></details>  <!-- MOBILE BOTTOM NAVIGATION -->
   <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-2 py-1.5 z-50 flex justify-around">
     <button data-tab="scanner" class="mobile-nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition text-emerald-400 font-bold">
       <svg class="w-5 h-5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-      <span class="text-[10px]">Scan HP</span>
+      <span class="text-[10px]">Scan</span>
     </button>
 
     <button data-tab="results" class="mobile-nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition text-slate-500">
@@ -523,17 +678,65 @@
       <span class="text-[10px]">Master SKU</span>
     </button>
 
-    <button data-tab="settings" class="mobile-nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition text-slate-500">
-      <svg class="w-5 h-5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      <span class="text-[10px]">Setting</span>
-    </button>
-  </nav>
+    </nav>
 
   <!-- JAVASCRIPT LOGIC -->
   <script>
-    const PRESET_GAS_URL = 'https://script.google.com/macros/s/AKfycbxuEIofQ98dUo0UrYQgzOCYa4IaBstWHCGrdMd-n3dMpH0PEAsTnUX17YjGPOgFrJwhkA/exec';
-    const PRESET_SUPABASE_URL = 'https://qtfyfrvrqvbgyaezorbb.supabase.co';
-    const PRESET_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0ZnlmcnZycXZiZ3lhZXpvcmJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4OTkyNzIsImV4cCI6MjEwNjQ3NTI3Mn0.vL8COXCm7UrhoMSj0iBV8HwvN6VZtd8X08YbxSkLcQM';
+
+
+let masterIndexSource=null,masterIndex=new Map();
+function findMaster(code){if(masterIndexSource!==state.masterItems){masterIndex=new Map();for(const i of state.masterItems)for(const c of [i.sku,i.originalCode,i.original_code])if(c)masterIndex.set(String(c).toLowerCase(),i);masterIndexSource=state.masterItems;}return masterIndex.get(String(code).toLowerCase());}
+let soDB,storageInitialized=false,savedMaster=null,storageReady=Promise.resolve();
+let finishing=false,scanBusy=false,savingEntry=false,masterLoading=false,syncBusy=false;
+const inflight=new Map();let activeSync=null;
+function safeHTML(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function sbHeaders(write=false){if(!state.supabaseUrl||!state.supabaseKey)throw Error('Lengkapi koneksi Supabase');if(state.supabaseKey.split('.').length===3){try{const role=JSON.parse(atob(state.supabaseKey.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).role;if(role==='service_role')throw Error('Service role key dilarang pada HTML');}catch(e){if(e.message.includes('Service role'))throw Error('Gunakan anon / publishable key, bukan service_role');}}if(state.supabaseKey.startsWith('sb_secret_'))throw Error('Gunakan anon / publishable key');return {apikey:state.supabaseKey,Authorization:'Bearer '+state.supabaseKey,...(write?{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=representation'}:{})};}
+async function api(url,options={}){const r=await fetch(url,{...options,signal:AbortSignal.timeout(45000)});const text=await r.text();let data;try{data=text?JSON.parse(text):null;}catch{throw Error('Server tidak mengembalikan JSON');}if(!r.ok)throw Error(data?.message||'HTTP '+r.status);return data;}
+async function sheet(action,data){if(!state.gasUrl)throw Error('URL Apps Script kosong');const r=await api(state.gasUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action,data})});if(r?.success===false||r?.ok===false||(r?.success!==true&&r?.ok!==true))throw Error(r?.message||r?.error||'Server Sheet belum mengonfirmasi sukses. Apps Script harus mengembalikan {success:true} setelah penulisan berhasil.');return r;}
+function payload(r){return {id:r.id,rak:r.rak,tim:r.team||r.tim,petugas:r.petugas,sku:r.sku,original_code:r.originalCode||r.original_code||'',nama_barang:r.namaBarang||r.nama_barang||'',family:r.family||'',qty:Number(r.qty),timestamp:r.timestamp};}
+async function sendSupabase(batch){const d=await api(state.supabaseUrl+'/rest/v1/hasil_so?on_conflict=id',{method:'POST',headers:sbHeaders(true),body:JSON.stringify(batch.map(payload))});if(!Array.isArray(d)||batch.some(r=>!d.some(x=>x.id===r.id&&Number(x.qty)===Number(r.qty))))throw Error('Respons Supabase belum sesuai scan');batch.forEach(r=>r.syncedSupabase=true);}
+async function initStorage(){
+ storageReady=new Promise((resolve,reject)=>{const r=indexedDB.open('ScanOpname-SO-v2',1);r.onupgradeneeded=()=>r.result.createObjectStore('state');r.onsuccess=()=>{soDB=r.result;resolve();};r.onerror=()=>reject(r.error);});await storageReady;
+ const read=k=>new Promise((res,rej)=>{let r=soDB.transaction('state').objectStore('state').get(k);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
+ const data=await Promise.all(['results','teams','completed','master','session'].map(read));
+ if(data[0])state.soResults=data[0];if(data[1])state.petugasByTeam=data[1];if(data[2])state.completedRaks=data[2];if(data[3])state.masterItems=data[3];
+ const sess=data[4];if(sess){state.selectedTeam=sess.team;state.selectedPetugas=sess.petugas;state.manualRakInput=sess.rak;state.isSessionLocked=sess.locked;}
+ await saveState();storageInitialized=true;
+ // Remove old copies only after IndexedDB confirms migration.
+ ['so_master_items','so_scanned_results','so_petugas_map','so_completed_raks'].forEach(k=>localStorage.removeItem(k));
+ setTimeout(()=>{document.getElementById('input-rak-manual').value=state.manualRakInput;lockSession(state.isSessionLocked);},100);
+}
+function backupSO(){const blob=new Blob([JSON.stringify({version:2,results:state.soResults,completed:state.completedRaks,session:{team:state.selectedTeam,petugas:state.selectedPetugas,rak:state.manualRakInput,locked:state.isSessionLocked}},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ScanOpname-Cadangan-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+async function restoreSO(file){try{if(!file)return;let d=JSON.parse(await file.text());if(!Array.isArray(d.results)||d.results.some(r=>!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(r.id)||!r.sku||!Number.isSafeInteger(r.qty)||r.qty<1))throw Error('Format cadangan tidak sesuai');if(finishing||syncBusy||inflight.size)throw Error('Tunggu pengiriman selesai');if(!confirm('Gabungkan cadangan dengan data perangkat? Scan dipulihkan sebagai antrean untuk dikirim ulang.'))return;let ids=new Set(state.soResults.map(r=>r.id));for(let r of d.results)if(!ids.has(r.id)){state.soResults.push({...r,syncedSheet:false,syncedSupabase:false});ids.add(r.id);}await saveState();renderRecentScansList();renderResultsTable();showBannerStatus(true,'Cadangan digabung. Klik Sinkronisasi untuk mengirim ulang.');}catch(e){showBannerStatus(false,e.message);}}
+window.addEventListener('online',()=>{if(!finishing)handleSyncAll();});
+setInterval(()=>{if(storageInitialized&&navigator.onLine&&!finishing&&!syncBusy&&state.soResults.some(r=>!r.syncedSheet||!r.syncedSupabase))handleSyncAll();},30000);
+
+
+function connectionReady(){return !!(state.gasUrl&&state.supabaseUrl&&state.supabaseKey);}
+function refreshConnection(){
+ const next={gasUrl:localStorage.getItem('so_gas_url')||CONNECTION_DEFAULTS.gas,supabaseUrl:localStorage.getItem('so_supabase_url')||CONNECTION_DEFAULTS.url,supabaseKey:localStorage.getItem('so_supabase_key')||CONNECTION_DEFAULTS.key};
+ if(Object.keys(next).every(k=>state[k]===next[k]))return;
+ if(finishing||syncBusy||inflight.size||state.isSessionLocked||state.soResults.some(r=>!r.syncedSheet||!r.syncedSupabase)){showBannerStatus(false,'Konfigurasi berubah. Selesaikan pengiriman dan sesi dengan koneksi lama sebelum memuat ulang aplikasi.');return;}
+ Object.assign(state,next);showBannerStatus(connectionReady(),connectionReady()?'Pengaturan koneksi diperbarui.':'Lengkapi pengaturan koneksi perangkat.');
+ if(state.gasUrl)fetchPetugasFromSpreadsheet(false);
+}
+window.addEventListener('pageshow',refreshConnection);
+window.addEventListener('focus',refreshConnection);
+window.addEventListener('storage',e=>{if(['so_gas_url','so_supabase_url','so_supabase_key'].includes(e.key))refreshConnection();});
+
+
+const CONNECTION_DEFAULTS={"url": "https://qtfyfrvrqvbgyaezorbb.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0ZnlmcnZycXZiZ3lhZXpvcmJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4OTkyNzIsImV4cCI6MjEwNjQ3NTI3Mn0.vL8COXCm7UrhoMSj0iBV8HwvN6VZtd8X08YbxSkLcQM", "gas": "https://script.google.com/macros/s/AKfycbxuEIofQ98dUo0UrYQgzOCYa4IaBstWHCGrdMd-n3dMpH0PEAsTnUX17YjGPOgFrJwhkA/exec"};
+
+function openConnections(){document.getElementById('connection-url').value=state.supabaseUrl;document.getElementById('connection-key').value=state.supabaseKey;document.getElementById('connection-gas').value=state.gasUrl;document.getElementById('connection-message').textContent='Gunakan kunci publik, bukan service_role.';document.getElementById('connection-dialog').showModal();}
+function connectionValues(){return {supabaseUrl:document.getElementById('connection-url').value.trim().replace(/\/$/,''),supabaseKey:document.getElementById('connection-key').value.trim(),gasUrl:document.getElementById('connection-gas').value.trim()};}
+function validateConnections(c){const u=new URL(c.supabaseUrl),g=new URL(c.gasUrl);if(u.protocol!=='https:'||u.pathname!=='/'||u.search||u.hash)throw Error('Gunakan URL dasar Supabase dengan HTTPS');if(g.protocol!=='https:'||g.hostname!=='script.google.com'||!g.pathname.endsWith('/exec'))throw Error('Gunakan URL Web App Apps Script /exec');if(!c.supabaseKey||c.supabaseKey.startsWith('sb_secret_'))throw Error('Gunakan anon / publishable key');if(c.supabaseKey.split('.').length===3){const role=JSON.parse(atob(c.supabaseKey.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).role;if(role==='service_role')throw Error('Service role key tidak boleh dipasang di HTML');}return c;}
+function saveConnections(){const msg=document.getElementById('connection-message');try{const next=validateConnections(connectionValues());const changed=Object.keys(next).some(k=>next[k]!==state[k]);if(changed&&connectionReady()&&(finishing||syncBusy||inflight.size||state.isSessionLocked||state.soResults.some(r=>!r.syncedSheet||!r.syncedSupabase)))throw Error('Selesaikan sesi dan antrean dengan koneksi lama sebelum mengganti koneksi.');localStorage.setItem('so_gas_url',next.gasUrl);localStorage.setItem('so_supabase_url',next.supabaseUrl);localStorage.setItem('so_supabase_key',next.supabaseKey);Object.assign(state,next);msg.textContent='Pengaturan disimpan. Aplikasi langsung memakai koneksi ini.';}catch(e){msg.textContent=e.message;}}
+async function testConnections(){const button=document.getElementById('connection-test'),msg=document.getElementById('connection-message');button.disabled=true;msg.textContent='Menguji akses baca…';try{const c=validateConnections(connectionValues()),out=[];await Promise.all([ (async()=>{for(const table of ['master_items','hasil_so','status_rak']){try{const r=await api(c.supabaseUrl+'/rest/v1/'+table+'?select=*&limit=1',{headers:{apikey:c.supabaseKey,Authorization:'Bearer '+c.supabaseKey}});if(!Array.isArray(r))throw Error('Respons tidak sesuai');out.push('✓ '+table+': akses baca berhasil');}catch(e){out.push('✕ '+table+': '+e.message);}}})(),(async()=>{try{const r=await api(c.gasUrl+'?action=getPetugas');if(!r?.success||!r?.data)throw Error('Respons getPetugas tidak sesuai');out.push('✓ Apps Script: petugas terbaca');}catch(e){out.push('✕ Apps Script: '+e.message);}})()]);msg.textContent=out.join('\n')+'\nTes ini tidak menulis data.';}catch(e){msg.textContent=e.message;}finally{button.disabled=false;}}
+function setupHiddenSettings(){const title=document.getElementById('app-title');let hold;const cancel=()=>{clearTimeout(hold);hold=null;};title.addEventListener('pointerdown',()=>{cancel();hold=setTimeout(()=>{openConnections();cancel();},1200);});for(const event of ['pointerup','pointerleave','pointercancel'])title.addEventListener(event,cancel);title.addEventListener('contextmenu',e=>e.preventDefault());title.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();openConnections();}});window.addEventListener('keydown',e=>{if(e.altKey&&e.shiftKey&&e.code==='KeyS'){e.preventDefault();openConnections();}});}
+
+
+function updateSessionView(locked){const card=document.getElementById('session-card');if(!card)return;card.classList.toggle('session-compact',locked);card.classList.remove('session-expanded');document.getElementById('session-summary').hidden=!locked;document.getElementById('session-rak-text').textContent=String(state.manualRakInput||'').toUpperCase();document.getElementById('session-person-text').textContent=[state.selectedTeam,state.selectedPetugas].filter(Boolean).join(' · ');const toggle=document.getElementById('session-expand');toggle.setAttribute('aria-expanded','false');toggle.textContent='Detail sesi';}
+function toggleSessionFields(){const card=document.getElementById('session-card');const expanded=card.classList.toggle('session-expanded');const button=document.getElementById('session-expand');button.setAttribute('aria-expanded',String(expanded));button.textContent=expanded?'Tutup detail':'Detail sesi';}
 
     const DEFAULT_PETUGAS = {
       "TIM 1": ['Ahmad Syafi\'i', 'Budi Santoso', 'Citra Dewi'],
@@ -542,9 +745,9 @@
 
     const state = {
       activeTab: 'scanner',
-      gasUrl: localStorage.getItem('so_gas_url') || PRESET_GAS_URL,
-      supabaseUrl: localStorage.getItem('so_supabase_url') || PRESET_SUPABASE_URL,
-      supabaseKey: localStorage.getItem('so_supabase_key') || PRESET_SUPABASE_KEY,
+      gasUrl: localStorage.getItem('so_gas_url') || CONNECTION_DEFAULTS.gas,
+      supabaseUrl: localStorage.getItem('so_supabase_url') || CONNECTION_DEFAULTS.url,
+      supabaseKey: localStorage.getItem('so_supabase_key') || CONNECTION_DEFAULTS.key,
       soundEnabled: true,
       autoResetQty: true,
       masterItems: JSON.parse(localStorage.getItem('so_master_items') || '[]'),
@@ -576,11 +779,9 @@
       });
     }
 
-    function saveState() {
-      localStorage.setItem('so_master_items', JSON.stringify(state.masterItems));
-      localStorage.setItem('so_scanned_results', JSON.stringify(state.soResults));
-      localStorage.setItem('so_petugas_map', JSON.stringify(state.petugasByTeam));
-      localStorage.setItem('so_completed_raks', JSON.stringify(state.completedRaks));
+    async function saveState() {
+      await storageReady;
+      await new Promise((resolve,reject)=>{const tx=soDB.transaction('state','readwrite');const store=tx.objectStore('state');store.put(state.soResults,'results');store.put(state.petugasByTeam,'teams');store.put(state.completedRaks,'completed');store.put({team:state.selectedTeam,petugas:state.selectedPetugas,rak:state.manualRakInput,locked:state.isSessionLocked},'session');if(savedMaster!==state.masterItems)store.put(state.masterItems,'master');tx.oncomplete=()=>{savedMaster=state.masterItems;resolve()};tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});
     }
 
     function triggerFeedback(type = 'success') {
@@ -644,16 +845,18 @@
 
     function lockSession(locked) {
       state.isSessionLocked = locked;
+      updateSessionView(locked);
+      if(storageInitialized)saveState().catch(e=>showBannerStatus(false,e.message));
       const btn = document.getElementById('btn-toggle-session-lock');
       const inputs = document.querySelectorAll('.session-input');
 
       inputs.forEach(inp => inp.disabled = locked);
 
       if (locked) {
-        btn.textContent = '🔓 Selesaikan Rak & Buka Sesi Baru';
+        btn.textContent = 'Selesaikan rak';
         btn.className = 'text-[11px] px-3 py-1.5 rounded-xl font-black border transition bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30';
       } else {
-        btn.textContent = '🔒 Kunci Sesi & Mulai Scan';
+        btn.textContent = 'Mulai hitung rak';
         btn.className = 'text-[11px] px-3 py-1.5 rounded-xl font-black border transition bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700';
       }
     }
@@ -677,92 +880,53 @@
     }
 
     async function confirmFinishRak() {
-      const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
-
-      showBannerStatus(null, `Melakukan Double-Check & Sync Status Rak ${currentRak}...`);
-      
-      await handleSyncAll();
-
-      const rakResults = state.soResults.filter(r => r.rak.toUpperCase() === currentRak);
-      const totalQty = rakResults.reduce((acc, c) => acc + (Number(c.qty) || 0), 0);
-
-      const statusRecord = {
-        id: `status-${currentRak}`,
-        rak: currentRak,
-        tim: state.selectedTeam,
-        petugas: state.selectedPetugas,
-        total_items: rakResults.length,
-        total_qty: totalQty,
-        status: 'SELESAI',
-        completed_at: new Date().toISOString()
-      };
-
-      const existIdx = state.completedRaks.findIndex(r => r.rak.toUpperCase() === currentRak);
-      if (existIdx !== -1) {
-        state.completedRaks[existIdx] = statusRecord;
-      } else {
-        state.completedRaks.unshift(statusRecord);
-      }
-      saveState();
-
-      if (state.supabaseUrl && state.supabaseKey) {
-        try {
-          await fetch(`${state.supabaseUrl}/rest/v1/status_rak?on_conflict=rak`, {
-            method: 'POST',
-            headers: {
-              'apikey': state.supabaseKey,
-              'Authorization': `Bearer ${state.supabaseKey}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'resolution=merge-duplicates'
-            },
-            body: JSON.stringify([{
-              id: statusRecord.id,
-              rak: statusRecord.rak,
-              tim: statusRecord.tim,
-              petugas: statusRecord.petugas,
-              total_items: statusRecord.total_items,
-              total_qty: statusRecord.total_qty,
-              status: statusRecord.status,
-              completed_at: statusRecord.completed_at
-            }])
-          });
-        } catch (err) {
-          console.warn('Gagal mencatat status_rak ke Supabase', err);
-        }
-      }
-
-      if (state.gasUrl) {
-        try {
-          await fetch(state.gasUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-              action: 'syncStatusRak',
-              data: statusRecord
-            })
-          });
-        } catch (err) {
-          console.warn('Gagal mencatat status_rak ke Spreadsheet', err);
-        }
-      }
-
-      lockSession(false);
-      state.manualRakInput = '';
-      const inputRak = document.getElementById('input-rak-manual');
-      if (inputRak) {
-        inputRak.value = '';
-        inputRak.focus();
-      }
-
-      const modal = document.getElementById('modal-finish-rak');
-      if (modal) modal.classList.add('hidden');
-
-      renderRecentRaks();
-      showBannerStatus(true, `✓ Rak ${currentRak} ditandai 'SELESAI'! Sesi rak ini telah ditutup & disinkronkan.`);
-      triggerFeedback('success');
-    }
+ if(finishing||scanBusy||savingEntry||state.pendingScanItem)return;
+ const rak=String(state.manualRakInput||'').trim().toUpperCase();
+ const rows=state.soResults.filter(r=>r.rak.toUpperCase()===rak);
+ if(!rak||!rows.length)return showBannerStatus(false,'Rak masih kosong.');
+ finishing=true;
+ const button=document.getElementById('btn-confirm-finish'),oldLabel=button.textContent;
+ const controls=['btn-sync-all','btn-push-supabase','btn-push-sheet','btn-cancel-finish','btn-close-finish-modal'];
+ button.disabled=true;controls.forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=true;});
+ const progress=text=>{button.textContent=text;showBannerStatus(null,text);};
+ try{
+  progress('Menyiapkan rak…');
+  if(activeSync)await activeSync;
+  const running=rows.map(r=>inflight.get(r.id)).filter(Boolean);
+  if(running.length){progress('Menunggu scan terakhir terkirim…');await Promise.allSettled(running);}
+  const pendingDB=rows.filter(r=>!r.syncedSupabase),pendingSheet=rows.filter(r=>!r.syncedSheet);
+  let sent=0;const total=pendingDB.length+pendingSheet.length;
+  const push=async(target,kind)=>{for(let i=0;i<target.length;i+=100){const batch=target.slice(i,i+100);
+   if(kind==='db')await sendSupabase(batch);else{await sheet('syncHasilSo',batch);batch.forEach(r=>r.syncedSheet=true);}
+   await saveState();sent+=batch.length;progress('Mengirim data '+sent+' / '+total+'…');
+  }};
+  // Kedua backend berjalan bersamaan; setiap backend menerima maksimal 100 scan per permintaan.
+  const results=await Promise.allSettled([push(pendingDB,'db'),push(pendingSheet,'sheet')]);
+  renderRecentScansList();renderResultsTable();
+  const failedIndex=results.findIndex(r=>r.status==='rejected');if(failedIndex>=0)throw Error((failedIndex===0?'Supabase hasil_so: ':'Google Sheet hasil SO: ')+results[failedIndex].reason.message);
+  if(rows.some(r=>!r.syncedSheet||!r.syncedSupabase))throw Error('Masih ada scan belum diterima kedua backend.');
+  for(let i=0;i<rows.length;i+=100){progress('Memeriksa hasil '+Math.min(i+100,rows.length)+' / '+rows.length+'…');const batch=rows.slice(i,i+100);const data=await api(state.supabaseUrl+'/rest/v1/hasil_so?select=id,qty&limit=100&id=in.('+batch.map(r=>r.id).join(',')+')',{headers:sbHeaders()});if(!Array.isArray(data)||batch.some(r=>!data.some(d=>d.id===r.id&&Number(d.qty)===Number(r.qty))))throw Error('Verifikasi data Supabase belum cocok.');}
+  progress('Menyimpan status rak…');
+  let existingStatus;try{existingStatus=await api(state.supabaseUrl+'/rest/v1/status_rak?select=id&rak=eq.'+encodeURIComponent(rak)+'&limit=2',{headers:sbHeaders()});}catch(e){throw Error('Membaca status rak Supabase: '+e.message);}
+  if(!Array.isArray(existingStatus))throw Error('Respons status rak tidak sesuai');
+  if(existingStatus.length>1)throw Error('Ditemukan lebih dari satu status untuk rak '+rak+'. Data status perlu dirapikan; hasil scan tetap tersimpan.');
+  const record={id:existingStatus[0]?.id||'status-'+rak,rak,tim:state.selectedTeam,petugas:state.selectedPetugas,total_items:new Set(rows.map(r=>r.sku)).size,total_qty:rows.reduce((a,r)=>a+Number(r.qty),0),status:'SELESAI',completed_at:new Date().toISOString()};
+  const statuses=await Promise.allSettled([
+   api(state.supabaseUrl+'/rest/v1/status_rak?on_conflict=id',{method:'POST',headers:sbHeaders(true),body:JSON.stringify([record])}),
+   sheet('syncStatusRak',record)
+  ]);
+  const errors=statuses.flatMap((r,i)=>r.status==='rejected'?[(i===0?'Supabase status_rak: ':'Google Sheet status rak: ')+r.reason.message]:[]);if(errors.length)throw Error(errors.join(' | '));
+  const index=state.completedRaks.findIndex(r=>r.rak.toUpperCase()===rak);if(index<0)state.completedRaks.unshift(record);else state.completedRaks[index]=record;
+  // Persist the closed session before updating the controls.
+  const oldRak=state.manualRakInput;state.manualRakInput='';state.isSessionLocked=false;
+  try{await saveState();}catch(e){state.manualRakInput=oldRak;state.isSessionLocked=true;throw e;}
+  lockSession(false);document.getElementById('input-rak-manual').value='';document.getElementById('modal-finish-rak').classList.add('hidden');renderRecentRaks();showBannerStatus(true,'Rak '+rak+' selesai. Kedua server mengonfirmasi penerimaan.');triggerFeedback('success');
+ }catch(e){let detail=e.message;if(/no unique or exclusion constraint/i.test(detail))detail+=' — Kolom id pada tabel yang disebut perlu PRIMARY KEY atau UNIQUE.';showBannerStatus(false,'Rak belum ditutup: '+detail);triggerFeedback('error');}
+ finally{finishing=false;button.disabled=false;button.textContent=oldLabel;controls.forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=false;});}
+}
 
     async function handleBarcodeSubmit(barcodeValue) {
+ if(scanBusy||finishing||state.pendingScanItem)return;scanBusy=true;try{
       const cleanCode = String(barcodeValue || '').trim();
       if (!cleanCode) return;
 
@@ -798,11 +962,7 @@
         renderRecentRaks();
       }
 
-      let matchedItem = state.masterItems.find(
-        item => (item.sku && item.sku.toLowerCase() === cleanCode.toLowerCase()) || 
-                (item.originalCode && item.originalCode.toLowerCase() === cleanCode.toLowerCase()) ||
-                (item.original_code && item.original_code.toLowerCase() === cleanCode.toLowerCase())
-      );
+      let matchedItem = findMaster(cleanCode);
 
       if (!matchedItem && state.supabaseUrl && state.supabaseKey) {
         try {
@@ -859,7 +1019,7 @@
       document.getElementById('confirm-item-orig').textContent = state.pendingScanItem.originalCode;
       
       const qtyInput = document.getElementById('input-confirm-qty');
-      qtyInput.value = 1;
+      qtyInput.value = state.autoResetQty ? 1 : (state.lastScannedItem?.scannedQty || 1);
       
       const modal = document.getElementById('modal-confirm-qty');
       modal.classList.remove('hidden');
@@ -868,13 +1028,17 @@
         qtyInput.focus();
         qtyInput.select();
       }, 50);
+    } finally {scanBusy=false;}
     }
 
-    function confirmScanEntry() {
+    async function confirmScanEntry() {
       if (!state.pendingScanItem) return;
 
       const currentRak = String(state.manualRakInput || '').trim().toUpperCase();
-      const qtyVal = Math.max(1, parseInt(document.getElementById('input-confirm-qty').value) || 1);
+      if(savingEntry||finishing)return;
+      const qtyVal=Number(document.getElementById('input-confirm-qty').value);
+      if(!Number.isSafeInteger(qtyVal)||qtyVal<1||qtyVal>100000000)return showBannerStatus(false,'Qty harus bilangan bulat 1–100.000.000');
+      savingEntry=true;
       const entryId = generateUUID();
 
       const newEntry = {
@@ -901,9 +1065,9 @@
         time: new Date().toLocaleTimeString('id-ID')
       };
 
-      saveState();
-      renderRecentScansList();
-      renderResultsTable();
+      try{await saveState();}catch(e){state.soResults=state.soResults.filter(r=>r.id!==newEntry.id);savingEntry=false;showBannerStatus(false,'Gagal simpan perangkat: '+e.message);return;}
+      savingEntry=false;
+      renderRecentScansList();renderResultsTable();
 
       document.getElementById('last-scanned-time').textContent = `Terscan (${state.lastScannedItem.time})`;
       document.getElementById('last-scanned-rak').textContent = `Rak: ${currentRak}`;
@@ -916,7 +1080,7 @@
       closeConfirmModal();
       showBannerStatus(true, `✓ Tersimpan: ${newEntry.namaBarang} (+${qtyVal}) ke Rak ${currentRak}`);
 
-      autoSyncSingleEntry(newEntry);
+      autoSyncSingleEntry(newEntry).catch(e=>showBannerStatus(false,e.message));
     }
 
     function closeConfirmModal() {
@@ -932,159 +1096,22 @@
       }, 100);
     }
 
-    async function autoSyncSingleEntry(entryItem) {
-      if (!entryItem) return;
+    async function autoSyncSingleEntry(entry) {
+ if(inflight.has(entry.id))return inflight.get(entry.id);
+ const task=(async()=>{let errors=[];
+ if(!entry.syncedSupabase)try{await sendSupabase([entry]);}catch(e){errors.push('Supabase: '+e.message);}
+ if(!entry.syncedSheet)try{await sheet('syncHasilSo',[entry]);entry.syncedSheet=true;}catch(e){errors.push('Sheet: '+e.message);}
+ await saveState();renderRecentScansList();renderResultsTable();if(errors.length)showBannerStatus(false,errors.join(' | '));return !errors.length;
+ })().finally(()=>inflight.delete(entry.id));inflight.set(entry.id,task);return task;
+}
 
-      // Ensure valid ID exists
-      if (!entryItem.id) {
-        entryItem.id = generateUUID();
-      }
+    async function handlePushResultsToSupabase(){
+ try{const rows=state.soResults.filter(r=>!r.syncedSupabase);for(let i=0;i<rows.length;i+=100){const batch=rows.slice(i,i+100);await sendSupabase(batch);await saveState();}renderRecentScansList();renderResultsTable();showBannerStatus(true,'Supabase: semua antrean terkirim.');return true;}catch(e){showBannerStatus(false,e.message);return false;}
+}
 
-      if (state.supabaseUrl && state.supabaseKey) {
-        try {
-          const payload = [{
-            id: String(entryItem.id),
-            rak: String(entryItem.rak || '-'),
-            tim: String(entryItem.team || entryItem.tim || '-'),
-            petugas: String(entryItem.petugas || '-'),
-            sku: String(entryItem.sku || '-'),
-            original_code: String(entryItem.originalCode || entryItem.original_code || '-'),
-            nama_barang: String(entryItem.namaBarang || entryItem.nama_barang || '-'),
-            family: String(entryItem.family || '-'),
-            qty: Number(entryItem.qty) || 1,
-            timestamp: entryItem.timestamp || new Date().toISOString()
-          }];
-
-          const res = await fetch(`${state.supabaseUrl}/rest/v1/hasil_so?on_conflict=id`, {
-            method: 'POST',
-            headers: {
-              'apikey': state.supabaseKey,
-              'Authorization': `Bearer ${state.supabaseKey}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'resolution=merge-duplicates'
-            },
-            body: JSON.stringify(payload)
-          });
-
-          if (res.ok) {
-            entryItem.syncedSupabase = true;
-          } else {
-            const errJson = await res.json().catch(() => ({}));
-            console.warn('Auto-sync Supabase HTTP Error:', res.status, errJson);
-          }
-        } catch (e) {
-          console.warn('Auto-sync Supabase failed', e);
-        }
-      }
-
-      if (state.gasUrl) {
-        try {
-          const res = await fetch(state.gasUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-              action: 'syncHasilSo',
-              data: [entryItem]
-            })
-          });
-          if (res.ok) {
-            entryItem.syncedSheet = true;
-          }
-        } catch (e) {
-          console.warn('Auto-sync Sheet failed', e);
-        }
-      }
-
-      saveState();
-      renderRecentScansList();
-      renderResultsTable();
-    }
-
-    async function handlePushResultsToSupabase() {
-      if (!state.supabaseUrl || !state.supabaseKey) return;
-      showBannerStatus(null, 'Syncing ke Supabase...');
-
-      try {
-        const unsynced = state.soResults.filter(r => !r.syncedSupabase);
-        const target = unsynced.length > 0 ? unsynced : state.soResults;
-
-        if (target.length === 0) {
-          showBannerStatus(true, 'Semua data sudah tersinkron ke Supabase.');
-          return;
-        }
-
-        const payload = target.map(r => ({
-          id: String(r.id || generateUUID()),
-          rak: String(r.rak || '-'),
-          tim: String(r.team || r.tim || '-'),
-          petugas: String(r.petugas || '-'),
-          sku: String(r.sku || '-'),
-          original_code: String(r.originalCode || r.original_code || '-'),
-          nama_barang: String(r.namaBarang || r.nama_barang || '-'),
-          family: String(r.family || '-'),
-          qty: Number(r.qty) || 1,
-          timestamp: r.timestamp || new Date().toISOString()
-        }));
-
-        const res = await fetch(`${state.supabaseUrl}/rest/v1/hasil_so?on_conflict=id`, {
-          method: 'POST',
-          headers: {
-            'apikey': state.supabaseKey,
-            'Authorization': `Bearer ${state.supabaseKey}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (!res.ok) {
-          const errBody = await res.text();
-          throw new Error(`HTTP ${res.status}: ${errBody}`);
-        }
-
-        state.soResults.forEach(r => r.syncedSupabase = true);
-        saveState();
-        renderRecentScansList();
-        renderResultsTable();
-
-        showBannerStatus(true, `✓ Berhasil mengirim ${payload.length} data ke Supabase!`);
-      } catch (err) {
-        showBannerStatus(false, `Gagal sync Supabase: ${err.message}`);
-      }
-    }
-
-    async function handlePushResultsToSpreadsheet() {
-      if (!state.gasUrl) return;
-      showBannerStatus(null, 'Syncing ke Google Sheet...');
-
-      try {
-        const unsynced = state.soResults.filter(r => !r.syncedSheet);
-        const target = unsynced.length > 0 ? unsynced : state.soResults;
-
-        if (target.length === 0) {
-          showBannerStatus(true, 'Semua data sudah tersinkron ke Sheet.');
-          return;
-        }
-
-        await fetch(state.gasUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'syncHasilSo',
-            data: target
-          })
-        });
-
-        state.soResults.forEach(r => r.syncedSheet = true);
-        saveState();
-        renderRecentScansList();
-        renderResultsTable();
-
-        showBannerStatus(true, `✓ Berhasil mengirim ${target.length} data ke Spreadsheet!`);
-      } catch (err) {
-        showBannerStatus(false, `Gagal sync Sheet: ${err.message}`);
-      }
-    }
+    async function handlePushResultsToSpreadsheet(){
+ try{const rows=state.soResults.filter(r=>!r.syncedSheet);for(let i=0;i<rows.length;i+=100){const batch=rows.slice(i,i+100);await sheet('syncHasilSo',batch);batch.forEach(r=>r.syncedSheet=true);await saveState();}renderRecentScansList();renderResultsTable();showBannerStatus(true,'Sheet: semua antrean terkirim.');return true;}catch(e){showBannerStatus(false,e.message);return false;}
+}
 
     async function handleSyncSheetToSupabaseDirect() {
       if (!state.gasUrl) {
@@ -1112,38 +1139,10 @@
       }
     }
 
-    async function handleFetchMasterFromSupabase() {
-      if (!state.supabaseUrl || !state.supabaseKey) return;
-      showBannerStatus(null, 'Menarik Master SKU dari Supabase...');
-
-      try {
-        const res = await fetch(`${state.supabaseUrl}/rest/v1/master_items?select=sku,nama_barang,family,original_code&limit=75000`, {
-          headers: {
-            'apikey': state.supabaseKey,
-            'Authorization': `Bearer ${state.supabaseKey}`
-          }
-        });
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-
-        if (Array.isArray(data) && data.length > 0) {
-          state.masterItems = data.map((i) => ({
-            sku: i.sku || '',
-            namaBarang: i.nama_barang || '',
-            family: i.family || '',
-            originalCode: i.original_code || ''
-          }));
-          saveState();
-          renderMasterTable();
-          showBannerStatus(true, `✓ Berhasil mengunduh ${data.length.toLocaleString('id-ID')} SKU dari Supabase.`);
-        } else {
-          showBannerStatus(false, 'Master items di Supabase masih kosong.');
-        }
-      } catch (err) {
-        showBannerStatus(false, `Gagal narik Supabase: ${err.message}`);
-      }
-    }
+    async function handleFetchMasterFromSupabase(){
+ if(masterLoading)return;masterLoading=true;
+ try{const items=[];let last='';while(true){let url=state.supabaseUrl+'/rest/v1/master_items?select=sku,nama_barang,family,original_code&order=sku.asc&limit=500'+(last?'&sku=gt.'+encodeURIComponent(last):'');const data=await api(url,{headers:sbHeaders()});if(!Array.isArray(data))throw Error('Master bukan daftar');if(!data.length)break;items.push(...data.map(i=>({sku:String(i.sku),namaBarang:i.nama_barang||'',originalCode:String(i.original_code||''),family:i.family||''})));last=String(data[data.length-1].sku);showBannerStatus(null,'Memuat '+items.length.toLocaleString('id-ID')+' SKU…');}state.masterItems=items;await saveState();renderMasterTable();showBannerStatus(true,'Master siap: '+items.length.toLocaleString('id-ID')+' SKU');}catch(e){showBannerStatus(false,e.message);}finally{masterLoading=false;}
+}
 
     async function handleFetchMasterFromSpreadsheet() {
       if (!state.gasUrl) return;
@@ -1161,7 +1160,7 @@
             family: i.family || '',
             originalCode: i.original_code || ''
           }));
-          saveState();
+          await saveState();
           renderMasterTable();
           showBannerStatus(true, `✓ Berhasil mengunduh ${json.items.length.toLocaleString('id-ID')} SKU dari Spreadsheet.`);
         }
@@ -1179,7 +1178,7 @@
           const json = await res.json();
           if (json.success && json.data) {
             state.petugasByTeam = json.data;
-            saveState();
+            await saveState();
             renderPetugasOptions();
             if (showFeedback) {
               showBannerStatus(true, '✓ Data Tim & Petugas berhasil diperbarui dari Spreadsheet.');
@@ -1195,51 +1194,27 @@
       }
     }
 
-    async function handleSyncAll() {
-      showBannerStatus(null, 'Menyinkronkan data...');
-      try {
-        if (state.supabaseUrl && state.supabaseKey) await handlePushResultsToSupabase();
-        if (state.gasUrl) await handlePushResultsToSpreadsheet();
-        await fetchPetugasFromSpreadsheet(false);
-        showBannerStatus(true, '✓ Sinkronisasi Manual Selesai.');
-        setTimeout(() => document.getElementById('sync-banner').classList.add('hidden'), 3000);
-      } catch (err) {
-        showBannerStatus(false, 'Beberapa sinkronisasi gagal. Cek koneksi Anda.');
-      }
-    }
+    function handleSyncAll(){if(finishing)return Promise.resolve(false);if(activeSync)return activeSync;syncBusy=true;activeSync=(async()=>{const [a,b]=await Promise.all([handlePushResultsToSupabase(),handlePushResultsToSpreadsheet()]);showBannerStatus(a&&b,a&&b?'Semua antrean terkirim.':'Ada data belum terkirim. Periksa koneksi / respons server.');return a&&b;})().finally(()=>{syncBusy=false;activeSync=null;});return activeSync;}
 
-    function startHtml5CameraScanner() {
-      document.getElementById('camera-viewport').classList.remove('hidden');
-      document.getElementById('btn-mode-camera').className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow';
-      document.getElementById('btn-mode-gun').className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 text-slate-400';
-
-      if (!state.html5QrcodeScanner) {
-        state.html5QrcodeScanner = new Html5Qrcode("reader");
-      }
-
-      state.html5QrcodeScanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 180 } },
-        (decodedText) => {
-          handleBarcodeSubmit(decodedText);
-        },
-        () => {}
-      ).catch(err => {
-        console.warn("Camera start error", err);
-      });
-    }
-
-    function stopHtml5CameraScanner() {
-      document.getElementById('camera-viewport').classList.add('hidden');
-      document.getElementById('btn-mode-gun').className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow';
-      document.getElementById('btn-mode-camera').className = 'flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 text-slate-400';
-
-      if (state.html5QrcodeScanner && state.html5QrcodeScanner.isScanning) {
-        state.html5QrcodeScanner.stop().then(() => {
-          state.html5QrcodeScanner.clear();
-        }).catch(err => console.warn(err));
-      }
-    }
+    let cameraWanted=false,cameraJob=Promise.resolve();
+function cameraModeUI(active){for(const [id,selected] of [['btn-mode-camera',active],['btn-mode-gun',!active]])document.getElementById(id).className='flex-1 py-2 rounded-lg text-xs font-extrabold transition flex items-center justify-center gap-1.5 '+(selected?'bg-emerald-600 text-white shadow':'text-slate-400');}
+function cameraBox(width,height){return {width:Math.floor(Math.min(width*.86,420)),height:Math.floor(Math.min(height*.55,180))};}
+function setCameraMode(wanted){cameraWanted=wanted;cameraJob=cameraJob.catch(()=>{}).then(async()=>{
+ const viewport=document.getElementById('camera-viewport');
+ if(!cameraWanted){if(state.html5QrcodeScanner?.isScanning)await state.html5QrcodeScanner.stop();if(state.html5QrcodeScanner)state.html5QrcodeScanner.clear();viewport.classList.add('hidden');cameraModeUI(false);return;}
+ viewport.classList.remove('hidden');cameraModeUI(true);
+ if(state.html5QrcodeScanner?.isScanning)return;
+ const status=document.getElementById('camera-hint');status.textContent='Membuka kamera belakang…';
+ try{if(typeof Html5Qrcode==='undefined')throw Error('Library kamera belum termuat. Periksa koneksi internet.');if(!window.isSecureContext)throw Error('Kamera memerlukan HTTPS atau localhost.');
+ if(!state.html5QrcodeScanner)state.html5QrcodeScanner=new Html5Qrcode('reader');
+ await state.html5QrcodeScanner.start({facingMode:'environment'},{fps:10,aspectRatio:4/3,qrbox:cameraBox},text=>{if(cameraWanted&&!finishing&&!scanBusy&&!state.pendingScanItem)handleBarcodeSubmit(text);},()=>{});
+ const video=document.querySelector('#reader video');if(video){video.setAttribute('playsinline','');video.muted=true;}
+ status.textContent='Posisikan barcode di dalam bingkai. Jaga HP tetap stabil.';
+ if(!cameraWanted){await state.html5QrcodeScanner.stop();state.html5QrcodeScanner.clear();viewport.classList.add('hidden');cameraModeUI(false);}
+ }catch(e){cameraWanted=false;cameraModeUI(false);status.textContent='Kamera belum tersedia. Izinkan akses kamera lalu coba lagi.';showBannerStatus(false,'Kamera: '+(e.message||String(e)));}
+ });return cameraJob.catch(e=>{showBannerStatus(false,'Kamera: '+(e.message||String(e)));});}
+function startHtml5CameraScanner(){return setCameraMode(true);}
+function stopHtml5CameraScanner(){return setCameraMode(false);}
 
     function renderPetugasOptions() {
       const selectTeam = document.getElementById('select-team');
@@ -1250,7 +1225,7 @@
       if (teamKeys.length > 0) {
         let optionsHtml = '<option value="">-- Pilih Tim --</option>';
         teamKeys.forEach(t => {
-          optionsHtml += `<option value="${t}" ${state.selectedTeam === t ? 'selected' : ''}>${t}</option>`;
+          optionsHtml += `<option value="${safeHTML(t)}" ${state.selectedTeam === t ? 'selected' : ''}>${safeHTML(t)}</option>`;
         });
         selectTeam.innerHTML = optionsHtml;
       }
@@ -1271,7 +1246,7 @@
       if (matchingList && matchingList.length > 0) {
         let pOptions = '<option value="">-- Pilih Petugas --</option>';
         matchingList.forEach(p => {
-          pOptions += `<option value="${p}" ${state.selectedPetugas === p ? 'selected' : ''}>${p}</option>`;
+          pOptions += `<option value="${safeHTML(p)}" ${state.selectedPetugas === p ? 'selected' : ''}>${safeHTML(p)}</option>`;
         });
         selectPetugas.innerHTML = pOptions;
       } else if (!teamVal) {
@@ -1287,7 +1262,9 @@
 
       const currentInput = String(state.manualRakInput || '').trim().toUpperCase();
       container.innerHTML = state.recentRaks.map(r => {
-        const isCompleted = state.completedRaks.some(c => c.rak.toUpperCase() === r.toUpperCase());
+        const completed = state.completedRaks.find(c => c.rak.toUpperCase() === r.toUpperCase());
+        const hasAddition = !!completed && state.soResults.some(scan => scan.rak.toUpperCase() === r.toUpperCase() && Date.parse(scan.timestamp) > Date.parse(completed.completed_at));
+        const isCompleted = !!completed && !hasAddition;
         return `
           <button type="button" class="btn-recent-rak text-[9px] px-2 py-0.5 rounded border font-mono whitespace-nowrap ${
             currentInput === r.toUpperCase() 
@@ -1295,8 +1272,8 @@
               : isCompleted 
                 ? 'bg-teal-950 text-teal-300 border-teal-700/60' 
                 : 'bg-slate-950 text-slate-400 border-slate-800'
-          }" data-rak="${r}">
-            ${isCompleted ? '✅ ' : ''}${r}
+          }" data-rak="${safeHTML(r)}">
+            ${isCompleted ? '✅ ' : hasAddition ? '↻ ' : ''}${safeHTML(r)}
           </button>
         `;
       }).join('');
@@ -1328,12 +1305,12 @@
           <div>
             <div class="flex items-center gap-1.5">
               <span class="font-mono font-bold text-emerald-400 text-[11px] bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                ${row.rak}
+                ${safeHTML(row.rak)}
               </span>
               <span class="text-[10px] text-slate-500">${new Date(row.timestamp).toLocaleTimeString('id-ID')}</span>
             </div>
-            <p class="font-bold text-white text-xs mt-0.5">${row.namaBarang}</p>
-            <p class="font-mono text-[10px] text-slate-400">SKU: ${row.sku} • ${row.petugas} (${row.team})</p>
+            <p class="font-bold text-white text-xs mt-0.5">${safeHTML(row.namaBarang)}</p>
+            <p class="font-mono text-[10px] text-slate-400">SKU: ${safeHTML(row.sku)} • ${safeHTML(row.petugas)} (${safeHTML(row.team)})</p>
           </div>
 
           <div class="text-right shrink-0">
@@ -1382,15 +1359,15 @@
 
       tbody.innerHTML = filtered.map(row => `
         <tr class="hover:bg-slate-800/40">
-          <td class="p-3 font-mono font-bold text-emerald-400 whitespace-nowrap">${row.rak}</td>
+          <td class="p-3 font-mono font-bold text-emerald-400 whitespace-nowrap">${safeHTML(row.rak)}</td>
           <td class="p-3">
-            <p class="font-bold text-white">${row.namaBarang}</p>
-            <p class="font-mono text-[10px] text-slate-400">SKU: ${row.sku} | Orig: ${row.originalCode || '-'}</p>
+            <p class="font-bold text-white">${safeHTML(row.namaBarang)}</p>
+            <p class="font-mono text-[10px] text-slate-400">SKU: ${safeHTML(row.sku)} | Orig: ${safeHTML(row.originalCode || '-')}</p>
           </td>
           <td class="p-3 text-right font-mono font-extrabold text-emerald-300 text-sm whitespace-nowrap">+${row.qty}</td>
           <td class="p-3 whitespace-nowrap">
-            <p class="font-semibold text-slate-200">${row.petugas}</p>
-            <p class="text-[10px] text-slate-500">${row.team}</p>
+            <p class="font-semibold text-slate-200">${safeHTML(row.petugas)}</p>
+            <p class="text-[10px] text-slate-500">${safeHTML(row.team)}</p>
           </td>
           <td class="p-3 text-center">
             <button onclick="deleteResultRow('${row.id}')" class="text-slate-500 hover:text-rose-400 p-1">✕</button>
@@ -1399,12 +1376,7 @@
       `).join('');
     }
 
-    function deleteResultRow(id) {
-      state.soResults = state.soResults.filter(r => r.id !== id);
-      saveState();
-      renderRecentScansList();
-      renderResultsTable();
-    }
+    function deleteResultRow(id){const r=state.soResults.find(r=>r.id===id);if(!r)return;if(finishing||syncBusy||inflight.has(id)||r.syncedSheet||r.syncedSupabase)return showBannerStatus(false,'Data sedang dikirim atau sudah masuk server. Koreksi harus dilakukan di backend agar kedua sumber tetap sama.');if(!confirm('Hapus scan yang belum terkirim ini?'))return;state.soResults=state.soResults.filter(r=>r.id!==id);saveState().catch(e=>showBannerStatus(false,e.message));renderRecentScansList();renderResultsTable();}
 
     function renderMasterTable() {
       const tbody = document.getElementById('table-master-body');
@@ -1439,10 +1411,10 @@
 
       tbody.innerHTML = pageItems.map(item => `
         <tr class="hover:bg-slate-800/40">
-          <td class="p-3 font-mono font-bold text-emerald-400 whitespace-nowrap">${item.sku}</td>
-          <td class="p-3 font-mono text-slate-300 whitespace-nowrap">${item.originalCode || '-'}</td>
-          <td class="p-3 font-bold text-white">${item.namaBarang}</td>
-          <td class="p-3 text-slate-300">${item.family || '-'}</td>
+          <td class="p-3 font-mono font-bold text-emerald-400 whitespace-nowrap">${safeHTML(item.sku)}</td>
+          <td class="p-3 font-mono text-slate-300 whitespace-nowrap">${safeHTML(item.originalCode || '-')}</td>
+          <td class="p-3 font-bold text-white">${safeHTML(item.namaBarang)}</td>
+          <td class="p-3 text-slate-300">${safeHTML(item.family || '-')}</td>
         </tr>
       `).join('');
     }
@@ -1471,7 +1443,9 @@
       }
     }
 
-    window.onload = function() {
+    window.onload = async () => {
+      setupHiddenSettings();
+      try{await initStorage();}catch(e){showBannerStatus(false,"Stock opname tidak dapat dimulai: "+e.message);return;}
       document.querySelectorAll('[data-tab]').forEach(btn => {
         btn.onclick = () => switchTab(btn.dataset.tab);
       });
@@ -1568,7 +1542,7 @@
       document.querySelectorAll('.btn-modal-preset').forEach(btn => {
         btn.onclick = () => {
           const qty = parseInt(btn.dataset.qty);
-          document.getElementById('input-confirm-qty').value = qty;
+          document.getElementById('input-confirm-qty').value = (Number(document.getElementById('input-confirm-qty').value)||0)+qty;
         };
       });
 
@@ -1597,11 +1571,7 @@
           scanTimer = setTimeout(() => {
             // Jika diketik manual minimal 3 karakter, coba otomatis cek match
             if (val.length >= 3) {
-              const exactMatch = state.masterItems.some(
-                i => (i.sku && i.sku.toLowerCase() === val.toLowerCase()) || 
-                     (i.originalCode && i.originalCode.toLowerCase() === val.toLowerCase()) ||
-                     (i.original_code && i.original_code.toLowerCase() === val.toLowerCase())
-              );
+              const exactMatch = !!findMaster(val);
               if (exactMatch) {
                 handleBarcodeSubmit(val);
               }
@@ -1618,24 +1588,6 @@
       document.getElementById('btn-mode-camera').onclick = startHtml5CameraScanner;
       document.getElementById('btn-stop-camera').onclick = stopHtml5CameraScanner;
 
-      document.getElementById('setting-gas-url').value = state.gasUrl;
-      document.getElementById('setting-gas-url').onchange = (e) => {
-        state.gasUrl = e.target.value;
-        localStorage.setItem('so_gas_url', e.target.value);
-      };
-
-      document.getElementById('setting-supabase-url').value = state.supabaseUrl;
-      document.getElementById('setting-supabase-url').onchange = (e) => {
-        state.supabaseUrl = e.target.value;
-        localStorage.setItem('so_supabase_url', e.target.value);
-      };
-
-      document.getElementById('setting-supabase-key').value = state.supabaseKey;
-      document.getElementById('setting-supabase-key').onchange = (e) => {
-        state.supabaseKey = e.target.value;
-        localStorage.setItem('so_supabase_key', e.target.value);
-      };
-
       document.getElementById('btn-sync-all').onclick = handleSyncAll;
       document.getElementById('btn-push-supabase').onclick = handlePushResultsToSupabase;
       document.getElementById('btn-push-sheet').onclick = handlePushResultsToSpreadsheet;
@@ -1644,18 +1596,7 @@
       document.getElementById('btn-pull-master-sheet').onclick = handleFetchMasterFromSpreadsheet;
       document.getElementById('btn-close-banner').onclick = () => document.getElementById('sync-banner').classList.add('hidden');
 
-      document.getElementById('btn-export-csv').onclick = () => {
-        const csvContent = "data:text/csv;charset=utf-8," 
-          + ["ID Scan,Timestamp,Rak,Tim,Petugas,SKU,Original Code,Nama Barang,Qty,Family"].join(",") + "\n"
-          + state.soResults.map(r => `"${r.id}","${r.timestamp}","${r.rak}","${r.team}","${r.petugas}","${r.sku}","${r.originalCode}","${r.namaBarang}",${r.qty},"${r.family}"`).join("\n");
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `Hasil_SO_${new Date().toISOString().slice(0,10)}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      };
+      document.getElementById('btn-export-csv').onclick=()=>{const quote=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const rows=[['ID Scan','Timestamp','Rak','Tim','Petugas','SKU','Original Code','Nama Barang','Qty','Family'],...state.soResults.map(r=>[r.id,r.timestamp,r.rak,r.team,r.petugas,r.sku,r.originalCode,r.namaBarang,r.qty,r.family])];const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.map(quote).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));a.download='Hasil-SO.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
 
       document.getElementById('input-search-master').oninput = (e) => {
         state.masterSearch = e.target.value;
@@ -1683,7 +1624,8 @@
         renderResultsTable();
       };
 
-      fetchPetugasFromSpreadsheet();
+      if(state.gasUrl)fetchPetugasFromSpreadsheet();
+      if(!connectionReady())showBannerStatus(false,'Koneksi belum disiapkan. Hubungi admin untuk menyiapkan perangkat ini.');
       renderPetugasOptions();
       renderRecentRaks();
       renderRecentScansList();
@@ -1693,5 +1635,6 @@
       setTimeout(() => document.getElementById('input-barcode-scan')?.focus(), 300);
     };
   </script>
+<dialog id="connection-dialog" aria-labelledby="connection-title"><form method="dialog"><header><h2 id="connection-title">Pengaturan koneksi</h2><button aria-label="Tutup pengaturan">✕</button></header></form><p class="connection-help">Pengaturan tersimpan di browser perangkat ini.</p><label>URL Supabase<input id="connection-url" type="url" autocomplete="off" placeholder="https://project.supabase.co"></label><label>Anon / publishable key<textarea id="connection-key" rows="4" autocomplete="off" spellcheck="false"></textarea></label><label>URL Google Apps Script<input id="connection-gas" type="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec"></label><div class="connection-actions"><button type="button" onclick="saveConnections()">Simpan pengaturan</button><button type="button" onclick="testConnections()" id="connection-test">Tes koneksi</button></div><p id="connection-message" role="status">Gunakan kunci publik, bukan service_role.</p></dialog>
 </body>
 </html>
