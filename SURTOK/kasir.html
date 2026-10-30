@@ -329,6 +329,7 @@
                     <button onclick="downloadReceipt()" class="bg-purple-700 hover:bg-purple-800 py-2 rounded font-bold text-xs flex flex-col items-center justify-center gap-1 transition"><i class="fas fa-download text-lg"></i> Download</button>
                     <button onclick="sendWA()" class="bg-green-600 hover:bg-green-700 py-2 rounded font-bold text-xs flex flex-col items-center justify-center gap-1 transition"><i class="fab fa-whatsapp text-lg"></i> Kirim WA</button>
                 </div>
+                <button onclick="shareReceiptIOS()" id="ios-share-receipt" class="w-full bg-emerald-600 hover:bg-emerald-700 py-2.5 rounded font-bold text-sm transition"><i class="fas fa-share-square mr-2"></i>Bagikan Struk (iPhone / Aplikasi Printer)</button>
                 <button onclick="printBluetoothReceipt()" id="bt-print-receipt" class="w-full bg-cyan-600 hover:bg-cyan-700 py-2.5 rounded font-bold text-sm transition"><i class="fab fa-bluetooth-b mr-2"></i>Cetak Bluetooth</button>
                 <button onclick="closeDetailModal()" class="w-full mt-2 bg-gray-600 hover:bg-gray-500 py-2.5 rounded font-bold text-sm transition">Tutup Modal</button>
             </div>
@@ -375,7 +376,7 @@
                     <input type="text" id="search-item" onkeyup="state.posPage = 1; renderProducts()" placeholder="Cari 70K SKU (Ketik Enter atau Scan Barcode)..." class="w-full pl-11 pr-12 py-3 border border-gray-200 bg-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm font-semibold text-gray-700">
                     <button onclick="openScannerModal()" class="absolute right-2.5 bg-purple-50 text-purple-600 hover:bg-purple-100 w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm shrink-0" title="Scan Kamera"><i class="fas fa-barcode text-base"></i></button>
                 </div>
-                <button id="bt-cashier-connect" onclick="connectBluetoothPrinter()" class="bg-cyan-50 border border-cyan-200 text-cyan-700 px-3 h-11 rounded-xl hover:bg-cyan-100 shadow-sm transition-all flex items-center justify-center gap-2 shrink-0 font-bold text-xs" title="Hubungkan printer Bluetooth"><i class="fab fa-bluetooth-b"></i><span id="bt-cashier-label" class="hidden sm:inline">Konek Printer</span><span id="bt-cashier-dot" class="w-2 h-2 rounded-full bg-gray-400" aria-hidden="true"></span></button>
+                <button id="bt-cashier-connect" onclick="connectPrinterSmart()" class="bg-cyan-50 border border-cyan-200 text-cyan-700 px-3 h-11 rounded-xl hover:bg-cyan-100 shadow-sm transition-all flex items-center justify-center gap-2 shrink-0 font-bold text-xs" title="Hubungkan printer Bluetooth"><i class="fab fa-bluetooth-b"></i><span id="bt-cashier-label" class="hidden sm:inline">Konek Printer</span><span id="bt-cashier-dot" class="w-2 h-2 rounded-full bg-gray-400" aria-hidden="true"></span></button>
                 <button onclick="loadData()" class="bg-white border border-gray-200 text-gray-600 w-11 h-11 rounded-xl hover:bg-gray-50 shadow-sm transition-all flex items-center justify-center shrink-0" title="Refresh"><i class="fas fa-sync-alt"></i></button>
             </div>
             <div id="product-grid" class="p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start"></div>
@@ -569,6 +570,14 @@
                     <button onclick="testBluetoothPrinter()" class="bg-slate-700 text-white py-2.5 px-4 rounded-xl text-sm font-bold">Tes Cetak</button>
                     <button onclick="disconnectBluetoothPrinter()" class="bg-gray-200 text-gray-800 py-2.5 px-4 rounded-xl text-sm font-bold">Putuskan</button><button onclick="printReceipt()" class="bg-emerald-600 text-white py-2.5 px-4 rounded-xl text-sm font-bold">Cetak via Android</button>
                 </div>
+                <div class="border rounded-xl bg-emerald-50 border-emerald-200 p-3 space-y-2" id="ios-printer-panel">
+                    <p class="font-bold text-sm text-emerald-800"><i class="fas fa-mobile-alt mr-1"></i> MP80 + iPhone</p>
+                    <p class="text-xs text-emerald-900">Untuk iPhone, coba Bluefy hanya jika MP80 mendukung BLE. Jika MP80 menggunakan Bluetooth Classic/SPP, gunakan aplikasi printer iOS yang kompatibel atau koneksi jaringan yang didukung. AirPrint hanya bekerja bila printer mendukung AirPrint.</p>
+                    <div class="flex flex-wrap gap-2">
+                      <button type="button" onclick="showIOSPrinterGuide()" class="bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs font-bold">Panduan iPhone</button>
+                      <button type="button" onclick="printReceipt()" class="bg-white border border-emerald-300 text-emerald-800 px-3 py-2 rounded-lg text-xs font-bold">Cetak iPhone / AirPrint</button>
+                    </div>
+                </div>
                 <label class="text-sm font-semibold text-gray-600" for="bt-paper">Ukuran Kertas</label>
                 <select id="bt-paper" class="border rounded-xl p-2 text-sm max-w-xs"><option value="32">58 mm</option><option value="48">80 mm</option></select>
                 <details class="border-t pt-3 mt-1">
@@ -584,7 +593,7 @@
                         <select id="bt-chunk" class="border rounded-lg p-2 text-sm w-full"><option value="20">20 byte (standar)</option><option value="100">100 byte</option><option value="180">180 byte</option></select>
                     </div>
                 </details>
-                <p class="text-xs text-amber-700">Memerlukan Chrome/Edge melalui HTTPS atau localhost dan printer BLE ESC/POS. Printer Bluetooth Classic/SPP dan iPhone tidak dapat terkoneksi langsung lewat Web Bluetooth; gunakan cetak sistem/aplikasi printer.</p>
+                <p class="text-xs text-amber-700">Memerlukan Chrome/Edge melalui HTTPS atau localhost dan printer BLE ESC/POS. Printer Bluetooth Classic/SPP tidak didukung Web Bluetooth. Pada iPhone, gunakan Bluefy untuk printer BLE, atau aplikasi printer kompatibel / AirPrint bila didukung.</p>
             </div>
             <!-- Tier Discount -->
             <div class="bg-white rounded-2xl shadow-sm border border-orange-100 p-6 flex flex-col">
@@ -1514,7 +1523,7 @@
                 button.classList.toggle('text-cyan-700', !connected);
                 button.classList.toggle('border-cyan-200', !connected);
             }
-            if (label) label.textContent = connected ? 'Printer Aktif' : 'Konek Printer';
+            if (label) label.textContent = connected ? 'Printer Aktif' : (isIOSDevice() && !navigator.bluetooth ? 'Cetak iPhone' : 'Konek Printer');
             if (dot) { dot.classList.toggle('bg-green-500', connected); dot.classList.toggle('bg-gray-400', !connected); }
         }
         function btSelectProfile() {
@@ -1544,16 +1553,50 @@
         }
         document.addEventListener('DOMContentLoaded', btLoadSettings);
         function btDisconnected() { btCharacteristic = null; btStatus('Printer terputus. Hubungkan kembali.'); }
+        function isIOSDevice() { return /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
         function btExplainEnvironment() {
             const el = document.getElementById('bt-mobile-help');
             if (!el) return;
             const android = /Android/i.test(navigator.userAgent);
-            const iphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-            if (!window.isSecureContext) el.textContent = 'Bluetooth diblokir: buka POS SURTOK lewat HTTPS (bukan file HTML lokal atau HTTP).';
-            else if (!navigator.bluetooth) el.textContent = 'Web Bluetooth tidak tersedia di browser ini. Gunakan Chrome Android terbaru. Jika printer Classic/SPP, gunakan Cetak via Android dengan aplikasi/layanan printer yang kompatibel.';
-            else if (iphone) el.textContent = 'Chrome di iPhone tidak mendukung Web Bluetooth. Gunakan metode cetak sistem atau aplikasi khusus printer.';
-            else if (android) el.textContent = 'Chrome Android siap mencoba BLE. Nyalakan Bluetooth dan izinkan akses Perangkat di Sekitar bila diminta; pilih printer dari daftar. Printer Classic/SPP tidak dapat dikoneksi langsung.';
-            else el.textContent = 'Web Bluetooth tersedia. Printer harus mendukung BLE dengan karakteristik GATT yang bisa ditulis.';
+            if (isIOSDevice()) {
+                el.textContent = navigator.bluetooth
+                    ? 'iPhone: Web Bluetooth terdeteksi (misalnya lewat Bluefy). Hanya printer MP80 versi BLE dengan UUID kompatibel yang dapat dipasangkan.'
+                    : 'iPhone Safari/Chrome tidak mendukung pairing Bluetooth dari website. Coba buka POS SURTOK di Bluefy jika MP80 mendukung BLE, atau cetak lewat aplikasi printer / AirPrint jika tersedia.';
+                const label = document.getElementById('bt-cashier-label');
+                if (label) label.textContent = navigator.bluetooth ? 'Konek BLE' : 'Cetak iPhone';
+            } else if (!window.isSecureContext) el.textContent = 'Bluetooth diblokir: buka POS SURTOK melalui HTTPS.';
+            else if (!navigator.bluetooth) el.textContent = 'Web Bluetooth tidak tersedia; printer Classic/SPP memerlukan aplikasi printer atau sistem cetak yang kompatibel.';
+            else if (android) el.textContent = 'Chrome Android: pilih printer BLE. Bluetooth Classic/SPP tidak dapat disambungkan melalui Web Bluetooth.';
+            else el.textContent = 'Web Bluetooth tersedia; printer harus memiliki BLE GATT yang dapat ditulis.';
+        }
+        function showIOSPrinterGuide() {
+            showModal('Printer MP80 di iPhone', '1. Cek tipe MP80: BLE atau Bluetooth Classic/SPP. 2. Jika BLE, buka alamat HTTPS POS SURTOK dengan browser Bluefy, lalu tekan Konek Printer. 3. Jika Bluetooth Classic, pakai aplikasi printer iOS yang mendukung MP80, kemudian gunakan Bagikan Struk. 4. Jika MP80 mendukung AirPrint melalui Wi-Fi, gunakan tombol Cetak. Bluetooth tersambung di Pengaturan iPhone saja tidak berarti bisa dicetak lewat website.');
+        }
+        function connectPrinterSmart() {
+            if (isIOSDevice() && !navigator.bluetooth) { showIOSPrinterGuide(); return; }
+            connectBluetoothPrinter();
+        }
+        async function shareReceiptIOS() {
+            const receipt = document.getElementById('printable-receipt');
+            if (!receipt || typeof html2canvas !== 'function') {
+                showModal('Bagikan Struk','Fitur gambar struk belum tersedia. Gunakan tombol Cetak untuk membuka dialog printer iPhone.');
+                return;
+            }
+            try {
+                const canvas = await html2canvas(receipt, { scale: 2, backgroundColor: '#ffffff' });
+                const blob = await new Promise((resolve,reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error('Gagal membuat gambar')), 'image/png'));
+                const invoice = (document.getElementById('dtl-inv')?.textContent || 'SURTOK').replace(/[^a-zA-Z0-9_-]/g,'_');
+                const file = new File([blob], 'Struk_' + invoice + '.png', {type:'image/png'});
+                if (navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))) {
+                    await navigator.share({files:[file], title:'Struk POS SURTOK ' + invoice});
+                } else {
+                    downloadReceipt();
+                    showModal('Struk Tersimpan','Gambar struk sudah diunduh. Buka gambar lalu bagikan ke aplikasi printer yang mendukung MP80.');
+                }
+            } catch (error) {
+                if (error?.name === 'AbortError') return;
+                showModal('Gagal Membagikan Struk', String(error.message || error) + '. Gunakan tombol Download atau Cetak.');
+            }
         }
         document.addEventListener('DOMContentLoaded', btExplainEnvironment);
         async function connectBluetoothPrinter() {
@@ -1563,7 +1606,7 @@
                     return;
                 }
                 if (!window.isSecureContext) throw new Error('Buka aplikasi melalui HTTPS. Web Bluetooth tidak dapat digunakan pada file lokal/HTTP.');
-                if (!navigator.bluetooth) throw new Error('Chrome ini tidak menyediakan Web Bluetooth. Gunakan Chrome Android terbaru; printer Bluetooth Classic/SPP tidak didukung oleh Web Bluetooth.');
+                if (!navigator.bluetooth) throw new Error(isIOSDevice() ? 'iPhone Safari/Chrome tidak menyediakan Web Bluetooth. Untuk MP80 BLE gunakan Bluefy; untuk Bluetooth Classic gunakan aplikasi printer yang kompatibel.' : 'Browser ini tidak menyediakan Web Bluetooth. Printer Classic/SPP tidak didukung.');
                 btSaveSettings();
                 const selected = document.getElementById('bt-profile').value;
                 const customService = document.getElementById('bt-service').value.trim().toLowerCase();
@@ -1682,7 +1725,7 @@
                 bytes.set(init); bytes.set(text,init.length); bytes.set([0x1d,0x56,0x01],init.length+text.length);
                 await btWrite(bytes);
                 btStatus('Data struk dikirim ke printer.');
-            } catch (error) { btStatus('Gagal mencetak: '+error.message); showModal('Cetak Bluetooth Gagal',String(error.message)); }
+            } catch (error) { btStatus('Gagal mencetak: '+error.message); showModal('Cetak Bluetooth Gagal',String(error.message) + (isIOSDevice() ? ' Pada iPhone, coba Bagikan Struk atau cetak lewat AirPrint jika printer mendukung.' : '')); }
         }
         async function testBluetoothPrinter() {
             try {
