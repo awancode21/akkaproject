@@ -1347,6 +1347,11 @@ function stopHtml5CameraScanner(){return setCameraMode(false);}
       });
     }
 
+    function recentScanCode(row) {
+      const original = [row.originalCode, row.original_code].map(v => v == null ? '' : String(v).trim()).find(v => v && v !== '-');
+      return original ? 'Kode Original: ' + safeHTML(original) : 'SKU: ' + safeHTML(row.sku);
+    }
+
     function renderRecentScansList() {
       const listEl = document.getElementById('recent-scans-list');
       const countEl = document.getElementById('recent-count-text');
@@ -1369,7 +1374,7 @@ function stopHtml5CameraScanner(){return setCameraMode(false);}
               <span class="text-[10px] text-slate-500">${new Date(row.timestamp).toLocaleTimeString('id-ID')}</span>
             </div>
             <p class="font-bold text-white text-xs mt-0.5">${safeHTML(row.namaBarang)}</p>
-            <p class="font-mono text-[10px] text-slate-400">SKU: ${safeHTML(row.sku)} • ${safeHTML(row.petugas)} (${safeHTML(row.team)})</p>
+            <p class="font-mono text-[10px] text-slate-400">${recentScanCode(row)} • ${safeHTML(row.petugas)} (${safeHTML(row.team)})</p>
           </div>
 
           <div class="text-right shrink-0">
