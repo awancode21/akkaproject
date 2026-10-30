@@ -176,6 +176,24 @@
             #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; width: 80mm; padding: 0; margin: 0; background: white; color: black; box-shadow: none; border: none; }
             .no-print { display: none !important; }
         }
+
+        /* POS SURTOK: navigasi mandiri, tidak bergantung CDN Tailwind */
+        #main-header:not(.hidden-el) { display:flex !important; align-items:center; flex-shrink:0; gap:10px; width:100%; box-sizing:border-box; min-height:64px; }
+        #main-header > div:first-child {display:flex; align-items:center; gap:8px; min-width:0; }
+        #main-header > div:first-child img {width:36px !important;height:36px !important;object-fit:contain;flex-shrink:0;}
+        #login-screen img { width:96px !important;height:96px !important;object-fit:contain;max-width:100%; }
+        #nav-menu {display:flex; flex-wrap:wrap; align-items:center; gap:6px; visibility:visible; min-width:0;}
+        #nav-menu .nav-btn {display:inline-flex; align-items:center; justify-content:center; gap:3px; border:0; border-radius:9px; padding:10px 12px; font-size:13px; cursor:pointer; white-space:nowrap; min-height:42px; background:#f3f4f6; color:#374151;}
+        #nav-menu .nav-btn.hidden-el {display:none !important;}
+        #nav-menu .nav-btn.bg-purple-100 {background:#f3e8ff !important;color:#7e22ce !important;}
+        @media (max-width:1023px) {
+          #main-header:not(.hidden-el) {display:flex !important;flex-wrap:wrap; padding:9px 10px;}
+          #main-header > div:first-child {flex:1 1 auto;font-size:16px;}
+          #main-header > button {margin-left:auto;}
+          #nav-menu {order:3;flex:1 0 100%;width:100%;display:grid !important;grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px;}
+          #nav-menu .nav-btn {min-width:0;padding:9px 2px;font-size:11px;line-height:1.25;min-height:45px;white-space:normal;}
+        }
+        @media (max-width:390px) { #nav-menu .nav-btn {font-size:10px;} }
     </style>
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden relative">
@@ -545,11 +563,11 @@
             <div class="bg-white rounded-2xl shadow-sm border border-cyan-100 p-5 flex flex-col gap-3 lg:col-span-2">
                 <h3 class="font-bold text-lg"><i class="fab fa-bluetooth-b text-cyan-600 mr-2"></i>Printer Bluetooth</h3>
                 <p class="text-xs text-gray-500">Hubungkan printer thermal BLE dari sini, atau langsung dari halaman Kasir.</p>
-                <p id="bt-status" class="text-sm font-semibold text-gray-600" role="status">Printer belum terhubung.</p>
+                <p id="bt-status" class="text-sm font-semibold text-gray-600" role="status">Printer belum terhubung.</p><p id="bt-mobile-help" class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3" role="status">Memeriksa dukungan Bluetooth perangkat...</p>
                 <div class="flex flex-wrap gap-2">
                     <button onclick="connectBluetoothPrinter()" class="bg-cyan-600 text-white py-2.5 px-4 rounded-xl text-sm font-bold"><i class="fab fa-bluetooth-b mr-1"></i>Hubungkan</button>
                     <button onclick="testBluetoothPrinter()" class="bg-slate-700 text-white py-2.5 px-4 rounded-xl text-sm font-bold">Tes Cetak</button>
-                    <button onclick="disconnectBluetoothPrinter()" class="bg-gray-200 text-gray-800 py-2.5 px-4 rounded-xl text-sm font-bold">Putuskan</button>
+                    <button onclick="disconnectBluetoothPrinter()" class="bg-gray-200 text-gray-800 py-2.5 px-4 rounded-xl text-sm font-bold">Putuskan</button><button onclick="printReceipt()" class="bg-emerald-600 text-white py-2.5 px-4 rounded-xl text-sm font-bold">Cetak via Android</button>
                 </div>
                 <label class="text-sm font-semibold text-gray-600" for="bt-paper">Ukuran Kertas</label>
                 <select id="bt-paper" class="border rounded-xl p-2 text-sm max-w-xs"><option value="32">58 mm</option><option value="48">80 mm</option></select>
@@ -557,7 +575,7 @@
                     <summary class="cursor-pointer text-sm font-semibold text-gray-600">Pengaturan Lanjutan (jika printer belum kompatibel)</summary>
                     <div class="mt-3 space-y-3">
                         <label class="block text-xs font-bold text-gray-600">Profil Printer BLE</label>
-                        <select id="bt-profile" onchange="btSelectProfile()" class="w-full border rounded-lg p-2 text-sm"><option value="ffe0">Standar FFE0 / FFE1</option><option value="ae30">AE30 / AE01</option><option value="custom">UUID Manual</option></select>
+                        <select id="bt-profile" onchange="btSelectProfile()" class="w-full border rounded-lg p-2 text-sm"><option value="auto">Otomatis (disarankan untuk Android)</option><option value="ffe0">Standar FFE0 / FFE1</option><option value="ae30">AE30 / AE01</option><option value="custom">UUID Manual</option></select>
                         <div class="grid md:grid-cols-2 gap-2">
                             <div><label class="text-xs font-bold text-gray-600">Service UUID</label><input id="bt-service" class="w-full border rounded-lg p-2 text-xs" value="0000ffe0-0000-1000-8000-00805f9b34fb"></div>
                             <div><label class="text-xs font-bold text-gray-600">Characteristic UUID</label><input id="bt-characteristic" class="w-full border rounded-lg p-2 text-xs" value="0000ffe1-0000-1000-8000-00805f9b34fb"></div>
@@ -566,7 +584,7 @@
                         <select id="bt-chunk" class="border rounded-lg p-2 text-sm w-full"><option value="20">20 byte (standar)</option><option value="100">100 byte</option><option value="180">180 byte</option></select>
                     </div>
                 </details>
-                <p class="text-xs text-amber-700">Memerlukan Chrome/Edge melalui HTTPS atau localhost dan printer BLE ESC/POS. Printer Bluetooth Classic/SPP serta Safari/iPhone tidak mendukung koneksi ini langsung.</p>
+                <p class="text-xs text-amber-700">Memerlukan Chrome/Edge melalui HTTPS atau localhost dan printer BLE ESC/POS. Printer Bluetooth Classic/SPP dan iPhone tidak dapat terkoneksi langsung lewat Web Bluetooth; gunakan cetak sistem/aplikasi printer.</p>
             </div>
             <!-- Tier Discount -->
             <div class="bg-white rounded-2xl shadow-sm border border-orange-100 p-6 flex flex-col">
@@ -842,6 +860,7 @@
             updateMasterAccess();
             document.getElementById('login-screen').classList.add('hidden-el');
             document.getElementById('main-header').classList.remove('hidden-el');
+            document.getElementById('nav-menu').style.visibility = 'visible';
             document.getElementById('header-user-badge').innerText = `${state.currentUser} (${state.role})`;
             
             await loadData();
@@ -1520,37 +1539,70 @@
                     if (el && cfg[key]) el.value = cfg[key];
                     el?.addEventListener('change', btSaveSettings);
                 }
+                if (!cfg.profile) document.getElementById('bt-profile').value = 'auto';
             } catch (error) { console.warn('Pengaturan printer gagal dimuat', error); }
         }
         document.addEventListener('DOMContentLoaded', btLoadSettings);
         function btDisconnected() { btCharacteristic = null; btStatus('Printer terputus. Hubungkan kembali.'); }
+        function btExplainEnvironment() {
+            const el = document.getElementById('bt-mobile-help');
+            if (!el) return;
+            const android = /Android/i.test(navigator.userAgent);
+            const iphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            if (!window.isSecureContext) el.textContent = 'Bluetooth diblokir: buka POS SURTOK lewat HTTPS (bukan file HTML lokal atau HTTP).';
+            else if (!navigator.bluetooth) el.textContent = 'Web Bluetooth tidak tersedia di browser ini. Gunakan Chrome Android terbaru. Jika printer Classic/SPP, gunakan Cetak via Android dengan aplikasi/layanan printer yang kompatibel.';
+            else if (iphone) el.textContent = 'Chrome di iPhone tidak mendukung Web Bluetooth. Gunakan metode cetak sistem atau aplikasi khusus printer.';
+            else if (android) el.textContent = 'Chrome Android siap mencoba BLE. Nyalakan Bluetooth dan izinkan akses Perangkat di Sekitar bila diminta; pilih printer dari daftar. Printer Classic/SPP tidak dapat dikoneksi langsung.';
+            else el.textContent = 'Web Bluetooth tersedia. Printer harus mendukung BLE dengan karakteristik GATT yang bisa ditulis.';
+        }
+        document.addEventListener('DOMContentLoaded', btExplainEnvironment);
         async function connectBluetoothPrinter() {
             try {
                 if (btCharacteristic && btDevice?.gatt?.connected) {
                     btStatus('Terhubung: ' + (btDevice.name || 'Printer BLE'));
                     return;
                 }
-                if (!navigator.bluetooth || !window.isSecureContext) {
-                    throw new Error('Web Bluetooth tidak tersedia. Gunakan Chrome/Edge melalui HTTPS atau localhost. iPhone/Safari dan printer Bluetooth Classic/SPP memerlukan metode cetak lain.');
-                }
+                if (!window.isSecureContext) throw new Error('Buka aplikasi melalui HTTPS. Web Bluetooth tidak dapat digunakan pada file lokal/HTTP.');
+                if (!navigator.bluetooth) throw new Error('Chrome ini tidak menyediakan Web Bluetooth. Gunakan Chrome Android terbaru; printer Bluetooth Classic/SPP tidak didukung oleh Web Bluetooth.');
                 btSaveSettings();
-                const serviceUuid = document.getElementById('bt-service').value.trim().toLowerCase();
-                const characteristicUuid = document.getElementById('bt-characteristic').value.trim().toLowerCase();
-                if (!serviceUuid || !characteristicUuid) throw new Error('Isi Service UUID dan Characteristic UUID.');
+                const selected = document.getElementById('bt-profile').value;
+                const customService = document.getElementById('bt-service').value.trim().toLowerCase();
+                const customChar = document.getElementById('bt-characteristic').value.trim().toLowerCase();
+                const candidates = selected === 'auto'
+                    ? [BT_PROFILES.ffe0, BT_PROFILES.ae30]
+                    : (selected === 'custom' ? [[customService, customChar]] : [BT_PROFILES[selected]]);
+                if (candidates.some(pair => !pair || !pair[0] || !pair[1])) throw new Error('UUID printer belum lengkap.');
                 if (btDevice) btDevice.removeEventListener('gattserverdisconnected', btDisconnected);
-                btStatus('Pilih printer di jendela Bluetooth...');
-                // User gesture is preserved: requestDevice called before any await.
-                const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [serviceUuid] });
+                btStatus('Pilih printer BLE yang muncul di Chrome...');
+                // Request must be directly triggered by tap/click, before first await.
+                const device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true, optionalServices: [...new Set(candidates.map(pair => pair[0]))]
+                });
                 btDevice = device;
                 device.addEventListener('gattserverdisconnected', btDisconnected);
-                btStatus('Menyambungkan '+(device.name || 'printer')+'...');
+                btStatus('Menyambungkan ' + (device.name || 'printer') + '...');
                 const server = await device.gatt.connect();
-                const service = await server.getPrimaryService(serviceUuid);
-                const characteristic = await service.getCharacteristic(characteristicUuid);
-                if (!characteristic.properties.write && !characteristic.properties.writeWithoutResponse) throw new Error('Characteristic tidak mendukung Write. Periksa UUID printer.');
-                btCharacteristic = characteristic;
-                btStatus('Terhubung: '+(device.name || 'Printer BLE'));
-            } catch (error) { btCharacteristic = null; btStatus('Gagal koneksi: '+error.message); showModal('Bluetooth Printer', String(error.message)); }
+                let errors = [];
+                for (const [serviceUuid, charUuid] of candidates) {
+                    try {
+                        const service = await server.getPrimaryService(serviceUuid);
+                        const characteristic = await service.getCharacteristic(charUuid);
+                        if (!characteristic.properties.write && !characteristic.properties.writeWithoutResponse) {
+                            errors.push(serviceUuid + ': tidak mendukung write'); continue;
+                        }
+                        btCharacteristic = characteristic;
+                        btStatus('Terhubung: ' + (device.name || 'Printer BLE'));
+                        return;
+                    } catch (e) { errors.push(serviceUuid + ': ' + e.message); }
+                }
+                server.disconnect();
+                throw new Error('Printer ditemukan, tetapi profil BLE tidak cocok. Coba UUID manual sesuai model printer. Detail: ' + errors.join(' | '));
+            } catch (error) {
+                btCharacteristic = null;
+                const reason = error.name === 'NotFoundError' ? 'Pemilihan printer dibatalkan atau printer BLE tidak ditemukan. Pastikan printer menyala, berada dekat HP, dan mendukung BLE.' : String(error.message || error);
+                btStatus('Gagal koneksi: ' + reason);
+                showModal('Bluetooth Printer', reason + ' Jika printer hanya Bluetooth Classic/SPP, gunakan Cetak via Android dengan layanan printer yang sesuai.');
+            }
         }
         function disconnectBluetoothPrinter() {
             if (btDevice?.gatt?.connected) btDevice.gatt.disconnect();
