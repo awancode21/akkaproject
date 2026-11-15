@@ -81,6 +81,10 @@
             padding-top: max(1rem, env(safe-area-inset-top));
             padding-bottom: max(1rem, env(safe-area-inset-bottom));
         }
+        /* Modal error/konfirmasi wajib berada paling depan, termasuk saat pembayaran terbuka. */
+        #custom-modal:not(.hidden-el) { z-index: 2147483000 !important; position: fixed !important; }
+        #payment-modal { z-index: 105 !important; }
+        #checkout-status { font-size: 12px; font-weight: 600; padding: 0 16px 8px; text-align: center; color: #475569; }
         #payment-modal > div {
             max-height: calc(100dvh - 2rem);
             max-height: calc(100vh - 2rem);
@@ -170,11 +174,35 @@
             #payment-modal > div { max-height: calc(100dvh - 1rem); }
         }
         
+        /* Cetak struk: layout khusus kertas thermal, bukan layout layar kasir. */
         @media print {
-            body * { visibility: hidden; }
-            #printable-receipt, #printable-receipt * { visibility: visible; }
-            #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; width: 80mm; padding: 0; margin: 0; background: white; color: black; box-shadow: none; border: none; }
-            .no-print { display: none !important; }
+            @page { margin: 0; }
+            html, body { display: block !important; position: static !important; width: auto !important;
+                height: auto !important; min-height: 0 !important; overflow: visible !important;
+                padding: 0 !important; margin: 0 !important; background: white !important; }
+            body > *:not(#detail-modal) { display: none !important; }
+            #detail-modal { display: block !important; position: static !important; inset: auto !important;
+                width: auto !important; height: auto !important; min-height: 0 !important;
+                max-height: none !important; overflow: visible !important; padding: 0 !important;
+                margin: 0 !important; background: white !important; backdrop-filter: none !important; }
+            #detail-modal > div { display: block !important; position: static !important;
+                width: auto !important; max-width: none !important; max-height: none !important;
+                min-height: 0 !important; margin: 0 !important; padding: 0 !important;
+                border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+                overflow: visible !important; background: white !important; }
+            #printable-receipt { display: block !important; box-sizing: border-box !important;
+                position: static !important; width: 72mm !important; max-width: 72mm !important;
+                min-width: 0 !important; height: auto !important; padding: 1.5mm 0 !important;
+                margin: 0 auto !important; border: 0 !important; border-radius: 0 !important;
+                box-shadow: none !important; background: #fff !important; color: #000 !important;
+                font: 11px/1.35 monospace !important; overflow: visible !important;
+                overflow-wrap: anywhere !important; }
+            body.print-paper-58 #printable-receipt { width: 48mm !important; max-width: 48mm !important; font-size: 9px !important; }
+            #printable-receipt table { width: 100% !important; table-layout: fixed !important; }
+            #printable-receipt td, #printable-receipt span { overflow-wrap: anywhere !important; }
+            #printable-receipt tr { break-inside: avoid !important; page-break-inside: avoid !important; }
+            #detail-modal .no-print { display: none !important; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
 
         /* POS SURTOK: navigasi mandiri, tidak bergantung CDN Tailwind */
@@ -194,12 +222,18 @@
           #nav-menu .nav-btn {min-width:0;padding:9px 2px;font-size:11px;line-height:1.25;min-height:45px;white-space:normal;}
         }
         @media (max-width:390px) { #nav-menu .nav-btn {font-size:10px;} }
+
+        /* Cadangan saat pengguna menekan Ctrl+P pada halaman POS, bukan tombol Cetak Struk. */
+        @media print {
+            #main-header, #nav-menu, #login-screen { display:none !important; visibility:hidden !important; }
+            body > *:not(#detail-modal) { display:none !important; visibility:hidden !important; }
+        }
     </style>
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden relative">
 
     <!-- Modal Konfirmasi / Notifikasi Umum -->
-    <div id="custom-modal" class="hidden-el absolute inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm p-4">
+    <div id="custom-modal" class="hidden-el fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm text-center transform transition-all scale-100">
             <h3 id="modal-title" class="text-xl font-bold mb-2 text-gray-800">Peringatan</h3>
             <p id="modal-message" class="text-gray-600 mb-6 text-sm">Pesan akan tampil disini.</p>
@@ -207,6 +241,13 @@
         </div>
     </div>
 
+    <!-- Pemulihan invoice tersimpan: hanya muncul setelah login bila ada invoice belum terkonfirmasi -->
+    <div id="pos-recovery-bar" class="hidden-el fixed bottom-3 left-3 right-3 z-[130] mx-auto max-w-xl bg-amber-50 border-2 border-amber-400 rounded-xl shadow-2xl p-4 text-sm text-amber-950">
+      <div class="font-extrabold mb-1"><i class="fas fa-shield-alt mr-1"></i> Invoice belum dikonfirmasi</div>
+      <div id="pos-recovery-info" class="text-xs break-all mb-3">Cek status sebelum transaksi baru.</div>
+      <button type="button" onclick="retryPendingCheckout()" id="pos-recovery-btn" class="bg-purple-600 text-white font-bold rounded-lg py-2 px-4 w-full">Periksa / Kirim Ulang Invoice yang Sama</button>
+      <div class="text-[11px] mt-2">Jangan buat invoice lain untuk pembayaran yang sama. Jika gagal terus, catat nomornya dan cek Supabase.</div>
+    </div>
     <!-- Scanner Modal -->
     <div id="scanner-modal" class="hidden-el absolute inset-0 bg-black/80 z-[110] flex items-center justify-center backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden transform transition-all scale-100">
@@ -288,6 +329,7 @@
                     </div>
                 </div>
             </div>
+            <div id="checkout-status" role="status" aria-live="polite">Siap memproses pembayaran.</div>
             <div class="p-4 bg-gray-50 border-t border-gray-100 flex gap-3 shrink-0">
                 <button onclick="closePaymentModal()" class="flex-1 bg-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-300 transition">Batal</button>
                 <button onclick="confirmAndExecuteCheckout()" id="btn-confirm-pay" class="flex-1 bg-green-500 text-white font-bold py-3 rounded-xl hover:bg-green-600 transition shadow-lg shadow-green-500/30 flex justify-center items-center gap-2">Proses Bayar</button>
@@ -329,8 +371,8 @@
                     <button onclick="downloadReceipt()" class="bg-purple-700 hover:bg-purple-800 py-2 rounded font-bold text-xs flex flex-col items-center justify-center gap-1 transition"><i class="fas fa-download text-lg"></i> Download</button>
                     <button onclick="sendWA()" class="bg-green-600 hover:bg-green-700 py-2 rounded font-bold text-xs flex flex-col items-center justify-center gap-1 transition"><i class="fab fa-whatsapp text-lg"></i> Kirim WA</button>
                 </div>
-                <button onclick="shareReceiptIOS()" id="ios-share-receipt" class="w-full bg-emerald-600 hover:bg-emerald-700 py-2.5 rounded font-bold text-sm transition"><i class="fas fa-share-square mr-2"></i>Bagikan Struk (iPhone / Aplikasi Printer)</button>
-                <button onclick="printBluetoothReceipt()" id="bt-print-receipt" class="w-full bg-cyan-600 hover:bg-cyan-700 py-2.5 rounded font-bold text-sm transition"><i class="fab fa-bluetooth-b mr-2"></i>Cetak Bluetooth</button>
+
+
                 <button onclick="closeDetailModal()" class="w-full mt-2 bg-gray-600 hover:bg-gray-500 py-2.5 rounded font-bold text-sm transition">Tutup Modal</button>
             </div>
         </div>
@@ -376,7 +418,7 @@
                     <input type="text" id="search-item" onkeyup="state.posPage = 1; renderProducts()" placeholder="Cari 70K SKU (Ketik Enter atau Scan Barcode)..." class="w-full pl-11 pr-12 py-3 border border-gray-200 bg-gray-100 rounded-xl focus:bg-white focus:ring-4 focus:ring-purple-100 focus:border-purple-400 outline-none transition-all text-sm font-semibold text-gray-700">
                     <button onclick="openScannerModal()" class="absolute right-2.5 bg-purple-50 text-purple-600 hover:bg-purple-100 w-9 h-9 rounded-lg flex items-center justify-center transition shadow-sm shrink-0" title="Scan Kamera"><i class="fas fa-barcode text-base"></i></button>
                 </div>
-                <button id="bt-cashier-connect" onclick="connectPrinterSmart()" class="bg-cyan-50 border border-cyan-200 text-cyan-700 px-3 h-11 rounded-xl hover:bg-cyan-100 shadow-sm transition-all flex items-center justify-center gap-2 shrink-0 font-bold text-xs" title="Hubungkan printer Bluetooth"><i class="fab fa-bluetooth-b"></i><span id="bt-cashier-label" class="hidden sm:inline">Konek Printer</span><span id="bt-cashier-dot" class="w-2 h-2 rounded-full bg-gray-400" aria-hidden="true"></span></button>
+
                 <button onclick="loadData()" class="bg-white border border-gray-200 text-gray-600 w-11 h-11 rounded-xl hover:bg-gray-50 shadow-sm transition-all flex items-center justify-center shrink-0" title="Refresh"><i class="fas fa-sync-alt"></i></button>
             </div>
             <div id="product-grid" class="p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start"></div>
@@ -560,40 +602,14 @@
                 <p class="text-xs text-gray-500 mb-4">LOCK: penjualan tidak boleh melebihi stok. UNLOCK: stok kosong atau minus tetap bisa dijual dan stok dapat menjadi negatif.</p>
                 <button id="stock-lock-toggle" onclick="toggleStockLock()" class="w-full bg-purple-600 text-white px-4 py-3 rounded-xl font-bold">Ubah Mode Stok</button>
             </div>
-            <!-- Pengaturan printer sederhana; opsi teknis ada di bagian lanjutan -->
-            <div class="bg-white rounded-2xl shadow-sm border border-cyan-100 p-5 flex flex-col gap-3 lg:col-span-2">
-                <h3 class="font-bold text-lg"><i class="fab fa-bluetooth-b text-cyan-600 mr-2"></i>Printer Bluetooth</h3>
-                <p class="text-xs text-gray-500">Hubungkan printer thermal BLE dari sini, atau langsung dari halaman Kasir.</p>
-                <p id="bt-status" class="text-sm font-semibold text-gray-600" role="status">Printer belum terhubung.</p><p id="bt-mobile-help" class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3" role="status">Memeriksa dukungan Bluetooth perangkat...</p>
-                <div class="flex flex-wrap gap-2">
-                    <button onclick="connectBluetoothPrinter()" class="bg-cyan-600 text-white py-2.5 px-4 rounded-xl text-sm font-bold"><i class="fab fa-bluetooth-b mr-1"></i>Hubungkan</button>
-                    <button onclick="testBluetoothPrinter()" class="bg-slate-700 text-white py-2.5 px-4 rounded-xl text-sm font-bold">Tes Cetak</button>
-                    <button onclick="disconnectBluetoothPrinter()" class="bg-gray-200 text-gray-800 py-2.5 px-4 rounded-xl text-sm font-bold">Putuskan</button><button onclick="printReceipt()" class="bg-emerald-600 text-white py-2.5 px-4 rounded-xl text-sm font-bold">Cetak via Android</button>
-                </div>
-                <div class="border rounded-xl bg-emerald-50 border-emerald-200 p-3 space-y-2" id="ios-printer-panel">
-                    <p class="font-bold text-sm text-emerald-800"><i class="fas fa-mobile-alt mr-1"></i> MP80 + iPhone</p>
-                    <p class="text-xs text-emerald-900">Untuk iPhone, coba Bluefy hanya jika MP80 mendukung BLE. Jika MP80 menggunakan Bluetooth Classic/SPP, gunakan aplikasi printer iOS yang kompatibel atau koneksi jaringan yang didukung. AirPrint hanya bekerja bila printer mendukung AirPrint.</p>
-                    <div class="flex flex-wrap gap-2">
-                      <button type="button" onclick="showIOSPrinterGuide()" class="bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs font-bold">Panduan iPhone</button>
-                      <button type="button" onclick="printReceipt()" class="bg-white border border-emerald-300 text-emerald-800 px-3 py-2 rounded-lg text-xs font-bold">Cetak iPhone / AirPrint</button>
-                    </div>
-                </div>
-                <label class="text-sm font-semibold text-gray-600" for="bt-paper">Ukuran Kertas</label>
-                <select id="bt-paper" class="border rounded-xl p-2 text-sm max-w-xs"><option value="32">58 mm</option><option value="48">80 mm</option></select>
-                <details class="border-t pt-3 mt-1">
-                    <summary class="cursor-pointer text-sm font-semibold text-gray-600">Pengaturan Lanjutan (jika printer belum kompatibel)</summary>
-                    <div class="mt-3 space-y-3">
-                        <label class="block text-xs font-bold text-gray-600">Profil Printer BLE</label>
-                        <select id="bt-profile" onchange="btSelectProfile()" class="w-full border rounded-lg p-2 text-sm"><option value="auto">Otomatis (disarankan untuk Android)</option><option value="ffe0">Standar FFE0 / FFE1</option><option value="ae30">AE30 / AE01</option><option value="custom">UUID Manual</option></select>
-                        <div class="grid md:grid-cols-2 gap-2">
-                            <div><label class="text-xs font-bold text-gray-600">Service UUID</label><input id="bt-service" class="w-full border rounded-lg p-2 text-xs" value="0000ffe0-0000-1000-8000-00805f9b34fb"></div>
-                            <div><label class="text-xs font-bold text-gray-600">Characteristic UUID</label><input id="bt-characteristic" class="w-full border rounded-lg p-2 text-xs" value="0000ffe1-0000-1000-8000-00805f9b34fb"></div>
-                        </div>
-                        <label class="block text-xs font-bold text-gray-600">Ukuran Paket BLE</label>
-                        <select id="bt-chunk" class="border rounded-lg p-2 text-sm w-full"><option value="20">20 byte (standar)</option><option value="100">100 byte</option><option value="180">180 byte</option></select>
-                    </div>
-                </details>
-                <p class="text-xs text-amber-700">Memerlukan Chrome/Edge melalui HTTPS atau localhost dan printer BLE ESC/POS. Printer Bluetooth Classic/SPP tidak didukung Web Bluetooth. Pada iPhone, gunakan Bluefy untuk printer BLE, atau aplikasi printer kompatibel / AirPrint bila didukung.</p>
+            <!-- Pengaturan cetak kertas biasa (tanpa koneksi Bluetooth) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col gap-3">
+                <h3 class="font-bold text-lg"><i class="fas fa-print text-purple-600 mr-2"></i>Pengaturan Cetak Struk</h3>
+                <label class="text-sm font-semibold text-gray-600" for="receipt-paper">Ukuran Kertas Thermal</label>
+                <select id="receipt-paper" class="border rounded-xl p-2 text-sm max-w-xs" onchange="saveReceiptPaper()">
+                    <option value="32">58 mm</option><option value="48">80 mm</option>
+                </select>
+                <p class="text-xs text-gray-500">Pilih ukuran yang sesuai dengan driver printer. Untuk mencetak, buka struk lalu tekan Cetak; koneksi Bluetooth tidak digunakan.</p>
             </div>
             <!-- Tier Discount -->
             <div class="bg-white rounded-2xl shadow-sm border border-orange-100 p-6 flex flex-col">
@@ -678,7 +694,7 @@
             <!-- Upload Database Master -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
                 <h3 class="font-bold text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-database text-purple-600 mr-2"></i> Database Produk (Mendukung 70k SKU)</h3>
-                <p class="text-xs text-gray-500 mb-3">Upload file Excel (.xlsx) atau tarik dari link Spreadsheet untuk update / tambah barang.</p>
+                <p class="text-xs text-gray-500 mb-3">Upload Excel/CSV atau tarik Google Sheets. Perubahan ditampilkan untuk diperiksa sebelum disimpan.</p>
                 <div class="flex flex-col gap-3 flex-1">
                     <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer border border-gray-200 rounded-xl bg-gray-50">
                     <div class="flex gap-2 flex-wrap">
@@ -689,7 +705,7 @@
                     <div class="border-t border-gray-100 pt-3 mt-1">
                         <label class="text-[10px] font-bold text-gray-500 uppercase">URL Google Apps Script Web App (/exec)</label>
                         <input type="url" id="gas-webapp-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full p-2.5 mt-1 border border-gray-200 rounded-xl text-xs outline-none focus:border-purple-400">
-                        <p class="text-[10px] text-gray-500 mt-1">Deploy Apps Script terlebih dahulu. URL tersimpan di browser ini. Data dibaca lewat JSONP untuk menghindari CORS.</p>
+                        <p class="text-[10px] text-gray-500 mt-1">URL Apps Script sudah terpasang otomatis. Ganti hanya bila deployment baru menggunakan URL berbeda.</p>
                     </div>
                     <div class="border-t border-gray-100 pt-3 mt-1">
                         <label class="text-[10px] font-bold text-gray-500 uppercase">Tarik dari Link Google Sheets (pilih tab lewat gid)</label>
@@ -699,6 +715,24 @@
                         </div>
                     </div>
 
+                    <div class="border border-purple-100 rounded-xl bg-purple-50/50 p-3 space-y-2">
+                        <label for="import-mode" class="text-xs font-bold text-gray-700">Kolom yang ingin diperbarui</label>
+                        <select id="import-mode" class="w-full rounded-lg border border-gray-200 bg-white p-2.5 text-sm">
+                            <option value="stock">Stok saja (data produk yang sudah ada)</option>
+                            <option value="pricing">Harga jual + diskon saja</option>
+                            <option value="stock_pricing">Stok + harga jual + diskon</option>
+                            <option value="all">Semua kolom tersedia + tambah produk baru</option>
+                        </select>
+                        <p class="text-[11px] text-amber-800">Stok dari Sheets akan mengganti stok POS, termasuk setelah ada penjualan. Jalankan saat kasir berhenti transaksi. Sel kosong tidak menghapus nilai lama.</p>
+                    </div>
+                    <div id="import-preview" class="hidden-el border border-gray-200 rounded-xl p-3 space-y-2 bg-white">
+                        <div id="import-preview-summary" class="text-xs text-gray-700 whitespace-pre-line"></div>
+                        <div id="import-preview-examples" class="text-xs text-gray-500 max-h-28 overflow-y-auto"></div>
+                        <div class="flex gap-2 flex-wrap">
+                            <button id="import-apply-btn" type="button" onclick="applyMasterImport()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-xs font-bold">Konfirmasi & Simpan</button>
+                            <button type="button" onclick="cancelMasterImport()" class="bg-gray-100 px-4 py-2 rounded-lg text-xs font-bold">Batal</button>
+                        </div>
+                    </div>
                     <div id="upload-status" class="mt-2 p-3 rounded-xl text-xs font-semibold hidden-el bg-gray-100 border border-gray-200"></div>
                     <button onclick="resetDataMaster()" class="mt-auto bg-red-50 text-red-600 border border-red-200 px-4 py-2.5 rounded-xl font-bold hover:bg-red-100 transition-all text-xs flex justify-center items-center gap-2"><i class="fas fa-trash-alt"></i> Hapus Seluruh Database Produk</button>
                 </div>
@@ -736,14 +770,86 @@
 
     <script>
         // INISIALISASI SUPABASE KREDENSIAL PENGGUNA
-        const SUPABASE_URL = 'https://gvhweyyxiitsqhfeuyxn.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2aHdleXl4aWl0c3FoZmV1eXhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3NTczMjksImV4cCI6MjEwNjMzMzMyOX0.tjqdbIbPRZ190xRj88mRcUv5Q_jgg7AzBhkW0-RFtL4';
+        const SUPABASE_URL = 'https://zxsyggyekdbxtumdpisq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4c3lnZ3lla2RieHR1bWRwaXNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NzI5MTgsImV4cCI6MjEwNTU0ODkxOH0.b2HoXlKgchtRwOmqRyb9pPQp9tHCQ6x4EibLH6W_tQI';
         
         let client = null;
         try { if (window.supabase) client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } 
         catch (e) { console.error("Gagal init Supabase:", e); }
 
         // STATE APLIKASI
+        // Journal lokal: satu invoice pending per browser. Simpan payload identik SEBELUM RPC.
+        // Bukan pengganti backup server; jika penyimpanan lokal dinonaktifkan pembayaran ditahan.
+        const POS_PENDING_KEY = 'pos_surtok_pending_checkout_v3';
+        function readPendingCheckout() {
+            try { const raw = localStorage.getItem(POS_PENDING_KEY); return raw ? JSON.parse(raw) : null; }
+            catch (e) { console.warn('Tidak dapat membaca invoice tersimpan', e); return null; }
+        }
+        function persistPendingCheckout(payload) {
+            try {
+                localStorage.setItem(POS_PENDING_KEY, JSON.stringify(payload));
+                if (!localStorage.getItem(POS_PENDING_KEY)) throw new Error('Penyimpanan lokal tidak tersedia');
+                window.posSurtokPendingCheckout = payload;
+                refreshRecoveryBar();
+            } catch(e) { throw new Error('Browser tidak bisa menyimpan invoice sementara. Aktifkan penyimpanan situs, lalu coba kembali: ' + e.message); }
+        }
+        function clearPendingCheckout() {
+            try { localStorage.removeItem(POS_PENDING_KEY); } catch(e) { console.warn(e); }
+            window.posSurtokPendingCheckout = null;
+            refreshRecoveryBar();
+        }
+        function refreshRecoveryBar() {
+            const el = document.getElementById('pos-recovery-bar');
+            if (!el) return;
+            const p = window.posSurtokPendingCheckout;
+            el.classList.toggle('hidden-el', !p || !state || !state.currentUser);
+            if (p) document.getElementById('pos-recovery-info').textContent =
+                `Invoice: ${p.orderId} | Kasir: ${p.header?.role || '-'} | Total: ${Number(p.header?.total || 0).toLocaleString('id-ID')}.`;
+        }
+        window.posSurtokPendingCheckout = readPendingCheckout();
+        let posRetryBusy = false;
+        async function retryPendingCheckout() {
+            const p = window.posSurtokPendingCheckout;
+            if (!p) return showModal('Tidak Ada Invoice', 'Tidak ada invoice pending di browser ini.');
+            if (!client) return showModal('Tidak Terhubung', 'Koneksi database belum siap.');
+            if (!state.currentUser || state.currentUser !== p.header?.role) {
+                return showModal('Kasir Berbeda', `Invoice ${p.orderId} milik ${p.header?.role}. Login sebagai kasir yang membuat invoice untuk memulihkannya.`);
+            }
+            if (posRetryBusy) return;
+            posRetryBusy = true;
+            const btn = document.getElementById('pos-recovery-btn');
+            if(btn) {btn.disabled=true;btn.textContent='Memeriksa ke Supabase...';}
+            try {
+                // Selalu gunakan payload yang PERSIS sama supaya retry tidak mengurangi stok lagi.
+                const {data, error} = await client.rpc('pos_checkout_atomic', {
+                    p_order_id:p.orderId, p_header:p.header, p_details:p.details
+                });
+                if(error) throw error;
+                if(!data || data.ok !== true || data.order_id !== p.orderId) throw new Error('Belum ada konfirmasi COMMIT dari database.');
+                // Jangan bersihkan journal sampai COMMIT terkonfirmasi.
+                const paid = p;
+                clearPendingCheckout();
+                state.cart=[]; state.appliedVoucher=null;
+                const voucherInput=document.getElementById('voucher-input'); if(voucherInput) voucherInput.value='';
+                renderCart();
+                document.getElementById('payment-modal').classList.add('hidden-el');
+                showSuccessReceiptModal({
+                    orderId:paid.orderId, date:paid.header.date, time:paid.header.time,
+                    cashier:paid.header.role, items:paid.details,
+                    subtotal:paid.header.subtotal, discount:paid.header.discount, total:paid.header.total,
+                    cash:paid.cashVal ?? paid.header.total, change:paid.changeAmount ?? 0,
+                    paymentMethod:paid.header.payment_method,
+                    tierName:paid.header.tier_promo_name, tierDisc:paid.header.tier_promo_disc,
+                    voucherName:paid.header.voucher_nama, voucherDisc:paid.header.voucher_diskon
+                });
+                try { await loadData(); } catch(e) { console.warn('Transaksi tersimpan, refresh gagal',e); }
+            } catch(e) {
+                showModal('Invoice Belum Tuntas', `Invoice ${p.orderId} tetap tersimpan di browser ini. ${e.message || e}. Jika koneksi putus, jangan buat invoice baru untuk pembayaran ini.`, false);
+            } finally {
+                posRetryBusy=false;
+                if(btn) {btn.disabled=false;btn.textContent='Periksa / Kirim Ulang Invoice yang Sama';}
+            }
+        }
         let state = {
             role: null, currentUser: null, items: [], cart: [], vouchers: [], cashierUsers: [],
             storeSettings: { 
@@ -874,6 +980,7 @@
             
             await loadData();
             switchTab('pos');
+            refreshRecoveryBar();
         }
 
         function logout() {
@@ -888,6 +995,7 @@
             document.getElementById('master-view').classList.add('hidden-el');
             document.getElementById('laporan-view').classList.add('hidden-el');
             initLoginOptions();
+            refreshRecoveryBar();
         }
 
         function updateMasterAccess() {
@@ -1106,6 +1214,7 @@
             } catch(e) { showModal('Gagal Menyimpan', e.message); }
         }
         function addToCart(id) {
+            if (window.posSurtokPendingCheckout) return showModal('Checkout Tertunda', 'Selesaikan atau periksa invoice yang belum terkonfirmasi sebelum mengubah keranjang.');
             const item = state.items.find(i => i.id === id);
             if (!item) return;
             const exist = state.cart.find(c => c.id === id);
@@ -1119,6 +1228,7 @@
             renderCart();
         }
         function updateQty(id, delta) {
+            if (window.posSurtokPendingCheckout) return showModal('Checkout Tertunda', 'Keranjang dikunci sementara sampai hasil invoice dikonfirmasi.');
             const itemIndex = state.cart.findIndex(c => c.id === id);
             if (itemIndex > -1) {
                 const item = state.cart[itemIndex];
@@ -1130,6 +1240,7 @@
             renderCart();
         }
         function applyVoucher() {
+            if (window.posSurtokPendingCheckout) return showModal('Checkout Tertunda', 'Voucher tidak dapat diubah selama invoice belum terkonfirmasi.');
             const input = document.getElementById('voucher-input').value.trim();
             const infoEl = document.getElementById('voucher-info');
             if(!input) { state.appliedVoucher = null; infoEl.classList.add('hidden-el'); renderCart(); return; }
@@ -1246,8 +1357,10 @@
             document.getElementById('mobile-cart-total').innerText = formatRp(grandTotal);
         }
 
+
         // CHECKOUT & PAYMENT MODAL
         function processCheckout() {
+            if (window.posSurtokPendingCheckout) return retryPendingCheckout();
             if (state.cart.length === 0 || !client) { if(state.cart.length === 0) showModal("Peringatan", "Keranjang kosong!"); return; }
             if (state.storeSettings.stockLocked && state.cart.some(i => i.qty > (state.items.find(p => p.id === i.id)?.stock ?? 0))) return showModal('Stok Tidak Cukup', 'Ada barang yang melebihi stok tersedia.');
             setPaymentMethod('cash');
@@ -1256,9 +1369,17 @@
             document.getElementById('pay-modal-change').innerText = formatRp(0);
             document.getElementById('pay-transfer-ref').value = '';
             document.getElementById('payment-modal').classList.remove('hidden-el');
+            const st = document.getElementById('checkout-status');
+            if (st) { st.textContent = 'Siap memproses pembayaran.'; st.style.color = '#475569'; }
             setTimeout(() => document.getElementById('pay-cash-input').focus(), 100);
         }
-        function closePaymentModal() { document.getElementById('payment-modal').classList.add('hidden-el'); }
+        function closePaymentModal() {
+            if (window.posSurtokPendingCheckout) {
+                showModal('Invoice Belum Terkonfirmasi', 'Jangan tutup checkout atau ubah keranjang. Tekan konfirmasi lagi untuk mengirim ulang invoice yang sama. Bila status belum jelas, periksa invoice di Supabase.');
+                return;
+            }
+            document.getElementById('payment-modal').classList.add('hidden-el');
+        }
 
         function setPaymentMethod(method) {
             state.selectedPaymentMethod = method;
@@ -1288,6 +1409,7 @@
         }
 
         async function confirmAndExecuteCheckout() {
+            if (window.posSurtokPendingCheckout) return retryPendingCheckout();
             let cashVal = state.currentCalculatedTotal; let changeAmount = 0; let paymentDesc = state.selectedPaymentMethod.toUpperCase();
             if (state.selectedPaymentMethod === 'cash') {
                 cashVal = parseFloat(document.getElementById('pay-cash-input').value) || 0;
@@ -1299,13 +1421,21 @@
             }
 
             if (state.storeSettings.stockLocked && state.cart.some(i => i.qty > (state.items.find(p => p.id === i.id)?.stock ?? 0))) return showModal('Stok Tidak Cukup', 'Ada barang yang melebihi stok tersedia.');
-            closePaymentModal();
+            // Biarkan modal pembayaran terbuka sampai data transaksi benar-benar tersimpan.
             const btn = document.getElementById('btn-confirm-pay');
+            if (btn.disabled) return;
             const oriHtml = btn.innerHTML; btn.innerHTML = '<div class="loader mr-2"></div> Memproses...'; btn.disabled = true;
+            const statusEl = document.getElementById('checkout-status');
+            if (statusEl) { statusEl.textContent = 'Mengirim transaksi ke Supabase…'; statusEl.style.color = '#0369a1'; }
 
+            let checkoutStep = 'memulai';
+            let checkoutOrderId = '';
+            let headerInserted = false;
+            let detailsInserted = false;
             try {
-                const now = new Date(); const orderId = "ORD-" + now.getTime();
-                const dateStr = now.toISOString().split('T')[0]; const timeStr = now.toTimeString().split(' ')[0];
+                const now = new Date(); const orderId = window.posSurtokPendingCheckout?.orderId || ("ORD-" + now.getTime() + "-" + Math.random().toString(36).slice(2,8));
+                checkoutOrderId = orderId;
+                const dateStr = [now.getFullYear(), String(now.getMonth()+1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-'); const timeStr = now.toTimeString().split(' ')[0];
 
                 const eligibleSubtotal = getEligibleTierTotal();
                 const tierStatus = checkTierStatus(eligibleSubtotal);
@@ -1370,93 +1500,83 @@
                     tierPromoDiscAmount = totalTierDiscount;
                 }
 
-                const { error: txError } = await client.from('transactions').insert({
-                    order_id: orderId, date: dateStr, time: timeStr, subtotal: subtotal, discount: totalAllDiscount, total: finalTotal,
+                checkoutStep = 'memproses checkout atomik melalui RPC';
+                const rpcHeader = {
+                    order_id: orderId, date: dateStr, time: timeStr,
+                    subtotal: subtotal, discount: totalAllDiscount, total: finalTotal,
                     role: state.currentUser, payment_method: paymentDesc,
-                    voucher_nama: state.appliedVoucher ? state.appliedVoucher.nama : null, voucher_diskon: voucherDiscountAmount,
-                    tier_promo_name: tierPromoName, tier_promo_disc: tierPromoDiscAmount
+                    voucher_nama: state.appliedVoucher ? state.appliedVoucher.nama : null,
+                    voucher_diskon: voucherDiscountAmount,
+                    tier_promo_name: tierPromoName, tier_promo_disc: tierPromoDiscAmount,
+                    fixed_tier_discount: tierStatus.active && tierStatus.type === 'rupiah' ? tierPromoDiscAmount : 0
+                };
+                // Simpan payload percobaan pertama agar retry memakai invoice dan isi identik.
+                // Jika jaringan putus setelah COMMIT, Supabase akan mengenali invoice yang sama.
+                if (!window.posSurtokPendingCheckout) {
+                    persistPendingCheckout({ orderId, header: rpcHeader, details: detailsToInsert, cashVal, changeAmount });
+                }
+                const pending = window.posSurtokPendingCheckout;
+                checkoutOrderId = pending.orderId;
+                if (!client) throw new Error('Koneksi Supabase belum siap. Silakan login ulang.');
+                const { data: rpcResult, error: rpcError } = await client.rpc('pos_checkout_atomic', {
+                    p_order_id: pending.orderId,
+                    p_header: pending.header,
+                    p_details: pending.details
                 });
-                if(txError) throw txError;
-
-                // Simpan kode stok dan kode original sebagai snapshot transaksi.
-                // RETURNING + SELECT memverifikasi bahwa Supabase benar-benar menyimpan item_id.
-                const { data: savedDetails, error: dtError } = await client
-                    .from('transaction_details')
-                    .insert(detailsToInsert)
-                    .select('order_id,item_id,orig_code');
-                if (dtError) {
-                    const detail = [dtError.message, dtError.details, dtError.hint].filter(Boolean).join(' | ');
-                    if (/item_id|orig_code|column|schema cache/i.test(detail)) {
-                        throw new Error('Detail transaksi gagal disimpan: periksa kolom item_id dan orig_code pada tabel transaction_details di Supabase. ' + detail + ' (Header transaksi mungkin sudah tersimpan; periksa nomor invoice sebelum mengulang pembayaran.)');
-                    }
-                    throw new Error('Detail transaksi gagal disimpan: ' + detail + ' (Periksa invoice sebelum mengulang pembayaran.)');
+                if (rpcError) {
+                    // P0001 adalah RAISE EXCEPTION dari fungsi SQL; transaksi pasti rollback.
+                    // Dalam kasus jaringan putus/timeout status COMMIT mungkin belum jelas,
+                    // sehingga payload tetap disimpan untuk retry idempotent.
+                    // Jangan hapus journal pada respons ambigu atau error SQL; status dapat diperiksa ulang.
+                    throw rpcError;
                 }
-                if (!savedDetails || savedDetails.length !== detailsToInsert.length) {
-                    throw new Error('Jumlah detail tersimpan tidak sesuai. Periksa transaksi '+orderId+' di Supabase sebelum mengulang pembayaran.');
+                if (!rpcResult || rpcResult.ok !== true || rpcResult.order_id !== pending.orderId) {
+                    throw new Error('Supabase belum mengonfirmasi hasil checkout atomik. Jangan memulai invoice baru.');
                 }
-                const expectedCodes = new Map();
-                detailsToInsert.forEach(row => {
-                    const key = String(row.item_id).trim();
-                    expectedCodes.set(key, (expectedCodes.get(key) || 0) + 1);
-                });
-                for (const row of savedDetails) {
-                    const code = String(row.item_id ?? '').trim();
-                    const remaining = expectedCodes.get(code) || 0;
-                    if (!code || remaining < 1) {
-                        throw new Error('Kode Stock (item_id) tidak tersimpan sesuai data keranjang pada transaksi '+orderId+'. Periksa trigger/policy database; jangan ulangi pembayaran sebelum dicek.');
-                    }
-                    expectedCodes.set(code, remaining - 1);
-                }
-                if ([...expectedCodes.values()].some(n => n !== 0)) {
-                    throw new Error('Verifikasi Kode Stock tidak cocok untuk transaksi '+orderId+'. Periksa data di Supabase.');
-                }
-
-                // Baca ulang dari Supabase dengan request terpisah untuk memastikan
-                // item_id benar-benar tersimpan (bukan sekadar RETURNING insert).
-                const { data: readBack, error: readBackError } = await client
-                    .from('transaction_details')
-                    .select('order_id,item_id,orig_code')
-                    .eq('order_id', orderId);
-                if (readBackError) {
-                    throw new Error('Detail transaksi sudah dikirim, tetapi verifikasi pembacaan ulang gagal untuk '+orderId+': '+readBackError.message+'. Periksa invoice sebelum mengulang.');
-                }
-                const actualCodes = new Map();
-                (readBack || []).forEach(row => {
-                    const code = String(row.item_id ?? '').trim();
-                    actualCodes.set(code, (actualCodes.get(code) || 0) + 1);
-                });
-                const requestedCodes = new Map();
-                detailsToInsert.forEach(row => {
-                    const code = String(row.item_id).trim();
-                    requestedCodes.set(code, (requestedCodes.get(code) || 0) + 1);
-                });
-                if (readBack?.length !== detailsToInsert.length ||
-                    [...requestedCodes].some(([code, count]) => actualCodes.get(code) !== count)) {
-                    console.error('Verifikasi detail gagal', {orderId, expected: detailsToInsert, actual: readBack});
-                    throw new Error('Kode Stock pada transaction_details belum sesuai setelah dibaca ulang untuk '+orderId+'. Jangan ulangi pembayaran; cek invoice di Supabase dan jalankan Diagnostik_Kode_Stock_Supabase.sql.');
-                }
-
-                for(let item of state.cart) {
-                    const dbItem = state.items.find(i => i.id === item.id);
-                    const { error: stockError } = await client.from('master_items').update({ stock: dbItem.stock - item.qty }).eq('id', item.id);
-                    if (stockError) throw stockError;
-                }
-
-                const paidItems = [...detailsToInsert];
-                
+                // RPC sukses (termasuk retry idempotent): semua data sudah COMMIT bersama.
+                if (statusEl) { statusEl.textContent = 'Pembayaran berhasil disimpan. Menyiapkan struk…'; statusEl.style.color = '#047857'; }
+                clearPendingCheckout();
+                checkoutOrderId = pending.orderId;
+                headerInserted = true;
+                detailsInserted = true;
+                const paidItems = [...pending.details];
+                closePaymentModal();
+                checkoutStep = 'selesai';
                 state.cart = []; state.appliedVoucher = null;
                 document.getElementById('voucher-input').value = ''; document.getElementById('voucher-info').classList.add('hidden-el');
-                renderCart(); await loadData(); 
+                renderCart();
                 if(window.innerWidth < 1024) toggleMobileCart();
 
                 showSuccessReceiptModal({
-                    orderId, time: timeStr, cashier: state.currentUser, items: paidItems,
-                    subtotal: subtotal, discount: totalAllDiscount, total: finalTotal,
+                    orderId: pending.orderId, date: pending.header.date, time: pending.header.time, cashier: pending.header.role, items: paidItems,
+                    subtotal: pending.header.subtotal, discount: pending.header.discount, total: pending.header.total,
                     cash: cashVal, change: changeAmount, paymentMethod: paymentDesc,
                     tierName: tierPromoName, tierDisc: tierPromoDiscAmount,
-                    voucherName: state.appliedVoucher ? state.appliedVoucher.nama : null, voucherDisc: voucherDiscountAmount
+                    voucherName: pending.header.voucher_nama, voucherDisc: pending.header.voucher_diskon
                 });
-            } catch (err) { console.error(err); showModal("Gagal Memproses", err.message); } 
+                // Data sudah COMMIT; kegagalan refresh tidak boleh dianggap gagal bayar.
+                try { await loadData(); } catch (refreshErr) { console.warn('Refresh data setelah pembayaran:', refreshErr); }
+            } catch (err) {
+                console.error('POS SURTOK checkout gagal', {step: checkoutStep, orderId: checkoutOrderId, headerInserted, detailsInserted, error: err});
+                if (statusEl) { statusEl.textContent = 'Transaksi belum berhasil. Baca pesan kesalahan yang muncul.'; statusEl.style.color = '#b91c1c'; }
+                const code = String(err?.code || '');
+                const rawError = String(err?.message || '');
+                let helpful = '';
+                if (code === 'PGRST202' || /could not find the function|schema cache/i.test(rawError)) helpful = 'Fungsi pos_checkout_atomic belum tersedia pada project Supabase baru. Jalankan SQL RPC lengkap di SQL Editor project zxsyggyekdbxtumdpisq, kemudian refresh aplikasi.';
+                else if (code === '42501' || /permission denied|row-level security/i.test(rawError)) helpful = 'Hak akses database/RLS menolak operasi. Periksa grant fungsi dan kebijakan tabel di Supabase, bukan PIN kasir.';
+                else if (code === '23503') helpful = 'Ada relasi data yang tidak cocok (foreign key). Periksa Kode Stock dan nomor invoice pada detail.';
+                else if (code === '23505') helpful = 'Invoice sudah ada. Jangan buat pembayaran baru; periksa invoice di laporan atau database terlebih dahulu.';
+                else if (/Kode Stock .*tidak ditemukan/i.test(rawError)) helpful = 'Produk pada keranjang tidak ditemukan di master_items Supabase baru. Impor Master Item dahulu, lalu muat ulang Kasir.';
+                else if (/Jumlah tagihan tidak sesuai/i.test(rawError)) helpful = 'Total detail dan total transaksi berbeda. Periksa diskon dan voucher; lampirkan pesan error ini untuk diperbaiki.';
+                else if (/Stok .*tidak cukup/i.test(rawError)) helpful = 'Stok yang tersimpan di Supabase kurang dari QTY transaksi. Periksa stok atau mode Lock/Unlock.';
+                else if (/Failed to fetch|NetworkError|fetch failed/i.test(rawError)) helpful = 'Jaringan gagal mengonfirmasi hasil transaksi. Jangan buat invoice baru. Ulangi konfirmasi dengan invoice yang sama atau periksa data Supabase.';
+                const errorText = [helpful, err?.message, err?.details, err?.hint, code ? `Kode: ${code}` : ''].filter(Boolean).join(' | ');
+                const postWrite = headerInserted || detailsInserted;
+                const warning = headerInserted ? `Invoice ${checkoutOrderId} sudah tersimpan; periksa laporan dan jangan bayar lagi.` : window.posSurtokPendingCheckout
+                    ? `Invoice ${checkoutOrderId || '-'}: jika koneksi terputus setelah COMMIT, tekan konfirmasi kembali untuk mengirim invoice yang sama (tanpa menggandakan stok). Invoice pending tersimpan dan dapat dipulihkan setelah refresh.`
+                    : `Invoice ${checkoutOrderId || '-'} ditolak/rollback. Perbaiki penyebabnya lalu ulangi checkout. Tidak ada penjualan parsial dari RPC.`;
+                showModal('Transaksi Belum Tuntas', `Tahap: ${checkoutStep}. ${errorText || 'Kesalahan tidak diketahui'}. ${warning}`);
+            }
             finally { btn.innerHTML = oriHtml; btn.disabled = false; }
         }
 
@@ -1464,7 +1584,7 @@
             document.getElementById('dtl-inv').innerText = data.orderId.replace("ORD", "INV");
             document.getElementById('dtl-time').innerText = data.time.substring(0,5);
             document.getElementById('dtl-cashier').innerText = data.cashier || 'Admin';
-            document.getElementById('dtl-date').innerText = new Date().toISOString().split('T')[0];
+            document.getElementById('dtl-date').innerText = data.date || [new Date().getFullYear(), String(new Date().getMonth()+1).padStart(2,'0'), String(new Date().getDate()).padStart(2,'0')].join('-');
 
             const tierEl = document.getElementById('dtl-tier-info');
             if(data.tierName) { tierEl.innerText = data.tierName; tierEl.classList.remove('hidden-el'); } else tierEl.classList.add('hidden-el');
@@ -1499,242 +1619,133 @@
 
         // RECEIPT ACTIONS (PRINT, DOWNLOAD, WA)
 
-        // Bluetooth Low Energy printer support (ESC/POS; not Bluetooth Classic SPP).
-        let btDevice = null;
-        let btCharacteristic = null;
-        let btPrinting = false;
-        const BT_PROFILES = {
-            ffe0: ['0000ffe0-0000-1000-8000-00805f9b34fb', '0000ffe1-0000-1000-8000-00805f9b34fb'],
-            ae30: ['0000ae30-0000-1000-8000-00805f9b34fb', '0000ae01-0000-1000-8000-00805f9b34fb']
-        };
-        function btStatus(message) {
-            const el = document.getElementById('bt-status');
-            if (el) el.textContent = message;
-            const connected = !!(btCharacteristic && btDevice?.gatt?.connected);
-            const button = document.getElementById('bt-cashier-connect');
-            const label = document.getElementById('bt-cashier-label');
-            const dot = document.getElementById('bt-cashier-dot');
-            if (button) {
-                button.title = connected ? ('Printer terhubung: ' + (btDevice?.name || 'Printer')) : message;
-                button.classList.toggle('bg-green-50', connected);
-                button.classList.toggle('text-green-700', connected);
-                button.classList.toggle('border-green-200', connected);
-                button.classList.toggle('bg-cyan-50', !connected);
-                button.classList.toggle('text-cyan-700', !connected);
-                button.classList.toggle('border-cyan-200', !connected);
-            }
-            if (label) label.textContent = connected ? 'Printer Aktif' : (isIOSDevice() && !navigator.bluetooth ? 'Cetak iPhone' : 'Konek Printer');
-            if (dot) { dot.classList.toggle('bg-green-500', connected); dot.classList.toggle('bg-gray-400', !connected); }
+        // Preferensi ukuran kertas saja; tidak menggunakan Web Bluetooth.
+        function saveReceiptPaper() {
+            const size = document.getElementById('receipt-paper')?.value || '48';
+            try { localStorage.setItem('pos_surtok_receipt_paper', size); } catch (_) {}
         }
-        function btSelectProfile() {
-            const p = document.getElementById('bt-profile').value;
-            if (BT_PROFILES[p]) {
-                document.getElementById('bt-service').value = BT_PROFILES[p][0];
-                document.getElementById('bt-characteristic').value = BT_PROFILES[p][1];
-            }
-            btSaveSettings();
+        document.addEventListener('DOMContentLoaded', () => {
+            const paper = document.getElementById('receipt-paper');
+            if (!paper) return;
+            let saved = '48';
+            try { saved = localStorage.getItem('pos_surtok_receipt_paper') || '48'; } catch (_) {}
+            paper.value = saved === '32' ? '32' : '48';
+        });
+
+        function showReceiptPrintHelp() {
+            showModal('Cara Cetak Struk', 'Buka transaksi di Kasir atau Laporan lalu tekan Struk → Cetak. Pilih printer dan ukuran kertas thermal 58 mm / 80 mm di dialog cetak. Pengaturan kertas di POS mengatur lebar konten; ukuran kertas sebenarnya ditetapkan oleh driver printer.');
         }
-        function btSaveSettings() {
-            const cfg = ['profile','service','characteristic','paper','chunk'].reduce((o,key) => {
-                o[key] = document.getElementById('bt-'+key)?.value || ''; return o;
-            }, {});
-            localStorage.setItem('suryatokoku_bt_printer', JSON.stringify(cfg));
-        }
-        function btLoadSettings() {
-            try {
-                const cfg = JSON.parse(localStorage.getItem('suryatokoku_bt_printer') || '{}');
-                for (const key of ['profile','service','characteristic','paper','chunk']) {
-                    const el = document.getElementById('bt-'+key);
-                    if (el && cfg[key]) el.value = cfg[key];
-                    el?.addEventListener('change', btSaveSettings);
-                }
-                if (!cfg.profile) document.getElementById('bt-profile').value = 'auto';
-            } catch (error) { console.warn('Pengaturan printer gagal dimuat', error); }
-        }
-        document.addEventListener('DOMContentLoaded', btLoadSettings);
-        function btDisconnected() { btCharacteristic = null; btStatus('Printer terputus. Hubungkan kembali.'); }
-        function isIOSDevice() { return /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
-        function btExplainEnvironment() {
-            const el = document.getElementById('bt-mobile-help');
-            if (!el) return;
-            const android = /Android/i.test(navigator.userAgent);
-            if (isIOSDevice()) {
-                el.textContent = navigator.bluetooth
-                    ? 'iPhone: Web Bluetooth terdeteksi (misalnya lewat Bluefy). Hanya printer MP80 versi BLE dengan UUID kompatibel yang dapat dipasangkan.'
-                    : 'iPhone Safari/Chrome tidak mendukung pairing Bluetooth dari website. Coba buka POS SURTOK di Bluefy jika MP80 mendukung BLE, atau cetak lewat aplikasi printer / AirPrint jika tersedia.';
-                const label = document.getElementById('bt-cashier-label');
-                if (label) label.textContent = navigator.bluetooth ? 'Konek BLE' : 'Cetak iPhone';
-            } else if (!window.isSecureContext) el.textContent = 'Bluetooth diblokir: buka POS SURTOK melalui HTTPS.';
-            else if (!navigator.bluetooth) el.textContent = 'Web Bluetooth tidak tersedia; printer Classic/SPP memerlukan aplikasi printer atau sistem cetak yang kompatibel.';
-            else if (android) el.textContent = 'Chrome Android: pilih printer BLE. Bluetooth Classic/SPP tidak dapat disambungkan melalui Web Bluetooth.';
-            else el.textContent = 'Web Bluetooth tersedia; printer harus memiliki BLE GATT yang dapat ditulis.';
-        }
-        function showIOSPrinterGuide() {
-            showModal('Printer MP80 di iPhone', '1. Cek tipe MP80: BLE atau Bluetooth Classic/SPP. 2. Jika BLE, buka alamat HTTPS POS SURTOK dengan browser Bluefy, lalu tekan Konek Printer. 3. Jika Bluetooth Classic, pakai aplikasi printer iOS yang mendukung MP80, kemudian gunakan Bagikan Struk. 4. Jika MP80 mendukung AirPrint melalui Wi-Fi, gunakan tombol Cetak. Bluetooth tersambung di Pengaturan iPhone saja tidak berarti bisa dicetak lewat website.');
-        }
-        function connectPrinterSmart() {
-            if (isIOSDevice() && !navigator.bluetooth) { showIOSPrinterGuide(); return; }
-            connectBluetoothPrinter();
-        }
-        async function shareReceiptIOS() {
+        // Cetak terisolasi: window baru tanpa CSS halaman kasir/navigasi.
+        // Kertas sebenarnya tetap mengikuti driver printer yang dipilih di Chrome.
+        function printReceipt() {
+            const modal = document.getElementById('detail-modal');
             const receipt = document.getElementById('printable-receipt');
-            if (!receipt || typeof html2canvas !== 'function') {
-                showModal('Bagikan Struk','Fitur gambar struk belum tersedia. Gunakan tombol Cetak untuk membuka dialog printer iPhone.');
+            const invoice = document.getElementById('dtl-inv')?.textContent?.trim();
+            if (!modal || modal.classList.contains('hidden-el') || !receipt || !invoice) {
+                showReceiptPrintHelp();
                 return;
             }
-            try {
-                const canvas = await html2canvas(receipt, { scale: 2, backgroundColor: '#ffffff' });
-                const blob = await new Promise((resolve,reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error('Gagal membuat gambar')), 'image/png'));
-                const invoice = (document.getElementById('dtl-inv')?.textContent || 'SURTOK').replace(/[^a-zA-Z0-9_-]/g,'_');
-                const file = new File([blob], 'Struk_' + invoice + '.png', {type:'image/png'});
-                if (navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))) {
-                    await navigator.share({files:[file], title:'Struk POS SURTOK ' + invoice});
-                } else {
-                    downloadReceipt();
-                    showModal('Struk Tersimpan','Gambar struk sudah diunduh. Buka gambar lalu bagikan ke aplikasi printer yang mendukung MP80.');
-                }
-            } catch (error) {
-                if (error?.name === 'AbortError') return;
-                showModal('Gagal Membagikan Struk', String(error.message || error) + '. Gunakan tombol Download atau Cetak.');
+            const is58 = (document.getElementById('receipt-paper')?.value || '48') === '32';
+            const paperMm = is58 ? 58 : 80;
+            const contentMm = is58 ? 48 : 72;
+            // Dibuka langsung dari klik agar tidak dianggap popup otomatis.
+            const win = window.open('', '_blank', 'width=460,height=760');
+            if (!win) {
+                showModal('Cetak Diblokir', 'Chrome memblokir jendela struk. Izinkan pop-up untuk halaman POS SURTOK, lalu klik Cetak kembali.');
+                return;
             }
-        }
-        document.addEventListener('DOMContentLoaded', btExplainEnvironment);
-        async function connectBluetoothPrinter() {
-            try {
-                if (btCharacteristic && btDevice?.gatt?.connected) {
-                    btStatus('Terhubung: ' + (btDevice.name || 'Printer BLE'));
-                    return;
+            const safeTitle = String(invoice).replace(/[<>&"']/g, '');
+            const html = `<!doctype html><html lang="id"><head><meta charset="utf-8">
+                <meta name="viewport" content="width=device-width,initial-scale=1">
+                <title>Struk ${safeTitle} - POS SURTOK</title>
+                <style>
+                @page { margin: 0; }
+                *, *::before, *::after { box-sizing: border-box; }
+                html, body { margin:0 !important; padding:0 !important; width:100%; height:auto;
+                    background:#fff !important; color:#000 !important; overflow:visible !important; }
+                body { font-family: 'Courier New', monospace; font-size:${is58 ? 10 : 11}px; line-height:1.3; }
+                #printable-receipt { display:block !important; width:${contentMm}mm !important;
+                    max-width:${contentMm}mm !important; min-width:0 !important; margin:0 !important;
+                    padding:2mm 0 !important; background:#fff !important; color:#000 !important;
+                    font-size:inherit !important; overflow:visible !important; }
+                #printable-receipt * { max-width:100%; }
+                #printable-receipt .text-center { text-align:center; }
+                #printable-receipt .text-right { text-align:right; }
+                #printable-receipt .text-left { text-align:left; }
+                #printable-receipt .flex { display:flex; }
+                #printable-receipt .flex-col { flex-direction:column; }
+                #printable-receipt .justify-between { justify-content:space-between; gap:2mm; }
+                #printable-receipt .gap-1 { gap:1mm; }
+                #printable-receipt .font-bold, #printable-receipt .font-extrabold { font-weight:700; }
+                #printable-receipt .uppercase { text-transform:uppercase; }
+                #printable-receipt .text-lg { font-size:15px; }
+                #printable-receipt .text-base { font-size:13px; }
+                #printable-receipt .text-sm { font-size:inherit; }
+                #printable-receipt .text-xs { font-size:${is58 ? 9 : 10}px; }
+                #printable-receipt .text-\\[10px\\] { font-size:9px; }
+                #printable-receipt .mt-1 { margin-top:1mm; }
+                #printable-receipt .mt-4 { margin-top:4mm; }
+                #printable-receipt .mb-1 { margin-bottom:1mm; }
+                #printable-receipt .mb-2 { margin-bottom:2mm; }
+                #printable-receipt .mb-3 { margin-bottom:3mm; }
+                #printable-receipt .mb-4 { margin-bottom:4mm; }
+                #printable-receipt .pt-1 { padding-top:1mm; }
+                #printable-receipt .pt-2 { padding-top:2mm; }
+                #printable-receipt .pt-3 { padding-top:3mm; }
+                #printable-receipt .pb-2 { padding-bottom:2mm; }
+                #printable-receipt .pb-3 { padding-bottom:3mm; }
+                #printable-receipt .p-2 { padding:2mm; }
+                #printable-receipt .border-t { border-top:1px solid #444; }
+                #printable-receipt .border-b { border-bottom:1px solid #444; }
+                #printable-receipt .border { border:1px solid #444; }
+                #printable-receipt .border-dashed { border-style:dashed; }
+                #printable-receipt table { width:100% !important; border-collapse:collapse; table-layout:fixed; }
+                #printable-receipt td:first-child { width:70%; overflow-wrap:anywhere; }
+                #printable-receipt td:last-child { width:30%; text-align:right; vertical-align:bottom; }
+                #printable-receipt tr { break-inside:avoid; page-break-inside:avoid; }
+                #printable-receipt .hidden-el { display:none !important; }
+                #printable-receipt span, #printable-receipt div { overflow-wrap:anywhere; }
+                .no-print { display:none !important; }
+                @media screen { body { padding:12px !important; } #printable-receipt { margin:0 auto !important; }
+                    .print-hint { display:block !important; text-align:center; font:12px sans-serif; color:#666; margin:0 0 12px; } }
+                @media print { html, body { width:${paperMm}mm !important; padding:0 !important; }
+                    .print-hint { display:none !important; } #printable-receipt { margin:0 !important; }
+                    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+                </style><style id="dynamic-receipt-page"></style></head><body>
+                <p class="print-hint">Preview khusus struk POS SURTOK — pilih kertas roll/continuous ${paperMm} mm, Portrait, margin None, skala 100%.</p>
+                ${receipt.outerHTML}
+                </body></html>`;
+            win.document.open();
+            win.document.write(html);
+            win.document.close();
+            win.focus();
+            // Ukur isi struk pada jendela cetak. @page disesuaikan dengan panjang aktual transaksi,
+            // bukan ukuran kertas tetap 80 x 210 mm. Driver tetap dapat memaksakan ukuran sendiri.
+            const setupPaperAndPrint = async () => {
+                try {
+                    if (win.closed) return;
+                    await Promise.race([
+                        win.document.fonts?.ready || Promise.resolve(),
+                        new Promise(resolve => setTimeout(resolve, 1200))
+                    ]);
+                    await new Promise(resolve => win.requestAnimationFrame(() => win.requestAnimationFrame(resolve)));
+                    const el = win.document.getElementById('printable-receipt');
+                    if (!el) throw new Error('Isi struk tidak ditemukan.');
+                    // Hindari perubahan lebar akibat skala browser / zoom. Ukur tinggi layout aktual.
+                    const heightPx = Math.max(el.scrollHeight, el.offsetHeight);
+                    const contentHeightMm = (heightPx * 25.4) / 96;
+                    const pageHeightMm = Math.max(45, Math.ceil(contentHeightMm + 5)); // 5mm ruang potong
+                    const pageStyle = win.document.getElementById('dynamic-receipt-page');
+                    if (pageStyle) pageStyle.textContent = `@page { size: ${paperMm}mm ${pageHeightMm}mm; margin: 0; }`;
+                    win.document.body.dataset.receiptHeightMm = String(pageHeightMm);
+                    win.print();
+                } catch (error) {
+                    console.warn('Cetak struk:', error);
+                    try { if (!win.closed) win.print(); } catch (_) {}
                 }
-                if (!window.isSecureContext) throw new Error('Buka aplikasi melalui HTTPS. Web Bluetooth tidak dapat digunakan pada file lokal/HTTP.');
-                if (!navigator.bluetooth) throw new Error(isIOSDevice() ? 'iPhone Safari/Chrome tidak menyediakan Web Bluetooth. Untuk MP80 BLE gunakan Bluefy; untuk Bluetooth Classic gunakan aplikasi printer yang kompatibel.' : 'Browser ini tidak menyediakan Web Bluetooth. Printer Classic/SPP tidak didukung.');
-                btSaveSettings();
-                const selected = document.getElementById('bt-profile').value;
-                const customService = document.getElementById('bt-service').value.trim().toLowerCase();
-                const customChar = document.getElementById('bt-characteristic').value.trim().toLowerCase();
-                const candidates = selected === 'auto'
-                    ? [BT_PROFILES.ffe0, BT_PROFILES.ae30]
-                    : (selected === 'custom' ? [[customService, customChar]] : [BT_PROFILES[selected]]);
-                if (candidates.some(pair => !pair || !pair[0] || !pair[1])) throw new Error('UUID printer belum lengkap.');
-                if (btDevice) btDevice.removeEventListener('gattserverdisconnected', btDisconnected);
-                btStatus('Pilih printer BLE yang muncul di Chrome...');
-                // Request must be directly triggered by tap/click, before first await.
-                const device = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true, optionalServices: [...new Set(candidates.map(pair => pair[0]))]
-                });
-                btDevice = device;
-                device.addEventListener('gattserverdisconnected', btDisconnected);
-                btStatus('Menyambungkan ' + (device.name || 'printer') + '...');
-                const server = await device.gatt.connect();
-                let errors = [];
-                for (const [serviceUuid, charUuid] of candidates) {
-                    try {
-                        const service = await server.getPrimaryService(serviceUuid);
-                        const characteristic = await service.getCharacteristic(charUuid);
-                        if (!characteristic.properties.write && !characteristic.properties.writeWithoutResponse) {
-                            errors.push(serviceUuid + ': tidak mendukung write'); continue;
-                        }
-                        btCharacteristic = characteristic;
-                        btStatus('Terhubung: ' + (device.name || 'Printer BLE'));
-                        return;
-                    } catch (e) { errors.push(serviceUuid + ': ' + e.message); }
-                }
-                server.disconnect();
-                throw new Error('Printer ditemukan, tetapi profil BLE tidak cocok. Coba UUID manual sesuai model printer. Detail: ' + errors.join(' | '));
-            } catch (error) {
-                btCharacteristic = null;
-                const reason = error.name === 'NotFoundError' ? 'Pemilihan printer dibatalkan atau printer BLE tidak ditemukan. Pastikan printer menyala, berada dekat HP, dan mendukung BLE.' : String(error.message || error);
-                btStatus('Gagal koneksi: ' + reason);
-                showModal('Bluetooth Printer', reason + ' Jika printer hanya Bluetooth Classic/SPP, gunakan Cetak via Android dengan layanan printer yang sesuai.');
-            }
+            };
+            setupPaperAndPrint();
         }
-        function disconnectBluetoothPrinter() {
-            if (btDevice?.gatt?.connected) btDevice.gatt.disconnect();
-            btCharacteristic = null; btStatus('Printer belum terhubung.');
-        }
-        function btEscposText(text) {
-            // ASCII compatible characters only: prevents unsupported UTF-8 glyphs on common ESC/POS printers.
-            return Uint8Array.from(Array.from(String(text).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7e\n]/g, '?')), ch => ch.charCodeAt(0));
-        }
-        function btWrap(text, width) {
-            const lines = [];
-            for (const original of String(text || '').split(/\n/)) {
-                let rest = original.trim();
-                if (!rest) { lines.push(''); continue; }
-                while (rest.length > width) {
-                    let cut = rest.lastIndexOf(' ', width);
-                    if (cut < Math.floor(width/2)) cut = width;
-                    lines.push(rest.slice(0,cut).trim()); rest = rest.slice(cut).trim();
-                }
-                if (rest) lines.push(rest);
-            }
-            return lines;
-        }
-        function btLine(left, right, width) {
-            const a=String(left||''), b=String(right||'');
-            if (a.length+b.length+1 > width) return [...btWrap(a,width), b.padStart(width)].join('\n');
-            return a + ' '.repeat(width-a.length-b.length) + b;
-        }
-        function btReceiptText() {
-            const w = parseInt(document.getElementById('bt-paper')?.value || '32',10);
-            const val = id => document.getElementById(id)?.textContent?.trim() || '-';
-            let lines = ['SURYATOKOKU'.padStart(Math.floor((w+11)/2)), 'Toko Grosir & Retail Terpercaya', '-'.repeat(w),
-                'Tanggal: '+val('dtl-date'), 'Jam: '+val('dtl-time'), 'Kasir: '+val('dtl-cashier'), 'No: '+val('dtl-inv'), '-'.repeat(w)];
-            const tier = document.getElementById('dtl-tier-info');
-            const voucher = document.getElementById('dtl-voucher-info');
-            for (const el of [tier,voucher]) if (el && !el.classList.contains('hidden-el')) lines.push(...btWrap(el.textContent,w));
-            const rows = Array.from(document.querySelectorAll('#detail-items-table tr'));
-            for (const tr of rows) {
-                const name = tr.querySelector('td:first-child .font-bold')?.textContent?.trim() || 'Barang';
-                const codeQty = Array.from(tr.querySelectorAll('td:first-child .text-gray-500')).map(x=>x.textContent.trim());
-                const discount = tr.querySelector('td:first-child .text-red-500')?.textContent?.trim();
-                const amount = tr.querySelector('td:nth-child(2)')?.textContent?.trim() || '';
-                lines.push(...btWrap(name,w), ...codeQty.flatMap(x=>btWrap(x,w)));
-                if (discount) lines.push(...btWrap(discount,w));
-                lines.push(btLine('',amount,w));
-            }
-            lines.push('-'.repeat(w));
-            for (const el of document.querySelectorAll('#dtl-payment-summary > div')) {
-                const spans = el.querySelectorAll('span');
-                if (spans.length >= 2) lines.push(btLine(spans[0].textContent.trim(),spans[1].textContent.trim(),w));
-                else lines.push(...btWrap(el.textContent.trim(),w));
-            }
-            lines.push('-'.repeat(w),'Terima Kasih Atas Kunjungan Anda', 'Barang yang sudah dibeli tidak', 'dapat ditukar/dikembalikan','', '', '');
-            return lines.flatMap(x=>btWrap(x,w)).join('\n')+'\n';
-        }
-        async function btWrite(bytes) {
-            if (!btCharacteristic || !btDevice?.gatt?.connected) throw new Error('Printer belum terhubung. Buka Pengaturan dan klik Hubungkan.');
-            if (btPrinting) throw new Error('Printer sedang mencetak.');
-            btPrinting = true;
-            try {
-                const size = parseInt(document.getElementById('bt-chunk')?.value || '20',10);
-                for (let i=0; i<bytes.length; i+=size) {
-                    const packet = bytes.slice(i,i+size);
-                    if (btCharacteristic.properties.writeWithoutResponse && btCharacteristic.writeValueWithoutResponse) {
-                        await btCharacteristic.writeValueWithoutResponse(packet);
-                    } else await btCharacteristic.writeValueWithResponse(packet);
-                    await new Promise(resolve=>setTimeout(resolve,35));
-                }
-            } finally { btPrinting = false; }
-        }
-        async function printBluetoothReceipt() {
-            try {
-                btSaveSettings();
-                const text = btEscposText(btReceiptText());
-                const init = Uint8Array.of(0x1b,0x40,0x1b,0x61,0x00);
-                const bytes = new Uint8Array(init.length + text.length + 3);
-                bytes.set(init); bytes.set(text,init.length); bytes.set([0x1d,0x56,0x01],init.length+text.length);
-                await btWrite(bytes);
-                btStatus('Data struk dikirim ke printer.');
-            } catch (error) { btStatus('Gagal mencetak: '+error.message); showModal('Cetak Bluetooth Gagal',String(error.message) + (isIOSDevice() ? ' Pada iPhone, coba Bagikan Struk atau cetak lewat AirPrint jika printer mendukung.' : '')); }
-        }
-        async function testBluetoothPrinter() {
-            try {
-                const bytes = btEscposText('SURYATOKOKU\nTES PRINTER BLUETOOTH\nKoneksi berhasil\n\n\n');
-                await btWrite(bytes); btStatus('Data tes cetak dikirim.');
-            } catch(error) { btStatus('Tes gagal: '+error.message); showModal('Tes Printer Gagal',String(error.message)); }
-        }
-
-        function printReceipt() { window.print(); }
         function downloadReceipt() {
             const receipt = document.getElementById('printable-receipt');
             html2canvas(receipt, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
@@ -1759,11 +1770,13 @@
 
         // EDIT MASTER ITEM: hanya role admin boleh menggunakan UI ini.
         let editingMasterId = null;
+        let editingMasterRevision = null;
         function openMasterItemEdit(id) {
             if (!requireMasterAdmin()) return;
             const item = state.items.find(x => String(x.id) === String(id));
             if (!item) return showModal('Tidak ditemukan', 'Produk tidak ditemukan.');
             editingMasterId = String(id);
+            editingMasterRevision = Number(item.stock_revision ?? 0);
             document.getElementById('edit-master-name').textContent = `${item.name} (${item.id})`;
             document.getElementById('edit-master-stock').value = Number(item.stock) || 0;
             document.getElementById('edit-master-disc').value = Number(item.disc) || 0;
@@ -1774,6 +1787,7 @@
         function closeMasterItemEdit() {
             document.getElementById('edit-master-modal').classList.add('hidden-el');
             editingMasterId = null;
+            editingMasterRevision = null;
         }
         async function saveMasterItemEdit(event) {
             event.preventDefault();
@@ -1789,11 +1803,11 @@
             const saveBtn = document.getElementById('edit-master-save');
             saveBtn.disabled = true; saveBtn.textContent = 'Menyimpan...';
             try {
-                const { data, error } = await client.from('master_items').update({stock, disc, price}).eq('id', editingMasterId).select('id,stock,disc,price');
+                const { data, error } = await client.from('master_items').update({stock, disc, price}).eq('id', editingMasterId).eq('stock_revision', editingMasterRevision).select('id,stock,disc,price,stock_revision');
                 if (error) throw error;
-                if (!data || !data.length) throw new Error('Tidak ada data yang diperbarui. Periksa izin Supabase.');
+                if (!data || !data.length) throw new Error('Stok berubah karena transaksi/penyesuaian kasir lain. Tutup edit, Refresh, lalu buka produk lagi. Tidak ada perubahan disimpan.');
                 const item = state.items.find(x => String(x.id) === editingMasterId);
-                if (item) Object.assign(item, {stock: data[0].stock, disc: data[0].disc, price: data[0].price});
+                if (item) Object.assign(item, {stock: data[0].stock, disc: data[0].disc, price: data[0].price, stock_revision:data[0].stock_revision});
                 closeMasterItemEdit(); renderAdminTable(); renderProducts(); renderCart();
                 showModal('Berhasil', 'Stok, diskon, dan harga jual produk telah diperbarui.');
             } catch (e) {
@@ -1923,66 +1937,159 @@
         }
         function deleteVoucher(nama) { showModal("Konfirmasi", `Hapus voucher "${nama}"?`, true, async () => { await client.from('vouchers').delete().eq('nama', nama); await loadData(); }); }
 
-        // EXCEL BULK UPLOAD ROBUST PARSER & PROGRESS
-        async function processWorkbookData(workbook, statusEl) {
-            const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
-            if (rawData.length === 0) throw new Error("Data spreadsheet kosong");
-
-            const cleanKey = str => str ? str.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
-            const getVal = (row, keys) => {
-                const norm = {}; Object.keys(row).forEach(k => norm[cleanKey(k)] = row[k]);
-                for(let k of keys) if(norm[cleanKey(k)] !== undefined && norm[cleanKey(k)] !== "") return norm[cleanKey(k)]; return null;
-            };
-            const cleanNum = val => {
-                if(!val) return 0; if(typeof val === 'number') return val;
-                let s = val.toString().trim().replace(/[^0-9\.\-\,]/g, '');
-                if(s.includes(',')&&s.includes('.')) s = s.replace(/\./g, '').replace(',', '.'); else if(s.includes(',')) s = s.replace(',', '.');
-                return isNaN(parseFloat(s)) ? 0 : parseFloat(s);
-            };
-
-            let formatted = [];
-            rawData.forEach(r => {
-                const id = getVal(r, ['Kode Stock', 'kodestock', 'id']); const name = getVal(r, ['Nama Barang', 'nama', 'name']);
-                if(!id && !name) return;
-                formatted.push({
-                    id: (id || `STK-${Date.now()}-${Math.floor(Math.random()*1000)}`).toString().trim(),
-                    name: (name || 'Unknown').toString().trim(),
-                    kelompok: (getVal(r, ['Kelompok', 'brand']) || '').toString().trim(), family: (getVal(r, ['Family']) || '').toString().trim(),
-                    orig_code: (getVal(r, ['Original Code', 'origcode']) || '').toString().trim(),
-                    disc: cleanNum(getVal(r, ['Disc', 'diskon'])), stock: cleanNum(getVal(r, ['Qty Akhir', 'stok', 'qty'])),
-                    cost: cleanNum(getVal(r, ['Harga Beli Akhir', 'modal'])), price: cleanNum(getVal(r, ['Harga Jual', 'price']))
-                });
-            });
-
-            const uniqMap = new Map(); formatted.forEach(i => uniqMap.set(i.id, i)); const finalData = Array.from(uniqMap.values());
-            const batchSize = 1000;
-            for (let i = 0; i < finalData.length; i += batchSize) {
-                statusEl.innerHTML = `<span class="text-purple-600"><i class="fas fa-spinner fa-spin"></i> Memproses Data ${i} s.d ${i+batchSize} (Total ${finalData.length})...</span>`;
-                const batch = finalData.slice(i, i + batchSize);
-                const { error } = await client.from('master_items').upsert(batch, { onConflict: 'id' });
-                if (error) throw error;
-            }
-            
-            statusEl.innerHTML = `<span class="text-green-700"><i class="fas fa-check-circle"></i> Berhasil update & tambah ${finalData.length} data.</span>`;
-            await loadData();
+        // MASTER ITEM IMPORT V2 - staging, preview and selective update.
+        let pendingMasterImport = null;
+        let masterImportBusy = false;
+        const MASTER_COLUMNS = {
+            id: ['Kode Stock','kodestock','kode item','kodeitem','sku','id'],
+            name: ['Nama Barang','nama item','nama','name'],
+            kelompok: ['Kelompok','brand'], family: ['Family','family code'],
+            orig_code: ['Original Code','Kode Original','kodeoriginal','origcode'],
+            disc: ['Disc','diskon','discount'], stock: ['Qty Akhir','stok','stock','qty'],
+            cost: ['Harga Beli Akhir','harga beli','hpp','modal','cost'],
+            price: ['Harga Jual','harga jual akhir','het','price']
+        };
+        function normalizeMasterHeader(value) {
+            return String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g,'');
         }
-
+        function parseMasterNumber(value, label, rowIndex) {
+            const str = String(value ?? '').trim();
+            if (!str) return undefined;
+            const normalized = str.replace(/\s/g,'').replace(/rp/ig,'').replace(/[^0-9.,-]/g,'');
+            if (!normalized || normalized === '-') throw new Error(`Baris ${rowIndex}: ${label} bukan angka (${str}).`);
+            let v = normalized;
+            const lastDot = v.lastIndexOf('.'), lastComma = v.lastIndexOf(',');
+            if (lastDot >= 0 && lastComma >= 0) {
+                v = lastDot > lastComma ? v.replace(/,/g,'') : v.replace(/\./g,'').replace(',','.');
+            } else if (lastComma >= 0) {
+                const parts = v.split(',');
+                v = parts.length > 2 || (parts.length === 2 && parts[1].length === 3 && parts[0] !== '0') ? v.replace(/,/g,'') : v.replace(',','.');
+            } else if (lastDot >= 0) {
+                const parts = v.split('.');
+                if (parts.length > 2 || (parts.length === 2 && parts[1].length === 3 && parts[0] !== '0')) v = v.replace(/\./g,'');
+            }
+            const number = Number(v);
+            if (!Number.isFinite(number)) throw new Error(`Baris ${rowIndex}: ${label} bukan angka (${str}).`);
+            return number;
+        }
+        function cancelMasterImport() {
+            pendingMasterImport = null;
+            const box = document.getElementById('import-preview');
+            if (box) box.classList.add('hidden-el');
+        }
+        function prepareMasterImport(header, rows, source) {
+            if (!requireMasterAdmin()) return;
+            cancelMasterImport();
+            const mode = document.getElementById('import-mode').value;
+            const status = document.getElementById('upload-status');
+            const headerIndex = new Map(header.map((x,i) => [normalizeMasterHeader(x),i]));
+            const positions = {};
+            for (const [key, aliases] of Object.entries(MASTER_COLUMNS)) {
+                for (const alias of aliases) {
+                    const idx = headerIndex.get(normalizeMasterHeader(alias));
+                    if (idx !== undefined) { positions[key] = idx; break; }
+                }
+            }
+            if (positions.id === undefined) throw new Error('Kolom Kode Stock wajib ada. Gunakan Template untuk melihat format yang sesuai.');
+            const required = mode === 'stock' ? ['stock'] : mode === 'pricing' ? ['price','disc'] : mode === 'stock_pricing' ? ['stock','price','disc'] : [];
+            for (const key of required) if (positions[key] === undefined) throw new Error(`Kolom ${key} tidak ditemukan di spreadsheet.`);
+            const allowed = mode === 'stock' ? ['stock'] : mode === 'pricing' ? ['price','disc'] : mode === 'stock_pricing' ? ['stock','price','disc'] : ['name','kelompok','family','orig_code','disc','stock','cost','price'];
+            const existingMap = new Map(state.items.map(x => [String(x.id).trim(), x]));
+            const unique = new Map(); let skipped = 0, duplicate = 0; const warnings = [];
+            rows.forEach((row, index) => {
+                const rowNo = index + 2;
+                const id = String(row[positions.id] ?? '').trim();
+                if (!id) { skipped++; if (warnings.length < 10) warnings.push(`Baris ${rowNo}: Kode Stock kosong (dilewati)`); return; }
+                if (unique.has(id)) { duplicate++; if (warnings.length < 10) warnings.push(`Baris ${rowNo}: Kode Stock ${id} duplikat (baris terakhir dipakai)`); }
+                const patch = {id};
+                for (const key of allowed) {
+                    if (positions[key] === undefined) continue;
+                    const raw = String(row[positions[key]] ?? '').trim();
+                    if (!raw) continue; // Jangan timpa data lama dengan kosong
+                    patch[key] = ['disc','stock','price','cost'].includes(key) ? parseMasterNumber(raw,key,rowNo) : raw;
+                }
+                unique.set(id, patch);
+            });
+            const changes = []; let newCount = 0, changed = 0, same = 0;
+            for (const patch of unique.values()) {
+                const previous = existingMap.get(patch.id);
+                if (!previous && mode !== 'all') { skipped++; if (warnings.length < 10) warnings.push(`Kode ${patch.id}: belum ada di Master Item (mode ini hanya update)`); continue; }
+                if (!previous && !patch.name) { skipped++; if (warnings.length < 10) warnings.push(`Kode ${patch.id}: produk baru harus memiliki Nama Barang`); continue; }
+                if (!previous) {
+                    newCount++;
+                    changes.push({id:patch.id, payload:{...patch}, fields:Object.keys(patch).filter(k!=='id'), expected_revision:null});
+                    continue;
+                }
+                const fields = Object.keys(patch).filter(k => k !== 'id' && String(previous[k] ?? '') !== String(patch[k]));
+                if (!fields.length) {same++;continue;}
+                changed++;
+                // Existing rows include prior fields so a Supabase upsert won't reset omitted columns.
+                const payload = Object.fromEntries(fields.map(k => [k, patch[k]]));
+                changes.push({id:patch.id,payload,fields,expected_revision:Number(previous.stock_revision ?? 0)});
+            }
+            pendingMasterImport = {changes, source, changed, newCount, same, skipped, duplicate, mode};
+            const summary = document.getElementById('import-preview-summary');
+            summary.textContent = `SUMBER: ${source}\nMode: ${document.getElementById('import-mode').selectedOptions[0].text}\nAkan diubah: ${changed} | Produk baru: ${newCount} | Tidak berubah: ${same}\nDilewati: ${skipped} | Duplikat: ${duplicate}\nTotal akan disimpan: ${changes.length}`;
+            document.getElementById('import-preview-examples').textContent = [
+                ...changes.slice(0,5).map(c => `${c.id}: ${c.fields.join(', ')}`),
+                ...warnings
+            ].join('\n');
+            document.getElementById('import-preview-examples').style.whiteSpace = 'pre-line';
+            document.getElementById('import-preview').classList.remove('hidden-el');
+            status.textContent = 'Pratinjau selesai. Periksa jumlah perubahan, lalu klik Konfirmasi & Simpan.';
+            status.classList.remove('hidden-el');
+        }
+        async function applyMasterImport() {
+            if (!requireMasterAdmin() || masterImportBusy || !pendingMasterImport) return;
+            const job = pendingMasterImport;
+            if (!job.changes.length) return showModal('Tidak Ada Perubahan','Tidak ditemukan perubahan untuk disimpan.');
+            if (window.posSurtokPendingCheckout) return showModal('Invoice Pending','Selesaikan invoice yang belum terkonfirmasi sebelum impor.');
+            const status = document.getElementById('upload-status');
+            const btn = document.getElementById('import-apply-btn');
+            const pin = window.prompt('Masukkan PIN Admin untuk update Master Item:');
+            if (pin === null) return;
+            masterImportBusy=true;btn.disabled=true;
+            let completed=0;
+            try {
+                for(let i=0;i<job.changes.length;i+=50) {
+                    const rows=job.changes.slice(i,i+50).map(c => ({
+                        id:c.id, patch:c.payload, expected_revision:c.expected_revision
+                    }));
+                    // RPC mengunci baris produk dan mencocokkan revision di PostgreSQL.
+                    const {data,error}=await client.rpc('pos_apply_master_import_safe', {
+                        p_rows:rows,p_admin_name:state.currentUser,p_admin_pin:pin
+                    });
+                    if(error) throw new Error(`Batch ${Math.floor(i/50)+1}: ${error.message}`);
+                    if(!data || data.ok !== true) throw new Error(`Batch ${Math.floor(i/50)+1} belum terkonfirmasi`);
+                    completed+=rows.length;
+                    status.textContent=`Berhasil menyimpan ${completed}/${job.changes.length}. Stok dilindungi revision check.`;
+                }
+                cancelMasterImport();
+                await loadData();
+                status.textContent=`Impor selesai: ${completed} produk. Stok tidak ditimpa jika berubah sejak preview.`;
+            } catch(err) {
+                status.textContent=`Impor dihentikan setelah ${completed}/${job.changes.length}: ${err.message}. Refresh Master Item, tarik ulang data dan periksa selisih; jangan mengulang batch lama.`;
+            } finally {masterImportBusy=false;btn.disabled=false;}
+        }
+        async function processWorkbookData(workbook, statusEl, source='Excel/CSV') {
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            if (!sheet) throw new Error('File spreadsheet tidak punya tab data.');
+            const table = XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});
+            if (table.length < 2) throw new Error('Spreadsheet kosong atau hanya berisi header.');
+            prepareMasterImport(table[0],table.slice(1),source);
+        }
         async function handleBulkUpload() {
             if (!requireMasterAdmin()) return;
-            const file = document.getElementById('excel-file').files[0]; const statusEl = document.getElementById('upload-status');
-            if (!file) return (statusEl.innerHTML = '<span class="text-red-500">Pilih file Excel!</span>', statusEl.classList.remove('hidden-el'));
-            
-            statusEl.innerHTML = '<span class="text-purple-600"><i class="fas fa-spinner fa-spin"></i> Membaca file...</span>'; statusEl.classList.remove('hidden-el');
-            
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
-                    await processWorkbookData(workbook, statusEl);
-                    document.getElementById('excel-file').value = '';
-                } catch(err) { statusEl.innerHTML = `<span class="text-red-600"><i class="fas fa-times-circle"></i> Gagal: ${err.message}</span>`; }
-            };
-            reader.readAsArrayBuffer(file);
+            const file = document.getElementById('excel-file').files[0];
+            const status = document.getElementById('upload-status');
+            status.classList.remove('hidden-el');
+            if (!file) { status.textContent = 'Pilih file Excel/CSV terlebih dahulu.'; return; }
+            status.textContent='Membaca file...';
+            try {
+                const buffer = await file.arrayBuffer();
+                const workbook = XLSX.read(new Uint8Array(buffer),{type:'array'});
+                await processWorkbookData(workbook,status,file.name);
+            } catch(err) { status.textContent = 'Gagal membaca file: '+err.message; }
         }
 
         function normalizeGoogleSheetsUrl(input) {
@@ -2057,10 +2164,7 @@
                     statusEl.textContent = `Mengambil ${offset} dari ${total} baris Google Sheets...`;
                 } while (offset < total);
                 if (!header?.length || !allRows.length) throw new Error('Spreadsheet kosong atau hanya berisi header.');
-                const ws = XLSX.utils.aoa_to_sheet([header, ...allRows]);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, 'Google Sheets');
-                await processWorkbookData(wb, statusEl);
+                prepareMasterImport(header, allRows, 'Google Sheets');
             } catch (err) {
                 statusEl.textContent = 'Gagal: ' + (err.message || String(err));
                 statusEl.classList.add('text-red-600');
@@ -2068,8 +2172,12 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Konfigurasi bawaan POS SURTOK: tidak perlu input URL ulang.
+            // Tetap dapat diubah manual jika suatu saat deployment diganti.
             const field = document.getElementById('gas-webapp-url');
-            if (field) field.value = localStorage.getItem('suryatokoku_gas_url') || '';
+            if (field) field.value = 'https://script.google.com/macros/s/AKfycbwKZknf-GxWBB3hexKkv3fpMMpujCn2PTPqlGzjNoTyVNNR6jkiHb8PKrJP3QZWxVOO/exec';
+            const sheetField = document.getElementById('g-sheets-url');
+            if (sheetField) sheetField.value = 'https://docs.google.com/spreadsheets/d/1RiVNAE8KZc9pK-N6PAns6h1rJ4-OL8hljlBfn6Abp_M/edit?gid=701327707#gid=701327707';
         });
 
         function downloadTemplate() {
@@ -2113,7 +2221,9 @@
 
         function getSoldProducts() {
             const grouped = new Map();
+            const cancelledOrders = new Set((state.reports.transactions||[]).filter(t=>t.cancelled_at).map(t=>t.order_id));
             for (const d of state.reports.details || []) {
+                if(cancelledOrders.has(d.order_id)) continue;
                 const code = String(d.item_id ?? '').trim();
                 const name = String(d.name ?? '').trim();
                 const key = code || `NAMA:${name.toLowerCase()}`;
@@ -2148,7 +2258,7 @@
         }
 
         function renderReportUI() {
-            const txData = state.reports.transactions; let sumTotal = 0, sumDisc = 0; let kMap = {};
+            const txData = state.reports.transactions.filter(t=>!t.cancelled_at); let sumTotal = 0, sumDisc = 0; let kMap = {};
             txData.forEach(t => {
                 sumTotal += parseFloat(t.total)||0; sumDisc += parseFloat(t.discount)||0;
                 const u = t.role || 'Admin'; if(!kMap[u]) kMap[u] = { count: 0, subtotal: 0, dReg: 0, dTier: 0, dVou: 0, total: 0, cash: 0, qris: 0, tf: 0 };
@@ -2185,47 +2295,48 @@
             document.getElementById('report-tx-count').innerText = `${rows.length} Transaksi`;
             document.getElementById('report-table').innerHTML = rows.length ? rows.map(tx => {
                 const safeOrder = encodeURIComponent(String(tx.order_id));
-                return `<tr class="hover:bg-slate-50">
+                return `<tr class="hover:bg-slate-50 ${tx.cancelled_at ? 'opacity-60' : ''}">
                     <td class="p-3 text-xs whitespace-nowrap">${escapeReportHtml(tx.date)} ${escapeReportHtml(String(tx.time||'').substring(0,5))}</td>
-                    <td class="p-3 font-bold font-mono text-xs">${escapeReportHtml(String(tx.order_id).replace('ORD','INV'))}</td>
+                    <td class="p-3 font-bold font-mono text-xs">${escapeReportHtml(String(tx.order_id).replace('ORD','INV'))}${tx.cancelled_at ? '<div class="text-red-700 text-[10px]">DIBATALKAN</div>' : ''}</td>
                     <td class="p-3 text-xs">${escapeReportHtml(tx.role||'Admin')}</td>
                     <td class="p-3 text-[10px] font-bold uppercase">${escapeReportHtml(tx.payment_method||'CASH')}</td>
                     <td class="p-3 text-[10px] uppercase">${escapeReportHtml(tx.tier_promo_name||'')}${tx.tier_promo_name ? '<br>' : ''}${escapeReportHtml(tx.voucher_nama||'-')}</td>
                     <td class="p-3 text-right font-extrabold text-purple-600">${formatRp(tx.total)}</td>
                     <td class="p-3 text-center"><div class="flex justify-center items-center gap-2">
                         <button onclick="showPastReceipt(decodeURIComponent('${safeOrder}'))" class="bg-purple-50 text-purple-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-100">Struk</button>
-                        ${state.role === 'admin' ? `<button onclick="confirmDeleteReceipt(decodeURIComponent('${safeOrder}'))" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100" title="Hapus struk dan detail transaksi">Hapus</button>` : ''}
+                        ${state.role === 'admin' && !tx.cancelled_at ? `<button onclick="confirmDeleteReceipt(decodeURIComponent('${safeOrder}'))" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100" title="Batalkan struk dan simpan riwayat audit">Batalkan</button>` : ''}
                     </div></td>
                 </tr>`;
             }).join('') : '<tr><td colspan="7" class="p-6 text-center text-gray-400">Tidak ada transaksi untuk filter user ini.</td></tr>';
         }
 
-        function confirmDeleteReceipt(orderId) {
-            if (state.role !== 'admin') return showModal('Akses Ditolak', 'Hanya Admin yang boleh menghapus transaksi.');
+        async function confirmDeleteReceipt(orderId) {
+            if (state.role !== 'admin') return showModal('Akses Ditolak', 'Hanya Admin yang boleh membatalkan transaksi.');
             const tx = state.reports.transactions.find(t => String(t.order_id) === String(orderId));
-            if (!tx) return showModal('Tidak Ditemukan', 'Transaksi tidak ada pada laporan yang dimuat.');
-            showModal('Konfirmasi Hapus Struk', `Hapus permanen invoice ${String(orderId).replace('ORD','INV')} milik ${tx.role||'Admin'} senilai ${formatRp(tx.total)}? Detail barang ikut dihapus. Stok TIDAK otomatis dikembalikan. Tindakan ini tidak bisa dibatalkan.`, true, () => deleteReceiptTransaction(orderId));
+            if(!tx) return showModal('Tidak Ditemukan', 'Invoice tidak ditemukan.');
+            if(tx.cancelled_at) return showModal('Sudah Dibatalkan', `Invoice ${orderId} sudah dibatalkan oleh ${tx.cancelled_by || 'Admin'}.`);
+            const reason=window.prompt(`Alasan pembatalan ${orderId} (minimal 5 karakter):`);
+            if(reason === null) return;
+            if(reason.trim().length < 5) return showModal('Alasan Wajib', 'Isi alasan pembatalan minimal 5 karakter.');
+            const pin=window.prompt('Masukkan PIN Admin untuk konfirmasi pembatalan:');
+            if(pin === null) return;
+            showModal('Konfirmasi Batalkan Struk', `Batalkan invoice ${orderId} senilai ${formatRp(tx.total)}? Transaksi & detail TETAP tersimpan sebagai audit. Stok produk akan dikembalikan sesuai QTY asli.`, true,
+                () => deleteReceiptTransaction(orderId,reason.trim(),pin));
         }
-
-        async function deleteReceiptTransaction(orderId) {
-            if (state.role !== 'admin' || !client) return showModal('Akses Ditolak', 'Hanya Admin yang boleh menghapus transaksi.');
+        async function deleteReceiptTransaction(orderId,reason,pin) {
+            if(state.role !== 'admin' || !client) return showModal('Akses Ditolak', 'Khusus Admin.');
             try {
-                // Hapus detail lebih dulu untuk menghindari orphan ketika relasi belum CASCADE.
-                const { error: detailError } = await client.from('transaction_details').delete().eq('order_id', orderId);
-                if (detailError) throw new Error('Gagal menghapus detail: ' + detailError.message);
-                const { data: removed, error: headerError } = await client.from('transactions').delete().eq('order_id', orderId).select('order_id');
-                if (headerError) throw new Error('Detail mungkin sudah terhapus, tetapi header gagal: ' + headerError.message);
-                if (!removed || removed.length !== 1) throw new Error('Header transaksi tidak terhapus. Periksa kebijakan DELETE Supabase (RLS) dan data invoice.');
-                await loadReport();
-                showModal('Struk Dihapus', 'Transaksi berhasil dihapus dari laporan. Stok barang tidak diubah.');
-            } catch (err) {
-                await loadReport();
-                showModal('Gagal Hapus Struk', err.message + ' Periksa Supabase sebelum mencoba kembali.');
-            }
+                const {data,error}=await client.rpc('pos_cancel_receipt_safe', {
+                    p_order_id:orderId,p_admin_name:state.currentUser,p_admin_pin:pin,p_reason:reason
+                });
+                if(error) throw error;
+                if(!data?.ok) throw new Error('Pembatalan belum dikonfirmasi oleh database.');
+                await loadReport(); await loadData();
+                showModal('Struk Dibatalkan', `Invoice ${orderId} dibatalkan. Data audit disimpan dan stok sudah dikembalikan.`);
+            } catch(err) {showModal('Pembatalan Gagal', `${err.message}. Periksa status invoice sebelum mengulang.`);}
         }
-
         function showPastReceipt(orderId) {
-            const tx = state.reports.transactions.find(t => t.order_id === orderId); const items = state.reports.details.filter(d => d.order_id === orderId); if(!tx) return;
+            const tx = state.reports.transactions.find(t => t.order_id === orderId); const items = state.reports.details.filter(d => d.order_id === orderId); if(!tx) return; if(tx.cancelled_at) return showModal('Struk Dibatalkan', `Invoice ${orderId} dibatalkan: ${tx.cancel_reason || '-'}.`);
             const rData = {
                 orderId: orderId, time: tx.time, cashier: tx.role, date: tx.date, items: items.map(i => ({ item_id: i.item_id, orig_code: i.orig_code, name: i.name, qty: i.qty, price: i.price, total: i.total, discount_amount: i.discount_amount, discount_percent: i.discount_percent })),
                 subtotal: tx.subtotal, discount: tx.discount, total: tx.total, cash: 0, change: 0, paymentMethod: tx.payment_method, tierName: tx.tier_promo_name, tierDisc: tx.tier_promo_disc, voucherName: tx.voucher_nama, voucherDisc: tx.voucher_diskon
@@ -2235,8 +2346,9 @@
 
         function exportExcelReport() {
             if(state.reports.transactions.length === 0) return showModal("Data Kosong", "Tidak ada transaksi.");
-            const txData = state.reports.transactions.map(t => ({ "Tanggal": t.date, "Jam": t.time, "Invoice": t.order_id.replace("ORD", "INV"), "Kasir": t.role, "Pembayaran": t.payment_method, "Subtotal": t.subtotal, "Diskon Tier": t.tier_promo_disc, "Voucher": t.voucher_nama||'-', "Diskon Voucher": t.voucher_diskon, "Total Diskon": t.discount, "Pendapatan Bersih": t.total }));
-            const dtData = state.reports.details.map(d => {
+            const txData = state.reports.transactions.map(t => ({ "Tanggal": t.date, "Jam": t.time, "Invoice": t.order_id.replace("ORD", "INV"), "Kasir": t.role, "Pembayaran": t.payment_method, "Subtotal": t.subtotal, "Diskon Tier": t.tier_promo_disc, "Voucher": t.voucher_nama||'-', "Diskon Voucher": t.voucher_diskon, "Total Diskon": t.discount, "Status": t.cancelled_at ? "DIBATALKAN" : "VALID", "Alasan Batal": t.cancel_reason || "", "Pendapatan Bersih": t.cancelled_at ? 0 : t.total }));
+            const cancelledExport = new Set(state.reports.transactions.filter(t=>t.cancelled_at).map(t=>t.order_id));
+            const dtData = state.reports.details.filter(d=>!cancelledExport.has(d.order_id)).map(d => {
                 const pt = state.reports.transactions.find(tx => tx.order_id === d.order_id);
                 return { "Tanggal": d.date, "Invoice": d.invoice_no, "Kasir": d.user_role, "Pembayaran": d.payment_method, "Kode Stock": String(d.item_id ?? '').trim() || '-', "Kode Original": String(d.orig_code ?? '').trim() || '-', "Barang": d.name, "Family": d.family||'-', "Qty": d.qty, "Harga": d.price, "Subtotal": d.subtotal, "Diskon (%)": d.discount_percent, "Diskon Rp": d.discount_amount, "PROMO TIER": pt && pt.tier_promo_name ? "Aktif" : "-", "Total Bersih": d.total };
             });
